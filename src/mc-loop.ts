@@ -9,7 +9,7 @@ import { takeLastImages } from './mc-vision'
 import { captureFirstPerson } from './mc-camera'
 
 export const name = 'mc-loop'
-export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcMystic', 'mcWiki']
+export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcIdentity', 'mcMystic', 'mcWiki']
 
 export interface Config {
   enabled: boolean
@@ -21,6 +21,8 @@ export interface Config {
   persona: string
   historyDepth: number
   maxTokens: number
+  /** 思考深度分层：穿越者主打快速反应（none/low），天神侧走深思考。 */
+  reasoningEffort: string
   brainLogPath: string
   statusPath: string
   viewerPort: number
@@ -40,6 +42,7 @@ export const Config: Schema<Config> = Schema.object({
   persona: Schema.string().default(''),
   historyDepth: Schema.number().default(6),
   maxTokens: Schema.number().default(1024),
+  reasoningEffort: Schema.string().default('none').description('none=最快反应（推荐穿越者）；low/medium/high 逐渐深思'),
   brainLogPath: Schema.string().default('./data/mc-brain.log'),
   statusPath: Schema.string().default('./data/status.json'),
   viewerPort: Schema.number().default(3001),
@@ -98,19 +101,22 @@ export function apply(ctx: Context, config: Config) {
   const getBot = (): Bot => ctx.mcbot
   const memory = ctx.mcMemory
   // 人格来源优先级：显式 config.persona > 穿越者档案（按 bot.username 匹配）> 默认「小石」。
+  // 档案命中时走 mc-identity 的身份锚：persona + 前世故事全文常驻——
+  // 身份不能只靠检索（检索词不命中就断片），"我是谁"每步都在场（2026-08-17 防失忆）。
   // 注意：bot.username 在装配时尚未 login（undefined），须延迟到运行时解析。
   let personaLogged = false
   function getPersona(): string {
     if (config.persona && config.persona.trim()) return config.persona
     const username = getBot().username
     if (username) {
-      const t = ctx.mcTransmigrators.getByUsername(username)
-      if (t?.persona) {
+      const anchored = ctx.mcIdentity.anchor(username)
+      if (anchored) {
         if (!personaLogged) {
-          log(`persona loaded from transmigrator "${t.name}" (${t.origin})`)
+          const t = ctx.mcTransmigrators.getByUsername(username)
+          log(`persona loaded from transmigrator "${t?.name ?? username}" (${t?.origin ?? 'ip'}) + identity anchor (backstory)`)
           personaLogged = true
         }
-        return t.persona
+        return anchored
       }
     }
     return DEFAULT_PERSONA
@@ -499,9 +505,24 @@ export function apply(ctx: Context, config: Config) {
         ].join('\n')
       }
     } catch { /* wiki 不可用时静默跳过 */ }
+    // 长期语义记忆（MemOS）：用当前目标检索本穿越者的旧经历注入决策上下文。
+    // 每穿越者独立记忆池（user_id=mc-<username>）；MemOS 不可用时静默跳过。
+    let memosBlock = ''
+    try {
+      const recalled = await ctx.mcMemos.recall(bot.username || 'unknown', currentGoal ?? status, 3)
+      if (recalled) {
+        memosBlock = [
+          '',
+          '你的往事回忆（长期记忆，语义检索自动召回）：',
+          ...recalled.split('\n').map((l: string) => `- ${l}`),
+          '',
+        ].join('\n')
+      }
+    } catch { /* memos 不可用时静默跳过 */ }
     const system = [
       getPersona(),
       wikiBlock,
+      memosBlock,
       config.goal ? `你的总体任务（若与人设冲突，以本条为准）：${config.goal}` : '',
       '',
       '关于「天神」与「真人玩家」：',
@@ -510,8 +531,14 @@ export function apply(ctx: Context, config: Config) {
       '- 真人玩家不是神。他们是这个世界里的「其他人」——可能是别的穿越者、村民，或是和你一样在方块世界里生活的人',
       '  （比如 MengMeng 和她的家人）。你把他们当朋友、同伴，平等自然地相处，不必像对神明那样敬畏。',
       '- 但来自真人玩家的话要认真听：',
-      '  他们问你话 → 用 mc_chat 回应；给你指示 → 尽量照做；给你东西（物品凭空出现在背包里）→ 那是同伴的好意，要心怀感激并善加利用。',
+      '  他们问你话 → 用 mc_voice 回应（正常说话）；给你指示 → 尽量照做；给你东西（物品凭空出现在背包里）→ 那是同伴的好意，要心怀感激并善加利用。',
       '- 跟真人玩家说话要自然、有礼貌，像和同伴聊天一样，别冷冰冰地报参数。',
+      '',
+      '关于「说话与书信」（2026-08-17 世界规则）：',
+      '- 日常交流用 mc_voice：说话有距离感——正常说约48格内听见，喊（shout）约96格但每次费1点饱食度，悄悄话（whisper）只传身边约6格。隔得远就听不见，回执会告诉你谁听见了。',
+      '- mc_chat 是全服大喇叭（重大宣告才用）；填 to 参数则变成不限距离的私语直达。',
+      '- 书信：mc_mail 寄信（好友之间、离线可达——对方下次上线会收到提醒），适合给不在身边的同伴留言、捎话、正式致谢。',
+      '- 好友是写信的前置：mc_friend add 结交 → 对方 mc_friend accept 答应 → 互寄书信。把一起冒险过的同伴加为好友吧。',
       '',
       '关于「咏唱魔法」：',
       '- 你可以「咏唱魔法」施展法术（使用 mc_chant 工具，用中二的口吻喊出咒语，咒语里必须带上法术关键词）。',
@@ -549,6 +576,12 @@ export function apply(ctx: Context, config: Config) {
       '- 需要资源时，去记忆里记下的资源点，而不是盲目乱逛。',
       '- 危险或天黑时，回到基地。',
       '- 发现新东西（资源、建筑）时，记下来。',
+      '',
+      '关于「长期记忆」（跨重启的往事回忆）：',
+      '- mc_remember 把重要经历写入你的长期记忆（新发现/重要交易/与人交往/教训/计划承诺），一次一件事，写完整句子带细节（坐标/人名/数量）。',
+      '- mc_recall 模糊检索往事：「我上次在哪见过钻石」「我和谁有什么约定」。想不起来就查，别瞎猜。',
+      '- 重要经历要主动记：遇见新朋友、发现新地点、达成交易、吃过亏——现在不记，重启后就忘了。',
+      '- mc_lore 查世界公共知识库（人人都可读）：世界来历、编年史大事、NPC 传闻、魔法与供奉规则。了解世界、查历史、打听人物时用它，别把传说当个人回忆。',
       '',
       '每次行动前，先用一句话说出你的「思考」(thought)，再说明你当前在追求的「目标」(goal)，',
       '然后从可用工具里选一个最合适的执行。如果当前不需要行动，tool 填 "none"。',
@@ -604,7 +637,7 @@ export function apply(ctx: Context, config: Config) {
         ],
         temperature: 0.4,
         max_tokens: config.maxTokens,
-        reasoning_effort: 'none',
+        reasoning_effort: config.reasoningEffort,
         stream: false,
       }),
     })

@@ -1080,14 +1080,27 @@ export function apply(ctx: Context) {
   ctx.tools.register(defineTool({
     name: 'mc_chat',
     description:
-      'Send a chat message to the world. Use this to reply to a real player (the "god" watching over you), answer a question, or narrate what you are doing.',
+      '全服公屏广播（整个世界都听见的大喇叭）——重大宣告才用，如自我介绍、重要发现、集结呼喊。' +
+      '日常和身边的同伴说话用 mc_voice（有距离感：说48格/喊96格/悄悄6格）；' +
+      '对某个人说私话且不管距离时，填 to 参数（私语直达，只有对方听得见）；' +
+      '给离线/远方的人留言用 mc_mail（书信）。',
     parameters: {
       message: { type: 'string', description: 'the message to say in chat' },
+      to: { type: 'string', description: '私语直达：对方游戏ID。填了就只对这个人说（不限距离），留空则公屏广播' },
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     execute: guard(bot, async (args) => {
       const msg = String(args.message ?? '').trim()
       if (!msg) return 'no message'
+      const to = String(args.to ?? '').trim()
+      if (to) {
+        try {
+          bot.whisper(to, msg)
+          return `whispered to ${to}: ${msg}`
+        } catch {
+          return `whisper to ${to} failed (connection error)`
+        }
+      }
       bot.chat(msg)
       return `said: ${msg}`
     }),

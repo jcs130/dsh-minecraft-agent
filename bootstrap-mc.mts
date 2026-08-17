@@ -11,10 +11,14 @@ import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as mcBot from './src/mc-bot.ts'
 import * as mcTools from './src/mc-tools.ts'
 import * as mcMemory from './src/mc-memory.ts'
+import * as mcMemos from './src/mc-memos.ts'
+import * as mcEvolve from './src/mc-evolve.ts'
 import * as mcTransmigrator from './src/mc-transmigrator.ts'
+import * as mcIdentity from './src/mc-identity.ts'
 import * as mcMystic from './src/mc-mystic.ts'
 import * as mcWiki from './src/mc-wiki.ts'
 import * as mcLoop from './src/mc-loop.ts'
+import * as mcPanel from './src/mc-panel.ts'
 
 const RUN_MS = Number(process.env.RUN_MS ?? 0)
 // 进程级兜底：mineflayer/prismarine 内部 promise（如 villager 窗口超时）拒绝时没有
@@ -39,11 +43,11 @@ await ctx.plugin(SystemPrompt)
 await ctx.plugin(ToolRuntime)
 
 await ctx.plugin(mcBot, {
-  host: 'localhost',
-  port: 25565,
+  host: process.env.MC_HOST ?? 'localhost',
+  port: Number(process.env.MC_PORT ?? 25565),
   username: process.env.MC_USERNAME ?? 'HarnessBot',
   autoReconnect: true,
-  viewerEnabled: true,
+  viewerEnabled: process.env.MC_VIEWER !== '0',
   viewerFirstPerson: false,
   viewerPort,
 })
@@ -52,8 +56,36 @@ await ctx.plugin(mcMemory, {
   memoryPath: './data/mc-memory.json',
   maxPointsPerType: 20,
 })
+// 长期语义记忆（MemOS，user_id=mc-<username> 独立记忆池；服务挂了自动降级跳过）。
+await ctx.plugin(mcMemos, {
+  enabled: process.env.MC_MEMOS !== '0',
+  baseUrl: process.env.MC_MEMOS_URL ?? 'http://127.0.0.1:8002',
+  timeoutMs: 8_000,
+  maxRecall: 5,
+})
+
+// 夜间自我进化（游戏夜入睡触发：MemOS 双池记忆蒸馏成 wiki 教训卡 + 长线成长记忆）。
+await ctx.plugin(mcEvolve, {
+  enabled: process.env.MC_EVOLVE !== '0',
+  baseUrl: process.env.MC_LLM_URL ?? 'http://localhost:8890/v1',
+  apiKey: process.env.MC_LLM_KEY ?? 'sk-local',
+  model: process.env.MC_LLM_MODEL ?? 'qwen3.8',
+  cooldownHours: 12,
+  reasoningEffort: 'xhigh', // 慢路径深思考（Qwen3.8 模板档位：xhigh/medium/low），与白天行动档 none 分层
+  maxTokens: 2048,
+  statePath: './data/evolve-state.json',
+  perQuery: 8,
+  diaryEnabled: process.env.MC_DIARY !== '0',
+  godName: process.env.MC_GOD_NAME ?? 'Goddess',
+})
 await ctx.plugin(mcTransmigrator, {
   registryPath: './data/transmigrators.json',
+})
+// 身份之锚：persona+backstory 常驻 system prompt 防失忆 + 前世记忆切片种子进 MemOS（幂等）。
+await ctx.plugin(mcIdentity, {
+  seedStatePath: './data/identity-seed.json',
+  maxChunkChars: 400,
+  seedIntervalMs: 300,
 })
 await ctx.plugin(mcMystic, {
   enabled: true,
@@ -66,16 +98,27 @@ await ctx.plugin(mcWiki, {
   dataDir: './data',
   maxCards: 200,
 })
+// 可视化面板：只读观察本进程 agent（status/wiki/mystic/defects/screenshots 全在盘上），
+// 多 bot 并存时用 MC_PANEL_PORT 区分（如桐人 3200 / 鸣人 3202）。
+await ctx.plugin(mcPanel, {
+  enabled: true,
+  host: process.env.MC_PANEL_HOST ?? '127.0.0.1',
+  port: Number(process.env.MC_PANEL_PORT ?? 3200),
+  dataDir: './data',
+  username: process.env.MC_USERNAME ?? '',
+})
 await ctx.plugin(mcLoop, {
   enabled: true,
   intervalMs: 5000,
-  baseUrl: 'http://127.0.0.1:8890/v1',
-  apiKey: 'sk-local',
-  model: 'qwen3.8',
+  baseUrl: process.env.MC_LLM_BASE_URL ?? 'http://127.0.0.1:8890/v1',
+  apiKey: process.env.MC_LLM_API_KEY ?? 'sk-local',
+  model: process.env.MC_LLM_MODEL ?? 'qwen3.8',
   goal: '你刚从现代穿越到这个方块世界，一无所有。按优先级行动：先保证活下去（吃饱、血量安全、天黑前回基地），再收集木材/石头/煤/铁等基础物资，最后在基地附近建立并经营你的根据地。',
   persona: '',
   historyDepth: 6,
   maxTokens: 1024,
+  // 思考深度分层：穿越者白天主打快速反应（none）；想加深可改 low/medium。
+  reasoningEffort: process.env.MC_REASONING_EFFORT ?? 'none',
   brainLogPath: './data/mc-brain.log',
   statusPath: './data/status.json',
   viewerPort,

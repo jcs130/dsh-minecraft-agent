@@ -248,7 +248,7 @@ export function apply(ctx: Context, config: Config) {
       '【5级】隐身(无形)、雷暴(风暴)、唤马(战马，耗饱食度)\n' +
       '【6级】退魔(驱邪，清剿周围邪祟，耗生命)、铁卫(守护者，耗生命)\n' +
       '【7级】破晓(天亮)、陨石(天雷，耗生命)。\n' +
-      '施法消耗魔力，魔力随时间自动恢复；魔力不足会施法失败。咒语会被全世界听见。',
+      '施法消耗魔力，魔力随时间自动恢复；魔力不足会施法失败。咒语会被全世界听见（公屏）；施法结果由信使私聊单独告知你（成败只有你知道，留意私语）。',
     parameters: {
       chant: {
         type: 'string',
@@ -270,9 +270,12 @@ export function apply(ctx: Context, config: Config) {
       } catch {
         return '你的声音没能传出（连接异常）。'
       }
+      // 回执由信使私聊送达（2026-08-17 起；咒语仍公屏全世界听见，结果只有你知道）；
+      // 兼容旧公屏点名路径。
       const reply = await waitForReply(
         bot,
-        (from, msg, via) => via === 'chat' && from === config.godName && msg.includes(me),
+        (from, msg, via) => (via === 'whisper' && msg.startsWith('[信使]') && msg.includes(me))
+          || (via === 'chat' && from === config.godName && msg.includes(me)),
         config.chantTimeoutMs,
       )
       if (!reply) return '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
@@ -375,6 +378,161 @@ export function apply(ctx: Context, config: Config) {
         return '女神没有回应你的选择——也许降临仪式尚未开始（等女神宣读候选清单），或你的说法她没听懂（用法术名如「归乡」或编号如「选1」）。'
       }
       return reply
+    },
+  }))
+
+  // ── 信使回执收集：mail read 会连发多行 [信使]，收齐到「已读」总结行 ──
+  function collectCourierReplies(bot: Bot, timeoutMs: number): Promise<string[]> {
+    return new Promise((resolve) => {
+      const lines: string[] = []
+      let done = false
+      const onWhisper = (username: string, message: string) => {
+        if (done || username !== config.godName) return
+        if (!message.startsWith('[信使]')) return
+        lines.push(message)
+        if (message.includes('已读')) finish()
+      }
+      const timer = setTimeout(() => finish(), timeoutMs)
+      function finish() {
+        if (done) return
+        done = true
+        clearTimeout(timer)
+        bot.removeListener('whisper', onWhisper)
+        resolve(lines)
+      }
+      bot.on('whisper', onWhisper)
+    })
+  }
+
+  // ── mc_voice：说话三档（说/喊/悄悄，经女神转达，有距离感）──────────
+  ctx.tools.register(defineTool({
+    name: 'mc_voice',
+    description:
+      '说话（日常交流首选，有距离感）。三档音量 style：say=正常说（约48格内听见，默认）；' +
+      'shout=喊（约96格，隔着战场也能听见，但费嗓子——每喊一次消耗1点饱食度）；' +
+      'whisper=悄悄话（只传给身边约6格的人，说秘密用）。' +
+      '话由女神转达给范围内的同伴，离得远就听不见——隔着一座山说话没人理很正常。' +
+      '回执会告诉你几位同伴听见了。想找不在附近或离线的人：写信（mc_mail）。' +
+      '想全世界广播（重大宣告才用）：mc_chat。',
+    parameters: {
+      text: { type: 'string', required: true, description: '要说的话，如「这里的石头不错，我挖点带回去」' },
+      style: { type: 'string', description: '音量档位：say（默认，正常说话）/ shout（喊话，96格+费饱食）/ whisper（悄悄话，6格）' },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+    timeoutMs: 30_000,
+    execute: async (args: Record<string, unknown>) => {
+      const body = String(args.text ?? '').trim()
+      if (!body) return '你没有说话'
+      const bot = getBot()
+      if (!bot.entity) return '你尚未在此界立足，说不出话。'
+      const style = String(args.style ?? 'say').toLowerCase()
+      const mode = style === 'shout' ? '喊' : style === 'whisper' ? '悄悄' : '说'
+      try {
+        bot.whisper(config.godName, `${mode}：${body}`)
+      } catch {
+        return '你的声音没能传出（连接异常）。'
+      }
+      const reply = await waitForReply(
+        bot,
+        (from, msg, via) => via === 'whisper' && from === config.godName
+          && (msg.startsWith('[传声]') || msg.includes('看不见你的身影')),
+        config.prayTimeoutMs,
+      )
+      if (reply) return reply
+      return `话已${mode === '喊' ? '喊出' : mode === '悄悄' ? '悄悄说出' : '说出'}（女神没有回音，附近有没有人听见无从知晓）。`
+    },
+  }))
+
+  // ── mc_mail：女神信使（好友制书信，离线可达）────────────────────────
+  ctx.tools.register(defineTool({
+    name: 'mc_mail',
+    description:
+      '书信（经女神信使投递，好友之间互寄，离线也能收到——他下次上线会被提醒）。' +
+      '写信前须先成为好友（mc_friend add + 对方答应）。' +
+      'action：send=寄信（需 to 游戏ID + body 正文，200字内）；' +
+      'read=拆读未读信件；list=看最近10封清单；clear=清空信箱。' +
+      '适合：跨距离留言、给不在线的同伴捎话、正式的感谢与邀约。',
+    parameters: {
+      action: { type: 'string', required: true, description: 'send / read / list / clear' },
+      to: { type: 'string', description: 'send 时必填：收信人游戏ID（如 Kirito / Naruto / MengMeng）' },
+      body: { type: 'string', description: 'send 时必填：信的正文，200字内' },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+    timeoutMs: 30_000,
+    execute: async (args: Record<string, unknown>) => {
+      const action = String(args.action ?? '').trim().toLowerCase()
+      const bot = getBot()
+      if (!bot.entity) return '你尚未在此界立足。'
+      let command = ''
+      if (action === 'send') {
+        const to = String(args.to ?? '').trim()
+        const body = String(args.body ?? '').trim()
+        if (!to || !body) return '寄信要写清 to（游戏ID）和 body（正文）。'
+        command = `/mail send ${to} ${body}`
+      } else if (action === 'read' || action === 'list' || action === 'clear') {
+        command = `/mail ${action}`
+      } else {
+        return 'action 只支持 send / read / list / clear。'
+      }
+      try {
+        bot.whisper(config.godName, command)
+      } catch {
+        return '信没能送到女神手里（连接异常）。'
+      }
+      if (action === 'read') {
+        const lines = await collectCourierReplies(bot, config.prayTimeoutMs)
+        if (lines.length === 0) return '（信使没有回应——稍后再试 /mail read。）'
+        return lines.join('\n')
+      }
+      const reply = await waitForReply(
+        bot,
+        (from, msg, via) => via === 'whisper' && from === config.godName && msg.startsWith('[信使]'),
+        config.prayTimeoutMs,
+      )
+      return reply || '（信使没有回应——稍后再试。）'
+    },
+  }))
+
+  // ── mc_friend：结交好友（好友制社交，写信的前置）────────────────────
+  ctx.tools.register(defineTool({
+    name: 'mc_friend',
+    description:
+      '好友（社交的第一步，写信 mc_mail 的前置）。action：' +
+      'add=请求结交（对方会收到提示，用 friend accept 答应）；' +
+      'accept=答应别人的好友请求（填对方游戏ID）；' +
+      'remove=解除好友；list=看好友与待答复的请求。' +
+      '结为好友后即可互相写信。把一起冒险过的同伴加为好友吧。',
+    parameters: {
+      action: { type: 'string', required: true, description: 'add / accept / remove / list' },
+      to: { type: 'string', description: 'add/accept/remove 时填对方游戏ID；list 不用' },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+    timeoutMs: 30_000,
+    execute: async (args: Record<string, unknown>) => {
+      const action = String(args.action ?? '').trim().toLowerCase()
+      const bot = getBot()
+      if (!bot.entity) return '你尚未在此界立足。'
+      let command = ''
+      if (action === 'list') {
+        command = '/friend list'
+      } else if (action === 'add' || action === 'accept' || action === 'remove') {
+        const to = String(args.to ?? '').trim()
+        if (!to) return `action=${action} 要填 to（对方游戏ID）。`
+        command = `/friend ${action} ${to}`
+      } else {
+        return 'action 只支持 add / accept / remove / list。'
+      }
+      try {
+        bot.whisper(config.godName, command)
+      } catch {
+        return '请求没能送到女神手里（连接异常）。'
+      }
+      const reply = await waitForReply(
+        bot,
+        (from, msg, via) => via === 'whisper' && from === config.godName && msg.startsWith('[信使]'),
+        config.prayTimeoutMs,
+      )
+      return reply || '（信使没有回应——稍后再试。）'
     },
   }))
 
