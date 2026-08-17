@@ -1,0 +1,72 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# runtime state (mc-memory.json and other per-world artifacts)
+data/*
+
+# scratch diagnostic scripts + verification flag dirs (not part of the plugin)
+.diag*.mts
+.chest-test/
+.trade-test/
+examples/chest-test.mts
+
+# local ops scripts (may contain RCON password / local absolute paths)
+*.py
+!tools/gen_viewer_assets.py
+
+# viewer asset baking cache
+tools/assets_cache/
+
+# transmigrator persona library is a first-class open-source artifact
+!data/transmigrators/
+
+# world-side code & assets live in the companion world repo (minecraft-ai-friend);
+# copies are kept on disk here only for the ops runtime
+/bootstrap-world.mts
+/web-panel.mjs
+/start-world.bat
+/start-panel.bat
+/start_webpanel.py
+/check_panel.cjs
+/magic-test.mjs
+/rcon-test.mts
+/ritual-test.mts
+/passive-e2e.mts
+/test-appraise.mts
+/test-balance.mts
+/test-growth.mts
+/test-logwatch.mts
+/test-offering.mts
+/analyze-skill-usage.mts
+/src/mc-god.ts
+/src/mc-logwatch.ts
+/src/mc-magic.ts
+/src/mc-offering.ts
+/src/mc-rcon.ts
+/src/mc-ritual.ts
+/src/mc-worlddb.ts
+/src/rcon.ts
+/docs/design-alias-attributes.md
+/docs/skill-growth-design.md
