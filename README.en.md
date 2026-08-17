@@ -33,7 +33,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin sys
                         │ RCON (world side)   │  chat / whispers
     ┌───────────────────┴──────────┐   ┌──────┴──────────────────────┐
     │  WORLD PROCESS               │   │  TRANSMIGRATOR PROCESS ×N   │
-    │  (companion private repo)    │   │  bootstrap-mc.mts (here)    │
+    │  (companion open-source repo) │   │  bootstrap-mc.mts (here)    │
     │  bootstrap-world.mts         │   │                             │
     │  mc-rcon / mc-magic /        │◄──┼── chat only ──              │
     │  mc-god / mc-ritual /        │   │  mc-bot      mineflayer     │

@@ -32,7 +32,7 @@
                 └───────▲─────────────────────▲───────────────┘
                         │ RCON(世界端独占)     │  公屏聊天 / 私聊
     ┌───────────────────┴──────────┐   ┌──────┴──────────────────────┐
-    │  世界进程（配套私有仓库）      │   │  穿越者进程 ×N（本仓库）      │
+    │  世界进程（配套开源仓库）      │   │  穿越者进程 ×N（本仓库）      │
     │  bootstrap-world.mts         │   │  bootstrap-mc.mts           │
     │  mc-rcon/mc-magic/mc-god/    │◄──┼── 仅聊天 ──                 │
     │  mc-ritual/mc-worlddb/...    │   │  mc-bot      mineflayer     │
@@ -83,7 +83,7 @@
 ## 快速开始
 
 1. 把本仓库 clone 到 DeepSeek Harness checkout 旁边（`start-*.bat` 期望 `..\node_modules` 存在），先跑一次 `setup-vendor-links.bat` 修复 `@deepseek-ai` junction。
-2. 在 MC 服务器那台机器上启动**世界进程**（配套私有仓库的 `start-world.bat`）。
+2. 在 MC 服务器那台机器上启动**世界进程**（配套开源仓库 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend) 的 `start-world.bat`）。
 3. 每个 AI 玩家启动一个穿越者：
 
 ```bash
