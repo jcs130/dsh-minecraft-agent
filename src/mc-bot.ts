@@ -33,6 +33,8 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+type Handler = (...args: any[]) => void
+
 export function apply(ctx: Context, config: Config) {
   const log = (msg: string) => console.log(`[mc-bot-service] ${msg}`)
   let disposed = false
@@ -40,7 +42,94 @@ export function apply(ctx: Context, config: Config) {
   let currentBot: Bot | null = null
   let closeViewer: (() => void) | null = null
 
-  function connect(): Bot {
+  // ------------------------------------------------------------------
+  // 稳定门面（2026-08-18 修复：僵尸实例 bug）
+  //
+  // 旧实现每次重连 ctx.set('mcbot', 新实例)，但所有插件在 apply 时
+  // `const bot = ctx.mcbot` 一次性捕获引用——重连一次后工具层/事件层
+  // 全部攥着死实例（docker 下 bot 与服务器并发启动，首连必失败，
+  // bug 从偶发变成必现）。
+  //
+  // 现在只 provide 一次"门面"：属性访问动态转发到 currentBot；
+  // on/once/off 注册进持久表，每个新实例上线时全量重挂——事件监听
+  // 跨重连存活。所有插件无需任何改动即痊愈。
+  // ------------------------------------------------------------------
+  const persistentListeners = new Map<string, Set<Handler>>()
+
+  function persistAdd(event: string, handler: Handler): void {
+    let set = persistentListeners.get(event)
+    if (!set) {
+      set = new Set()
+      persistentListeners.set(event, set)
+    }
+    set.add(handler)
+  }
+
+  function persistRemove(event: string, handler: Handler): void {
+    persistentListeners.get(event)?.delete(handler)
+  }
+
+  function attachAll(bot: Bot): void {
+    for (const [event, set] of persistentListeners) {
+      for (const handler of set) bot.on(event, handler)
+    }
+    if (persistentListeners.size > 0) {
+      log(`bridged ${persistentListeners.size} persistent event(s) to new bot instance`)
+    }
+  }
+
+  const facade: Bot = new Proxy({} as Bot, {
+    get(_target, prop) {
+      // 事件 API：登记进持久表并挂到当前实例
+      if (prop === 'on') {
+        return (event: string, handler: Handler) => {
+          persistAdd(event, handler)
+          if (currentBot) currentBot.on(event, handler)
+          return facade
+        }
+      }
+      if (prop === 'once') {
+        return (event: string, handler: Handler) => {
+          const wrapped: Handler = (...args: any[]) => {
+            persistRemove(event, wrapped)
+            handler(...args)
+          }
+          persistAdd(event, wrapped)
+          if (currentBot) currentBot.on(event, wrapped)
+          return facade
+        }
+      }
+      if (prop === 'off' || prop === 'removeListener') {
+        return (event: string, handler: Handler) => {
+          persistRemove(event, handler)
+          if (currentBot) currentBot.removeListener(event, handler)
+          return facade
+        }
+      }
+      if (prop === 'removeAllListeners') {
+        return (event?: string) => {
+          if (event) persistentListeners.delete(event)
+          else persistentListeners.clear()
+          if (currentBot) currentBot.removeAllListeners(event)
+          return facade
+        }
+      }
+      if (!currentBot) {
+        throw new Error('bot not connected (yet)')
+      }
+      const value = Reflect.get(currentBot, prop, currentBot)
+      return typeof value === 'function' ? (value as (...a: any[]) => any).bind(currentBot) : value
+    },
+    set(_target, prop, value) {
+      if (!currentBot) return false
+      return Reflect.set(currentBot, prop, value, currentBot)
+    },
+    has(_target, prop) {
+      return !!currentBot && Reflect.has(currentBot, prop)
+    },
+  })
+
+  function connect(): void {
     log(`connecting to ${config.host}:${config.port} as "${config.username}"`)
     const bot = mineflayer.createBot({
       host: config.host,
@@ -49,18 +138,16 @@ export function apply(ctx: Context, config: Config) {
       checkTimeoutInterval: 30_000,
     })
     currentBot = bot
-    // Register the service on first connect; reconnects overwrite the value.
-    // (cordis: `set` on an unprovided name throws, so provide must come first.)
-    if (provided) {
-      ctx.set('mcbot', bot)
-    } else {
-      ctx.provide('mcbot', bot)
+    // 只 provide 一次门面；后续重连不再覆盖 DI 值（门面永不过期）。
+    if (!provided) {
+      ctx.provide('mcbot', facade)
       provided = true
     }
 
-    // Official plugins: pathfinding + best-tool-for-block selection.
+    // 官方插件 + 把持久事件监听桥接到新实例
     bot.loadPlugin(pf.pathfinder)
     bot.loadPlugin(toolPlugin)
+    attachAll(bot)
 
     bot.once('spawn', async () => {
       const p = bot.entity?.position
@@ -74,17 +161,14 @@ export function apply(ctx: Context, config: Config) {
       // 两个实例的 close 句柄分别保存；重连时先全部关闭再重建。
       // viewer 懒加载：不用 viewer（MC_VIEWER=0）的部署完全不需要装
       // node-canvas-webgl/canvas/gl 这些 native 依赖（很多平台编译不过）。
+      // ⚠️ 必须变量化 import 路径：esbuild 会把字面量 `import('prismarine-viewer')`
+      // 提升成顶层静态 import，导致 viewerEnabled=false 时加载即崩。
       if (config.viewerEnabled) {
         try {
           if (closeViewer) {
             closeViewer()
             closeViewer = null
           }
-          // ⚠️ 必须变量化 import 路径：esbuild 会把字面量 `import('prismarine-viewer')`
-          // 提升成顶层静态 import（CJS/ESM 都如此），导致即使 viewerEnabled=false，
-          // 模块加载时就 require prismarine-viewer → canvas。世界镜像用
-          // --omit=optional 跳过 canvas，会直接崩。变量化后 esbuild 无法静态分析，
-          // 保持真正的懒加载（viewer 关闭的部署完全不需要 canvas 全家桶）。
           const pvModule = 'prismarine-viewer'
           const pv = await import(pvModule)
           const prismarineViewer = (pv as any).default
@@ -113,6 +197,34 @@ export function apply(ctx: Context, config: Config) {
       }
     })
 
+    // 死亡自动复活（2026-08-18：Kirito 溺水后卡死亡屏，无人叫醒）
+    bot.on('death', () => {
+      log('died, auto-respawn in 2s')
+      setTimeout(() => {
+        if (disposed || currentBot !== bot) return
+        try {
+          bot.respawn()
+        } catch (err) {
+          log(`respawn failed: ${(err as Error).message}`)
+        }
+      }, 2000)
+    })
+
+    // 兜底：登录时玩家已处于死亡屏（不会发 death 事件），5s 无实体强制复活
+    bot.on('login', () => {
+      setTimeout(() => {
+        if (disposed || currentBot !== bot) return
+        if (!bot.entity) {
+          log('no entity 5s after login (dead at login?), forcing respawn')
+          try {
+            bot.respawn()
+          } catch (err) {
+            log(`force respawn failed: ${(err as Error).message}`)
+          }
+        }
+      }, 5000)
+    })
+
     bot.on('error', (err: Error) => {
       log(`bot error: ${err.message}`)
     })
@@ -126,8 +238,6 @@ export function apply(ctx: Context, config: Config) {
         }, 3000)
       }
     })
-
-    return bot
   }
 
   connect()
