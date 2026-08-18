@@ -75,3 +75,4 @@ mc-server/
 # scratch e2e verification (ritual registration flow tests)
 ritual-e2e-*.mjs
 ritual-e2e-*.log
+*.vbs 
