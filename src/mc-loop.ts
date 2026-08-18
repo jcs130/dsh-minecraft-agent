@@ -9,7 +9,7 @@ import { takeLastImages } from './mc-vision'
 import { captureFirstPerson } from './mc-camera'
 
 export const name = 'mc-loop'
-export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcIdentity', 'mcMystic', 'mcWiki', 'mcVillage']
+export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcIdentity', 'mcMystic', 'mcWiki', 'mcAdapt', 'mcVillage']
 
 export interface Config {
   enabled: boolean
@@ -521,10 +521,17 @@ export function apply(ctx: Context, config: Config) {
         ].join('\n')
       }
     } catch { /* memos 不可用时静默跳过 */ }
+    // 三层自我进化注入（mc-adapt）：死亡热点（确定性）+ 自调参数 + 神谕核准方向。
+    let adaptBlock = ''
+    try {
+      const p = bot.entity?.position
+      adaptBlock = ctx.mcAdapt?.promptBlock(bot.username || 'unknown', p ? Math.floor(p.x) : null, p ? Math.floor(p.z) : null) ?? ''
+    } catch { /* mc-adapt 不可用时静默跳过 */ }
     const system = [
       getPersona(),
       wikiBlock,
       memosBlock,
+      adaptBlock,
       config.goal ? `你的总体任务（若与人设冲突，以本条为准）：${config.goal}` : '',
       '',
       '关于「天神」与「真人玩家」：',

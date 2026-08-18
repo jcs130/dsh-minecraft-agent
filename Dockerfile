@@ -76,6 +76,7 @@ COPY deepseek-harness/scratch-plugin/src/mc-bot.ts \
      deepseek-harness/scratch-plugin/src/mc-memory.ts \
      deepseek-harness/scratch-plugin/src/mc-memos.ts \
      deepseek-harness/scratch-plugin/src/mc-evolve.ts \
+     deepseek-harness/scratch-plugin/src/mc-adapt.ts \
      deepseek-harness/scratch-plugin/src/mc-transmigrator.ts \
      deepseek-harness/scratch-plugin/src/mc-identity.ts \
      deepseek-harness/scratch-plugin/src/mc-mystic.ts \

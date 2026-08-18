@@ -13,6 +13,7 @@ import * as mcTools from './src/mc-tools.ts'
 import * as mcMemory from './src/mc-memory.ts'
 import * as mcMemos from './src/mc-memos.ts'
 import * as mcEvolve from './src/mc-evolve.ts'
+import * as mcAdapt from './src/mc-adapt.ts'
 import * as mcTransmigrator from './src/mc-transmigrator.ts'
 import * as mcIdentity from './src/mc-identity.ts'
 import * as mcMystic from './src/mc-mystic.ts'
@@ -78,6 +79,13 @@ await ctx.plugin(mcEvolve, {
   perQuery: 8,
   diaryEnabled: process.env.MC_DIARY !== '0',
   godName: process.env.MC_GOD_NAME ?? 'Goddess',
+})
+// 三层自我进化（2026-08-18 全量上线）：L1 死亡热点确定性注入 + L2 参数自调（mc_selftune）
+// + L3 提议进化（mc_evolve_propose → 女神审核 → 神谕核准指令回注 prompt）。
+await ctx.plugin(mcAdapt, {
+  enabled: process.env.MC_ADAPT !== '0',
+  dataDir: './data',
+  godName,
 })
 await ctx.plugin(mcTransmigrator, {
   registryPath: './data/transmigrators.json',
