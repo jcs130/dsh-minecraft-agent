@@ -17,6 +17,9 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tools: any
+    /** mc-village 插件提供：NPC 感知（nearbyLines / drainMessages / snapshot） */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mcVillage: any
     /** Read a service without the inject requirement. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     get(name: string, strict?: boolean): any
@@ -40,6 +43,9 @@ declare module '../../vendor/cordis/lib/types/context' {
   interface Context {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tools: any
+    /** mc-village 插件提供：NPC 感知（nearbyLines / drainMessages / snapshot） */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mcVillage: any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     get(name: string, strict?: boolean): any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

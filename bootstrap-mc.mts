@@ -17,6 +17,7 @@ import * as mcTransmigrator from './src/mc-transmigrator.ts'
 import * as mcIdentity from './src/mc-identity.ts'
 import * as mcMystic from './src/mc-mystic.ts'
 import * as mcWiki from './src/mc-wiki.ts'
+import * as mcVillage from './src/mc-village.ts'
 import * as mcLoop from './src/mc-loop.ts'
 import * as mcPanel from './src/mc-panel.ts'
 
@@ -106,6 +107,10 @@ await ctx.plugin(mcPanel, {
   port: Number(process.env.MC_PANEL_PORT ?? 3200),
   dataDir: './data',
   username: process.env.MC_USERNAME ?? '',
+})
+await ctx.plugin(mcVillage, {
+  dataDir: process.env.MC_DATA_DIR ?? './data',
+  nearbyRadius: 28,
 })
 await ctx.plugin(mcLoop, {
   enabled: true,

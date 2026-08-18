@@ -9,7 +9,7 @@ import { takeLastImages } from './mc-vision'
 import { captureFirstPerson } from './mc-camera'
 
 export const name = 'mc-loop'
-export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcIdentity', 'mcMystic', 'mcWiki']
+export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcIdentity', 'mcMystic', 'mcWiki', 'mcVillage']
 
 export interface Config {
   enabled: boolean
@@ -471,6 +471,8 @@ export function apply(ctx: Context, config: Config) {
       `inventory: ${inv}`,
       `nearby entities: ${nearby.length ? nearby.join('; ') : 'none'}`,
       `nearby resources: ${resources.length ? resources.join('; ') : 'none'}`,
+      `village NPCs nearby: ${ctx.mcVillage?.nearbyLines(p) || '(none)'}`,
+      `NPC/goddess words: ${ctx.mcVillage?.drainMessages() || '(none)'}`,
       `new chat from players: ${freshChat || '(none)'}`,
     ].join('\n')
   }
@@ -551,6 +553,12 @@ export function apply(ctx: Context, config: Config) {
       '- 【三层自救铁律——法术是最后手段】遇困时按顺序尝试：①先用手头生存手段——嵌方块就 mc_dig 挖开头顶/身旁、坑底就对着脚下 mc_place 垫方块搭台阶、地形复杂就绕路或找坡道（mc_look 找 openSky 出口）；②手段无效或情况紧急再评估——mc_look 看清处境，换一个完全不同的思路；③真绝境才咏唱（传送脱困/圣愈救命）。咏唱脱困是丢脸的事：一个矿工被区区坑洞逼到用魔法，会被同伴笑话。能用双手解决的，绝不劳烦女神。',
       '- 真正的求救是绝境：又饿又伤又回不了家、被怪物围殴濒死、身体怎么挖都嵌着不动——这时候才值得咏唱。其他求救：归乡（回家，需先睡床设重生点）/ 圣愈（回血）/ 饱食（充饥）。',
       '- 咏唱时用中二、虔诚的中文喊出咒语，就像对造物主祈愿。',
+      '',
+      '关于「集市与村民」（附近的活人，不是怪物）：',
+      '- 状态里 village NPCs nearby 列出的名字（如铁匠·岳山、书商·墨白、货郎·福伯）是集市里的村民 NPC，头顶悬浮着他们今日的委托。他们不是怪物，不要攻击他们。',
+      '- 跟村民说话：直接在公屏喊他们的称呼+内容，例如「岳山，你好」「墨白 有什么任务」。他们听得懂中文，会回应你（回应会出现在 NPC/goddess words 里）。',
+      '- 接委托：问村民「有什么任务/委托」，他会告诉你想收什么货、给多少绿宝石。攒齐货物后在公屏说「<称呼> 给<N><物品>」（如「岳山 给20铁锭」），他会当面收货付酬——绿宝石是硬通货，有的村民还会泄露法术咒语情报作为额外酬谢。',
+      '- 交付前先清点背包（看 inventory），数量不够交了会被退回。委托每天刷新，先到先得。',
       '',
       '关于「降临仪式与出生天赋」：',
       '- 你刚穿越降临此界时，若还没有「出生天赋」（初始技能），女神会主持降临仪式，赐你自选一项法术作为出生天赋。',
