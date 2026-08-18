@@ -71,3 +71,7 @@ tools/assets_cache/
 /docs/design-alias-attributes.md
 /docs/skill-growth-design.md
 mc-server/
+
+# scratch e2e verification (ritual registration flow tests)
+ritual-e2e-*.mjs
+ritual-e2e-*.log

@@ -1,0 +1,16 @@
+# Per-Dockerfile ignore（BuildKit：与本 Dockerfile 同目录，路径相对 build context 根）。
+# context = workspace 根（同时含 deepseek-harness/ 与 minecraft-ai-friend/）。
+# 排除一切 + 白名单放行：穿越者镜像只带走「穿越者侧源码 + dsh 底座 + lock」。
+*
+!deepseek-harness
+deepseek-harness/*
+!deepseek-harness/vendor
+!deepseek-harness/packages
+!deepseek-harness/scratch-plugin
+deepseek-harness/scratch-plugin/*
+!deepseek-harness/scratch-plugin/package.json
+!deepseek-harness/scratch-plugin/package-lock.json
+!deepseek-harness/scratch-plugin/tsconfig.json
+!deepseek-harness/scratch-plugin/bootstrap-mc.mts
+!deepseek-harness/scratch-plugin/src
+!deepseek-harness/scratch-plugin/docker

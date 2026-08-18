@@ -8,18 +8,52 @@
 import { mkdir, readdir, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Worker } from 'node:worker_threads'
-import THREE from 'three'
-import { createCanvas } from 'node-canvas-webgl/lib/index.js'
-import { Viewer } from 'prismarine-viewer/viewer/lib/viewer.js'
-import { WorldView } from 'prismarine-viewer/viewer/lib/worldView.js'
 import { Vec3 } from 'vec3'
 import type { Bot } from 'mineflayer'
 
-// prismarine-viewer 的 WorldView 依赖浏览器 Worker API，node 下用 worker_threads 顶替
-// 其 viewer/lib 内部还有裸用全局 THREE / window 的浏览器假设，一并补上
-// @ts-expect-error -- global polyfill
-global.Worker = Worker
-global.THREE = THREE
+// ⚠️ 3D 渲染栈（three / node-canvas-webgl / prismarine-viewer viewer）必须懒加载：
+// node-canvas-webgl 与 canvas 全家桶不在 package.json（Windows 裸机是从 Mindcraft
+// node_modules robocopy 来的预编译），无头容器（docker --omit=optional）里根本不存在。
+// 顶层静态 import 会在模块加载期直接崩掉整个 bot 进程——改成首次截图时动态加载，
+// 加载失败置 visionError，相机功能优雅降级（mc_see 回落 playwright 或报「不可用」）。
+type Vision = {
+  THREE: any
+  createCanvas: any
+  Viewer: any
+  WorldView: any
+}
+let vision: Vision | null = null
+let visionTried = false
+let visionError = ''
+async function loadVision(): Promise<Vision | null> {
+  if (visionTried) return vision
+  visionTried = true
+  try {
+    const [threeMod, canvasMod, viewerMod, worldViewMod] = await Promise.all([
+      import('three'),
+      import('node-canvas-webgl/lib/index.js'),
+      import('prismarine-viewer/viewer/lib/viewer.js'),
+      import('prismarine-viewer/viewer/lib/worldView.js'),
+    ])
+    const THREE = (threeMod as any).default
+    // prismarine-viewer 的 WorldView 依赖浏览器 Worker API，node 下用 worker_threads 顶替
+    // 其 viewer/lib 内部还有裸用全局 THREE / window 的浏览器假设，一并补上
+    // @ts-expect-error -- global polyfill
+    global.Worker = Worker
+    ;(global as any).THREE = THREE
+    vision = {
+      THREE,
+      createCanvas: (canvasMod as any).createCanvas,
+      Viewer: (viewerMod as any).Viewer,
+      WorldView: (worldViewMod as any).WorldView,
+    }
+    console.log('[mc-camera] vision stack loaded (three + node-canvas-webgl + prismarine-viewer)')
+  } catch (err) {
+    visionError = err instanceof Error ? err.message : String(err)
+    console.warn(`[mc-camera] vision stack unavailable (headless deployment?) — mc_see degraded: ${visionError}`)
+  }
+  return vision
+}
 
 const WIDTH = 800
 const HEIGHT = 512
@@ -37,10 +71,10 @@ export interface Shot {
 
 interface CameraState {
   bot: Bot
-  renderer: THREE.WebGLRenderer
-  canvas: ReturnType<typeof createCanvas>
-  viewer: InstanceType<typeof Viewer>
-  worldView: WorldView
+  renderer: any
+  canvas: any
+  viewer: any
+  worldView: any
   ready: Promise<void>
 }
 
@@ -51,10 +85,17 @@ function isAlive(c: CameraState | null): c is CameraState {
   return !!c && c.bot.entity != null && c.bot.world != null
 }
 
+/** 3D 渲染栈是否可用（无头部署返回 false；不触发加载）。 */
+export function visionAvailable(): boolean {
+  return vision !== null
+}
+
 async function build(bot: Bot): Promise<CameraState> {
-  const canvas = createCanvas(WIDTH, HEIGHT)
-  const renderer = new THREE.WebGLRenderer({ canvas })
-  const viewer = new Viewer(renderer as never)
+  const v = await loadVision()
+  if (!v) throw new Error(`camera unavailable (vision stack not loadable: ${visionError})`)
+  const canvas = v.createCanvas(WIDTH, HEIGHT)
+  const renderer = new v.THREE.WebGLRenderer({ canvas })
+  const viewer = new v.Viewer(renderer)
   // 宽视野：Viewer 默认 75，这里按环境变量覆盖（懒初始化后首次截图生效）
   viewer.camera.fov = FOV
   viewer.camera.updateProjectionMatrix()
@@ -62,7 +103,7 @@ async function build(bot: Bot): Promise<CameraState> {
   const botPos = bot.entity!.position
   const center = new Vec3(botPos.x, botPos.y + bot.entity!.height, botPos.z)
   viewer.setVersion(bot.version)
-  const worldView = new WorldView(bot.world as never, VIEW_DISTANCE, center)
+  const worldView = new v.WorldView(bot.world as never, VIEW_DISTANCE, center)
   viewer.listen(worldView)
   worldView.listenToBot(bot)
   const state: CameraState = { bot, renderer, canvas, viewer, worldView, ready: Promise.resolve() }

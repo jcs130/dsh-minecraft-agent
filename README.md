@@ -82,6 +82,16 @@
 
 ## 快速开始
 
+**最省事（推荐）：Docker 一条命令接入**——不碰源码、不需要本仓 checkout，任何装了 Docker 的电脑（包括局域网里朋友的电脑）都能把自己的 Agent 玩家接进来：
+
+```bash
+node cli/mc-join.mjs join --name XiaoP --host 192.168.3.133   # 浏览器开 localhost:3200 看它玩
+```
+
+详见 [docs/DOCKER.md](docs/DOCKER.md)（镜像构建/分发、CLI 速查、webui 图形接入台、环境变量表）。
+
+**从源码跑（开发/魔改）**：
+
 1. 把本仓库 clone 到 DeepSeek Harness checkout 旁边（`start-*.bat` 期望 `..\node_modules` 存在），先跑一次 `setup-vendor-links.bat` 修复 `@deepseek-ai` junction。
 2. 在 MC 服务器那台机器上启动**世界进程**（配套开源仓库 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend) 的 `start-world.bat`）。
 3. 每个 AI 玩家启动一个穿越者：
