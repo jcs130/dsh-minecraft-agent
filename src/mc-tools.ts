@@ -7,6 +7,7 @@ import { Vec3 } from 'vec3'
 import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
 import { resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { setLastImage, setLastImages } from './mc-vision'
 
@@ -39,30 +40,112 @@ function guard(bot: Bot, fn: ToolExecutor): ToolExecutor {
   }
 }
 
-/** Pathfind near a position, with a timeout so it can never block forever. */
-async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000): Promise<boolean> {
-  const goal = new pf.goals.GoalNear(pos.x, pos.y, pos.z, reach)
-  const posBefore = bot.entity?.position.clone()
+/** Hard-reset pathfinder state so a wedge can never silently survive a failed goto. */
+function hardResetPathfinder(bot: Bot): void {
+  try { bot.pathfinder.setGoal(null) } catch { /* no goal */ }
+  try { bot.pathfinder.stop() } catch { /* not running */ }
+  try { bot.clearControlStates() } catch { /* no controls */ }
+  // Re-seed Movements: drops any poisoned collision index / cached planner state.
+  try { bot.pathfinder.setMovements(new pf.Movements(bot)) } catch { /* plugin not ready */ }
+}
+
+/**
+ * Physics round-trip: a jump pulse makes the server send back a position
+ * correction, which cures the vertical desync behind the
+ * DEFECT-20260818-043636 wedge (pathfinder waiting for a 1-block drop that
+ * local physics never performs).
+ */
+async function resyncPulse(bot: Bot): Promise<void> {
   try {
-    await Promise.race([
-      bot.pathfinder.goto(goal),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('pathfinding timed out')), timeoutMs),
-      ),
-    ])
-    return true
-  } catch (err) {
-    // 2026-08-16 事故教训：一次静默失败吞掉了真实错误，物理/寻路状态卡死后
-    // 连续 400+ 步 goto 全部失败在起点，bot 靠 tp 咒语空烧上千魔力。必须报错留痕。
-    const msg = err instanceof Error ? err.message : String(err)
-    const moved = posBefore ? bot.entity!.position.distanceTo(posBefore) : -1
-    console.error(`[mc-tools] gotoNear FAIL: ${msg} | moved=${moved.toFixed(2)} target=(${pos.x},${pos.y},${pos.z}) reach=${reach}`)
-    // 硬重置：清掉可能卡死的寻路目标与按键状态（wedge 状态绝不允许静默存活）
-    try { bot.pathfinder.stop() } catch { /* already stopped */ }
-    try { bot.pathfinder.setGoal(null) } catch { /* no goal */ }
-    try { bot.clearControlStates() } catch { /* no controls */ }
-    return false
+    bot.setControlState('jump', true)
+    await sleep(400)
+    bot.setControlState('jump', false)
+    await sleep(500)
+  } catch { /* ignore */ }
+}
+
+/**
+ * Pathfind near a position, with a timeout so it can never block forever.
+ *
+ * 2026-08-16 事故教训：一次静默失败吞掉了真实错误，物理/寻路状态卡死后
+ * 连续 400+ 步 goto 全部失败在起点，bot 靠 tp 咒语空烧上千魔力。必须报错留痕。
+ *
+ * 2026-08-18 DEFECT-20260818-043636：Naruto 在 (-115,65,177) 实体 y 与真实
+ * 地面脱同步（自报 65.0，真地面 64.0，实测同位置复现 bot 秒落到 64.0）。
+ * pathfinder 算出的路径首节点是"落回原地"，本地物理却认为脚下有支撑 →
+ * 位置永不前进 → pathfinder 内部 3.5s resetPath('stuck') 死循环重算同一条
+ * 路 → goto() promise 永不产生终态事件（无 path_update 终态、无
+ * goal_reached、无异常）→ 工具层盲超时 30s×5 次、moved=0.00，最终靠魔法
+ * tp 烧资源逃逸；tp 走脱后 goto 立刻全部恢复正常。
+ *
+ * 加固：进度看门狗每 1.5s 采样——pathfinder 自称在走（isMoving）且不在
+ * 挖/放方块、但实体位移无累计进展，连续 3 个采样（4.5s，高于 pathfinder
+ * 自身 3.5s stuck-reset 一个周期）即判楔死并提前中止；任何失败路径统一
+ * 硬复位（清 goal + 重播 Movements）+ 跳跃脉冲强制服务器回发位置校正；
+ * 确认楔死时原地重试一次（fresh state，预算 10s），普通失败（无路/超时
+ * 有进展）不重试不额外耗时。
+ */
+async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000): Promise<boolean> {
+  const attempt = async (budgetMs: number): Promise<{ reached: boolean; wedged: boolean }> => {
+    const goal = new pf.goals.GoalNear(pos.x, pos.y, pos.z, reach)
+    const startPos = bot.entity!.position.clone()
+    let bestProgress = 0
+    let stallTicks = 0
+    let settled = false
+    let abort: (() => void) | null = null
+    const abortPromise = new Promise<never>((_, reject) => {
+      abort = () => reject(new Error('movement wedged: pathfinder active but position frozen'))
+    })
+    const gotoPromise = bot.pathfinder.goto(goal)
+    gotoPromise.catch(() => { /* late rejection after settle is expected */ })
+    const watchdog = setInterval(() => {
+      if (settled || !abort) return
+      const moved = bot.entity!.position.distanceTo(startPos)
+      if (moved > bestProgress + 0.4) {
+        bestProgress = moved
+        stallTicks = 0
+      } else if (bot.pathfinder.isMoving() && !bot.pathfinder.isMining() && !bot.pathfinder.isBuilding()) {
+        stallTicks++
+        if (stallTicks >= 3) abort()
+      } else {
+        stallTicks = 0
+      }
+    }, 1_500)
+    try {
+      await Promise.race([
+        gotoPromise,
+        abortPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('pathfinding timed out')), budgetMs),
+        ),
+      ])
+      settled = true
+      return { reached: true, wedged: false }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      const moved = bot.entity!.position.distanceTo(startPos)
+      const wedged = stallTicks >= 2
+      console.error(`[mc-tools] gotoNear FAIL: ${msg} | moved=${moved.toFixed(2)} target=(${pos.x},${pos.y},${pos.z}) reach=${reach}${wedged ? ' | WEDGE detected' : ''}`)
+      return { reached: false, wedged }
+    } finally {
+      settled = true
+      clearInterval(watchdog)
+      // 无论成败都不留僵尸状态：楔死/超时的 goal 绝不允许存活到下一次调用
+      try { bot.pathfinder.setGoal(null) } catch { /* no goal */ }
+      try { bot.clearControlStates() } catch { /* no controls */ }
+    }
   }
+
+  const first = await attempt(timeoutMs)
+  if (first.reached) return true
+  // 失败统一善后：硬复位 + 物理脉冲，保证下一次调用从干净状态开始
+  hardResetPathfinder(bot)
+  await resyncPulse(bot)
+  // 只有确认楔死才值得原地重试：普通失败（无路/有进展的超时）重试无意义
+  if (!first.wedged) return false
+  const second = await attempt(10_000)
+  if (!second.reached) hardResetPathfinder(bot)
+  return second.reached
 }
 
 /**
@@ -83,8 +166,11 @@ async function gotoXZ(bot: Bot, x: number, z: number, range: number, timeoutMs =
       ),
     ])
     return true
-  } catch {
-    bot.pathfinder.stop()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[mc-tools] gotoXZ FAIL: ${msg} | target=(${x},${z}) range=${range}`)
+    // 同 gotoNear：失败不留楔死状态（DEFECT-20260818-043636 家族）
+    hardResetPathfinder(bot)
     return false
   }
 }
@@ -673,7 +759,14 @@ async function tradeWithVillager(bot: Bot, tradeIndex: number | undefined, count
 
 // ── mc_see 后端：方案 C 进程内相机（node-canvas-webgl）优先，playwright 截 viewer 兜底 ──
 // 相机直出 800x512 JPEG，无浏览器开销；仅当相机不可用（如刚 spawn 未就绪）时退回无头 Chrome。
-const CHROME_PATH = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+// 兜底是给宿主机部署（Windows 装 Chrome + viewer 网页在 :3101）的路径；无头容器
+// 部署以相机栈为准（镜像内置 canvas/gl/Xvfb，见 Dockerfile）。
+// DEFECT-20260818-063022-mc_see：容器里相机栈缺失 → 兜底又拿写死的 Windows
+// chrome.exe 路径硬启 → 两头全炸还把根因（相机栈没装）掩盖成浏览器报错。
+const CHROME_PATH = process.env.CHROME_PATH
+  || (process.platform === 'win32'
+    ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    : '/usr/bin/chromium')
 const SHOTS_ROOT = resolve('./data/screenshots')
 let seeBrowser: Browser | null = null
 let seePage: Page | null = null
@@ -684,6 +777,9 @@ async function seeFirstPersonViaPlaywright(): Promise<{ dataUrl: string; file: s
   if (!seePage || seePage.isClosed()) {
     if (seeBrowser) {
       try { await seeBrowser.close() } catch { /* already closed */ }
+    }
+    if (!existsSync(CHROME_PATH)) {
+      throw new Error(`no fallback browser at ${CHROME_PATH} (install one or set CHROME_PATH)`)
     }
     seeBrowser = await chromium.launch({
       executablePath: CHROME_PATH,
@@ -709,7 +805,14 @@ async function seeFirstPerson(bot: Bot): Promise<{ dataUrl: string; file: string
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.warn(`[mc-tools] camera capture failed, falling back to playwright: ${msg}`)
-    return await seeFirstPersonViaPlaywright()
+    try {
+      return await seeFirstPersonViaPlaywright()
+    } catch (pwErr) {
+      // 两级后端都挂：把相机根因与兜底失败合在一起抛出，别让浏览器报错
+      // 掩盖「视觉栈未安装」这个真正的问题。
+      const pwMsg = pwErr instanceof Error ? pwErr.message : String(pwErr)
+      throw new Error(`mc_see unavailable — in-process camera: ${msg}; browser fallback: ${pwMsg}`)
+    }
   }
 }
 
