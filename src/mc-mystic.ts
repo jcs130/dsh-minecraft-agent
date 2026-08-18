@@ -10,8 +10,9 @@ import { resolveOfferingText, sumItemCount } from './mc-offering.ts'
  * mc-mystic —— 穿越者侧的神秘接口（薄层，零权限）。
  *
  * 咏唱 / 祈愿 / 降临选择，全部通过 MC 聊天文字与世界进程（天神）通信：
- *   - mc_chant        公屏喊咒语        → 等女神点名回复（快路径，程序化施法）
- *   - mc_pray         /msg 私聊祈愿     → 等神谕私聊回复（慢路径，LLM 裁决）
+ *   - mc_chant        私语念咒语（/msg 女神）→ 等信使私聊回执（快路径，程序化施法；
+ *                     2026-08-18 方案A：咒语走私语，旁人只见异象听不见咒文）
+ *   - mc_pray         /msg 私聊祈愿（带「祈愿：」前缀）→ 等神谕私聊回复（慢路径，LLM 裁决）
  *   - mc_choose_innate 公屏喊「我选 X」 → 等女神确认（降临仪式）
  *
  * 本插件不 import rcon.ts、不读魔法原子表、不执行任何服务器命令——
@@ -248,7 +249,7 @@ export function apply(ctx: Context, config: Config) {
       '【5级】隐身(无形)、雷暴(风暴)、唤马(战马，耗饱食度)\n' +
       '【6级】退魔(驱邪，清剿周围邪祟，耗生命)、铁卫(守护者，耗生命)\n' +
       '【7级】破晓(天亮)、陨石(天雷，耗生命)。\n' +
-      '施法消耗魔力，魔力随时间自动恢复；魔力不足会施法失败。咒语会被全世界听见（公屏）；施法结果由信使私聊单独告知你（成败只有你知道，留意私语）。',
+      '施法消耗魔力，魔力随时间自动恢复；魔力不足会施法失败。咒语以私语直达天神——只有你和女神听见，旁人只见施法异象（粒子/音效/大字）；施法结果由信使私聊告知你（成败只有你知道，留意私语）。',
     parameters: {
       chant: {
         type: 'string',
@@ -264,18 +265,17 @@ export function apply(ctx: Context, config: Config) {
       const bot = getBot()
       if (!bot.entity) return '你尚未在此界立足，无法咏唱。'
       const me = bot.username
-      // 喊出来（bot.chat 不触发自身 chat 事件）；女神听见后会点名回复。
+      // 咒语以私语直达天神（2026-08-18 方案A：公屏不再施法——旁人见异象而听不见咒文）；
+      // bot.whisper 走 /msg，女神侧 whisper 监听分流 → 快路径施法。
       try {
-        bot.chat(chant)
+        bot.whisper(config.godName, chant)
       } catch {
         return '你的声音没能传出（连接异常）。'
       }
-      // 回执由信使私聊送达（2026-08-17 起；咒语仍公屏全世界听见，结果只有你知道）；
-      // 兼容旧公屏点名路径。
+      // 回执由信使私聊送达（成败只有你知道；公屏点名路径已随公屏施法一并移除）。
       const reply = await waitForReply(
         bot,
-        (from, msg, via) => (via === 'whisper' && msg.startsWith('[信使]') && msg.includes(me))
-          || (via === 'chat' && from === config.godName && msg.includes(me)),
+        (from, msg, via) => via === 'whisper' && msg.startsWith('[信使]') && msg.includes(me),
         config.chantTimeoutMs,
       )
       if (!reply) return '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
@@ -322,8 +322,11 @@ export function apply(ctx: Context, config: Config) {
           return `你想供奉 ${offer.cn}×${offer.count}，但行囊里只有 ${have} 个——先去收集，或换一种供品，或空手祈愿。`
         }
       }
+      // 「祈愿：」前缀 = 显式祈愿标记（2026-08-18 方案A）：女神侧私语分流据此
+      // 把祈愿和咏唱区分开——带前缀绝不按咒语结算，自然语言祈愿碰巧含法术
+      // 关键词也不会被误当成咏唱。
       try {
-        bot.whisper(config.godName, offer ? `${wish}｜供奉：${offer.cn}x${offer.count}` : wish)
+        bot.whisper(config.godName, offer ? `祈愿：${wish}｜供奉：${offer.cn}x${offer.count}` : `祈愿：${wish}`)
       } catch {
         return '你的祈愿没能送达（连接异常）。'
       }
