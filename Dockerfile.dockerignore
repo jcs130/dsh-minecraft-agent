@@ -14,3 +14,7 @@ deepseek-harness/scratch-plugin/*
 !deepseek-harness/scratch-plugin/bootstrap-mc.mts
 !deepseek-harness/scratch-plugin/src
 !deepseek-harness/scratch-plugin/docker
+# 相机栈纯 JS 位（仅 node-canvas-webgl 一个目录，~50KB；其余 node_modules 全排除）
+!deepseek-harness/scratch-plugin/node_modules
+deepseek-harness/scratch-plugin/node_modules/*
+!deepseek-harness/scratch-plugin/node_modules/node-canvas-webgl

@@ -12,10 +12,12 @@ import { Vec3 } from 'vec3'
 import type { Bot } from 'mineflayer'
 
 // ⚠️ 3D 渲染栈（three / node-canvas-webgl / prismarine-viewer viewer）必须懒加载：
-// node-canvas-webgl 与 canvas 全家桶不在 package.json（Windows 裸机是从 Mindcraft
-// node_modules robocopy 来的预编译），无头容器（docker --omit=optional）里根本不存在。
-// 顶层静态 import 会在模块加载期直接崩掉整个 bot 进程——改成首次截图时动态加载，
-// 加载失败置 visionError，相机功能优雅降级（mc_see 回落 playwright 或报「不可用」）。
+// node-canvas-webgl 与 canvas/gl 不在 package.json（Windows 裸机是从 Mindcraft
+// node_modules robocopy 来的预编译；Docker 镜像自 2026-08-18 起内置 canvas/gl
+// 预编译 + Xvfb，见 Dockerfile——headless-gl 的 GLX pbuffer 需要 X display）。
+// 顶层静态 import 仍会连累「没装栈」的部署在模块加载期直接崩掉整个 bot 进程——
+// 改成首次截图时动态加载，加载失败置 visionError，相机功能优雅降级
+// （mc_see 回落 playwright 或报「不可用」）。
 type Vision = {
   THREE: any
   createCanvas: any
