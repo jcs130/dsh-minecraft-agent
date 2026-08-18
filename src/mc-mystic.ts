@@ -342,6 +342,47 @@ export function apply(ctx: Context, config: Config) {
     },
   }))
 
+    // ── mc_deliver：与村民耳语交割（WHISPER-TRADE 2026-08-18 刷屏治理）────
+    // 交付类高频指令不占公屏：bot.whisper(Goddess, '交易：<称呼> 给<N><物品>') →
+    // 世界侧 mc-god「交易：」分流 → NPC 引擎耳语收件箱 → 距离门/结算照旧 →
+    // 村民 tellraw 点对点回执（本工具经 message 事件接收）。
+    ctx.tools.register(defineTool({
+      name: 'mc_deliver',
+      description:
+        '与村民当面交割委托货物——耳语交割，不扰公屏（在公屏喊交付，村民只会请你凑到耳边来）。' +
+        '必须先走到该村民身边（约5格内，隔着半个广场喊只是空响）。' +
+        '回执由村民点对点耳语送达（收货付酬/退单缘由），稍候勿重复交割。',
+      parameters: {
+        deal: {
+          type: 'string',
+          required: true,
+          description: '交割指令「<称呼> 给<N><物品>」，如「岳山 给16煤」「石磊 给8铁锭」。称呼用村民名号（岳山/铁匠、石磊、墨白、福伯、风临、烛九、静水…）',
+        },
+      },
+      output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+      timeoutMs: 15_000,
+      execute: async (args: Record<string, unknown>) => {
+        const deal = String(args.deal ?? '').trim()
+        if (!deal) return '没有交割内容'
+        const bot = getBot()
+        if (!bot.entity) return '你尚未在此界立足，无法交割。'
+        try {
+          bot.whisper(config.godName, `交易：${deal}`)
+        } catch {
+          return '你的低语没能送达（连接异常）。'
+        }
+        // 等村民点对点回执：tellraw 直发本人（message 事件），文本含村民名号前缀
+        const token = deal.includes(' ') ? deal.split(/\s+/)[0]! : (deal.split('给')[0] || deal)
+        const ack = await waitForReply(
+          bot,
+          (_from, msg, via) => via === 'message' && msg.includes(token),
+          8_000,
+        )
+        if (ack) return ack
+        return '已凑到村民耳边低语交割（回执尚未传来——若还隔着远，走近些再试；勿重复交割，先清点背包余量）。'
+      },
+    }))
+
   // ── mc_choose_innate：降临仪式选天赋（公屏宣布）─────────────────────
   ctx.tools.register(defineTool({
     name: 'mc_choose_innate',
