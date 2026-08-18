@@ -76,3 +76,5 @@ mc-server/
 ritual-e2e-*.mjs
 ritual-e2e-*.log
 *.vbs 
+
+__pycache__/
