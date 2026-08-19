@@ -3,7 +3,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import type { Bot } from 'mineflayer'
+import type { WorldAdapter as Bot } from './world-adapter'
 import { resolveOfferingText, sumItemCount } from './mc-offering.ts'
 
 /**

@@ -2,7 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { Bot } from 'mineflayer'
+import type { WorldAdapter as Bot } from './world-adapter'
 
 /**
  * mc-village —— 穿越者侧村庄感知（2026-08-18，零 RCON）。

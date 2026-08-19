@@ -66,6 +66,7 @@ await ctx.plugin(mcMemos, {
   timeoutMs: 8_000,
   maxRecall: 5,
   localDir: process.env.MC_MEMOS_LOCAL_DIR ?? './data/memory',
+  username: process.env.MC_USERNAME ?? '',
 })
 
 // 夜间自我进化（游戏夜入睡触发：MemOS 双池记忆蒸馏成 wiki 教训卡 + 长线成长记忆）。

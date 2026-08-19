@@ -21,7 +21,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { MemoryProvider, LocalMemoryBackend, LORE_POOL, poolNameOf } from './memory-provider'
 
 export const name = 'mc-memos'
-export const inject = ['tools', 'mcbot']
+export const inject = ['tools']
 
 export interface Config {
   enabled: boolean
@@ -34,6 +34,8 @@ export interface Config {
   maxRecall: number
   /** 本地后端的记忆目录（backend=local 或 auto 降级时用）。 */
   localDir: string
+  /** 当前穿越者的用户名（记忆归属池 = mc-<username>）；与 mc-bot-service 解耦后从配置读。 */
+  username: string
 }
 
 export const Config: Schema<Config> = Schema.object({
@@ -44,6 +46,7 @@ export const Config: Schema<Config> = Schema.object({
   timeoutMs: Schema.number().default(8_000),
   maxRecall: Schema.number().default(5),
   localDir: Schema.string().default('./data/memory'),
+  username: Schema.string().default(''),
 })
 
 /** 下游插件（mc-adapt/mc-evolve/mc-identity/mc-loop）依赖的类型别名，签名保持不变。 */
@@ -254,7 +257,7 @@ export function apply(ctx: Context, config: Config) {
   }
   ctx.provide('mcMemos', provider)
 
-  const currentUsername = (): string => (ctx.mcbot?.username as string) ?? ''
+  const currentUsername = (): string => config.username || ''
 
   // ── mc_remember：把重要经历写进自己的长期记忆 ─────────────────────
   ctx.tools.register(defineTool({
