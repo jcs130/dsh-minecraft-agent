@@ -35,7 +35,7 @@ export interface Config {
 export const Config: Schema<Config> = Schema.object({
   enabled: Schema.boolean().default(true),
   godName: Schema.string().default('Goddess'),
-  chantTimeoutMs: Schema.number().default(10_000),
+  chantTimeoutMs: Schema.number().default(30_000),
   prayTimeoutMs: Schema.number().default(8_000),
   statePath: Schema.string().default('./data/mystic-state.json'),
 })
@@ -188,6 +188,7 @@ export function apply(ctx: Context, config: Config) {
   function ensurePassive(bot: Bot) {
     if (watchedBot === bot) return
     watchedBot = bot
+    ensureCourierWatch(bot)
     const capture = (message: string): void => {
       const innate = parseInnate(message)
       if (innate && store.get(bot.username) !== innate) {
@@ -237,13 +238,32 @@ export function apply(ctx: Context, config: Config) {
   }
   scheduleEnsure()
 
+  // ── 信使回执串台防护（2026-08-19）───────────────────────────────────
+  // 事故：chant A 超时返回「世界静默」→ 女神回执迟到 → 恰好被 chant B 的
+  // waitForReply 认领 → B 的工具结果显示 A 的法术效果（Sasuke 咏唱跃升
+  // 收到「一件物资自虚空中凝聚」的造物回执，还自己推理出"回执是旧消息"）。
+  // 防线：①超时 10s→30s 缩小迟到窗口；②咏唱不在飞行中时到达的 [信使] 私语
+  // 进暂存箱，下一次咏唱把它作为「补达」前缀如实转达，绝不冒充本次结果。
+  const lateCourier: string[] = []
+  let chantInFlight = false
+  function ensureCourierWatch(bot: Bot): void {
+    bot.on('whisper', (username: string, message: string) => {
+      if (username !== config.godName) return
+      if (!message.startsWith('[信使]') || !message.includes(bot.username)) return
+      if (chantInFlight) return // 正在等回执：归本次咏唱
+      if (lateCourier.length >= 3) lateCourier.shift()
+      lateCourier.push(message)
+      log(`late courier reply stashed (no chant in flight): ${message.slice(0, 80)}`)
+    })
+  }
+
   // ── mc_chant：公屏咏唱（快路径）──────────────────────────────────────
   ctx.tools.register(defineTool({
     name: 'mc_chant',
     description:
       '咏唱魔法咒语来施法。用中二的口吻喊出咒语，必须包含法术关键词。每个法术有等级门槛（标注在括号内，如"2级"）——等级不足会被女神拒绝（你的出生天赋除外，它无视等级）。施法成功可获得经验，攒够自动提升魔力层级、解锁更高级法术。当前已知的法术清单：\n' +
       '【1级】照明(火把)、跃升(大跳)、风爆(气浪，把自己炸上天)、羽落(缓降)、夜视(猫眼)、化水(清泉)\n' +
-      '【2级】归乡(回家，需先睡床设重生点)、传送(可带距离方向，如"传送十格东")、造物(变出物资，如"造物赐我熔炉/木头/铁镐")、饱食(充饥)、迅捷(加速)、水息(鱼鳃/水下呼吸)、覆土(填壑，脚下垫土)\n' +
+      '【2级】归乡(回家：睡过床则回床边；尚未设重生点则回到你降临的初始城镇广场)、传送(可带距离方向，如"传送十格东")、造物(变出物资，如"造物赐我熔炉/木头/铁镐")、饱食(充饥)、迅捷(加速)、水息(鱼鳃/水下呼吸)、覆土(填壑，脚下垫土)\n' +
       '【3级】圣愈(治愈/回血)、再生(愈合)、急迫(巧手/挖快)、避火(火抗)、唤雨(降雨)、大地塑形(挖地)\n' +
       '【4级】铁肤(护体)、神力(力量)、驱云(放晴)\n' +
       '【5级】隐身(无形)、雷暴(风暴)、唤马(战马，耗饱食度)\n' +
@@ -267,19 +287,29 @@ export function apply(ctx: Context, config: Config) {
       const me = bot.username
       // 咒语以私语直达天神（2026-08-18 方案A：公屏不再施法——旁人见异象而听不见咒文）；
       // bot.whisper 走 /msg，女神侧 whisper 监听分流 → 快路径施法。
+      const stashed = lateCourier.splice(0) // 先取出迟到回执，避免与本次结果混淆
+      chantInFlight = true
+      let reply = ''
       try {
-        bot.whisper(config.godName, chant)
-      } catch {
-        return '你的声音没能传出（连接异常）。'
+        try {
+          bot.whisper(config.godName, chant)
+        } catch {
+          return '你的声音没能传出（连接异常）。'
+        }
+        // 回执由信使私聊送达（成败只有你知道；公屏点名路径已随公屏施法一并移除）。
+        reply = await waitForReply(
+          bot,
+          (from, msg, via) => via === 'whisper' && msg.startsWith('[信使]') && msg.includes(me),
+          config.chantTimeoutMs,
+        )
+      } finally {
+        chantInFlight = false
       }
-      // 回执由信使私聊送达（成败只有你知道；公屏点名路径已随公屏施法一并移除）。
-      const reply = await waitForReply(
-        bot,
-        (from, msg, via) => via === 'whisper' && msg.startsWith('[信使]') && msg.includes(me),
-        config.chantTimeoutMs,
-      )
-      if (!reply) return '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
-      return reply
+      const prefix = stashed.length
+        ? `（补达：你上一道咒语的迟到回执——${stashed.join('｜')}）\n`
+        : ''
+      if (!reply) return prefix + '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
+      return prefix + reply
     },
   }))
 

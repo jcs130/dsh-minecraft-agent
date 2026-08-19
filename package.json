@@ -12,6 +12,30 @@
     "ai"
   ],
   "license": "MIT",
+  "main": "lib/bootstrap.mjs",
+  "bin": {
+    "dsh-minecraft-agent": "./bin/cli.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "prepare": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "files": [
+    "lib/",
+    "bin/",
+    "src/",
+    "scripts/build.mjs",
+    "bootstrap-mc.mts",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "README-INSTALL.md"
+  ],
   "dependencies": {
     "better-sqlite3": "^13.0.3",
     "mineflayer": "^4.37.1",
@@ -22,10 +46,13 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/cordis-plugin-timer": "^1.1.3",
+    "@deepseek-ai/dsh-system-prompt": "0.1.0-rc.5",
     "@deepseek-ai/dsh-tools": "0.1.0-rc.5",
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0"
+    "@types/better-sqlite3": "^9.6.0",
+    "esbuild": "^0.25.0"
   }
 }

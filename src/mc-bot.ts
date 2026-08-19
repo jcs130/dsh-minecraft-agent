@@ -4,6 +4,7 @@ import mineflayer from 'mineflayer'
 import type { Bot } from 'mineflayer'
 import pf from 'mineflayer-pathfinder'
 import { plugin as toolPlugin } from 'mineflayer-tool'
+import { tunedMovements } from './mc-tools'
 
 export const name = 'mc-bot-service'
 
@@ -152,8 +153,7 @@ export function apply(ctx: Context, config: Config) {
     bot.once('spawn', async () => {
       const p = bot.entity?.position
       log(`spawned at ${p ? `(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})` : 'unknown'}`)
-      const movements = new pf.Movements(bot)
-      bot.pathfinder.setMovements(movements)
+      bot.pathfinder.setMovements(tunedMovements(bot))
 
       // 双视角 viewer（prismarine-viewer），供观察面板 iframe 嵌入：
       //   viewerPort     = 第三人称（环绕跟随，默认 3001）

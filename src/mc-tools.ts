@@ -7,7 +7,7 @@ import { Vec3 } from 'vec3'
 import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
 import { resolve } from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { setLastImage, setLastImages } from './mc-vision'
 
@@ -40,13 +40,54 @@ function guard(bot: Bot, fn: ToolExecutor): ToolExecutor {
   }
 }
 
+/**
+ * Tuned Movements（2026-08-19 调优，依据 mineflayer-pathfinder README + issues #179/#332）：
+ *  - allowFreeMotion=true   开阔地形直线行走，减少节点跳变与反复重规划
+ *  - digCost 1→6            默认几乎总是挖穿近路，把地形打成蜂窝；调高后优先绕行，
+ *                           真需要挖（矿道/脱困）时仍会挖
+ *  - placeCost 1→2          乱搭桥成本略高
+ *  - infiniteLiquidDropdown=false  不再把"落点是水"当合法无限落差（防跳海跳崖）
+ *  - entitiesToAvoid        主世界敌对生物全回避：夜间寻路绕开怪群而不是撞上去
+ */
+export function tunedMovements(bot: Bot): pf.Movements {
+  const m = new pf.Movements(bot)
+  m.allowFreeMotion = true
+  m.digCost = 6
+  m.placeCost = 2
+  m.infiniteLiquidDropdownDistance = false
+  const hostile = [
+    'zombie', 'zombie_villager', 'husk', 'drowned', 'skeleton', 'stray', 'bogged',
+    'creeper', 'spider', 'cave_spider', 'witch', 'enderman', 'phantom', 'slime',
+    'magma_cube', 'silverfish', 'guardian', 'elder_guardian', 'pillager',
+    'vindicator', 'evoker', 'ravager', 'vex', 'warden', 'breeze',
+    'wither_skeleton', 'zombified_piglin', 'hoglin', 'zoglin', 'ghast', 'blaze',
+  ]
+  for (const n of hostile) m.entitiesToAvoid.add(n)
+
+  // 基地保护区：data/base-protect.json {"x":..,"y":..,"z":..,"r":..}
+  // 半径内禁止 pathfinder 挖掘（返回高成本=绕行）——治"把基地挖得坑坑洼洼"
+  try {
+    const cfgPath = ['/app/data/base-protect.json', resolve(process.cwd(), 'data/base-protect.json')].find(existsSync)
+    if (cfgPath) {
+      const cfg = JSON.parse(readFileSync(cfgPath, 'utf-8')) as { x: number; y: number; z: number; r?: number }
+      const r = cfg.r ?? 16
+      m.exclusionAreasBreak.push((block) => {
+        const d = Math.hypot(block.position.x - cfg.x, block.position.y - cfg.y, block.position.z - cfg.z)
+        return d <= r ? 100 : 0
+      })
+      console.log(`[mc-tools] base protection zone active: r=${r} @ (${cfg.x}, ${cfg.y}, ${cfg.z})`)
+    }
+  } catch { /* bad config: ignore, pathfinder falls back to defaults */ }
+  return m
+}
+
 /** Hard-reset pathfinder state so a wedge can never silently survive a failed goto. */
 function hardResetPathfinder(bot: Bot): void {
   try { bot.pathfinder.setGoal(null) } catch { /* no goal */ }
   try { bot.pathfinder.stop() } catch { /* not running */ }
   try { bot.clearControlStates() } catch { /* no controls */ }
   // Re-seed Movements: drops any poisoned collision index / cached planner state.
-  try { bot.pathfinder.setMovements(new pf.Movements(bot)) } catch { /* plugin not ready */ }
+  try { bot.pathfinder.setMovements(tunedMovements(bot)) } catch { /* plugin not ready */ }
 }
 
 /**
@@ -120,6 +161,13 @@ async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000):
         ),
       ])
       settled = true
+      // 假成功防护（mineflayer#3911 家族）：1.21.11 物理/位置脱同步时 pathfinder
+      // 可能 resolve 但实体实际不在目标附近——用真实距离兜底校验
+      const dist = bot.entity!.position.distanceTo(pos)
+      if (dist > reach + 1.5) {
+        console.error(`[mc-tools] gotoNear FALSE-POSITIVE: resolved but real dist=${dist.toFixed(2)} > reach+1.5 — treat as wedged`)
+        return { reached: false, wedged: true }
+      }
       return { reached: true, wedged: false }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -826,10 +874,32 @@ async function seeFirstPerson(bot: Bot): Promise<{ dataUrl: string; file: string
  * "dig THE block at (-98, 41, 148)" — it targets the nearest block of a type.
  * This gives every transmigrator exactly the primitive the doctrine promises.
  */
+/**
+ * 基地保护区硬防线（与 tunedMovements 的 exclusionAreasBreak 互补）：
+ * pathfinder 的排除区只管寻路挖掘，mc_dig 直呼不经过它。此处在 digAt 层
+ * 拦截：保护区内【远程】挖掘直接拒绝（要资源去区外）；贴身 2 格内的挖掘
+ * 放行（坑底自救/拆自己脚手架不算破坏基地）。
+ */
+function baseProtectRefusal(p: Vec3, botPos: Vec3): string | null {
+  try {
+    const cfgPath = ['/app/data/base-protect.json', resolve(process.cwd(), 'data/base-protect.json')].find(existsSync)
+    if (!cfgPath) return null
+    const cfg = JSON.parse(readFileSync(cfgPath, 'utf-8')) as { x: number; y: number; z: number; r?: number }
+    const r = cfg.r ?? 16
+    const d = Math.hypot(p.x - cfg.x, p.y - cfg.y, p.z - cfg.z)
+    if (d <= r && p.distanceTo(botPos) > 2) {
+      return `refused: (${p.x}, ${p.y}, ${p.z}) 在基地保护区内（r=${r} @ ${cfg.x},${cfg.y},${cfg.z}）。基地周围${r}格禁止挖掘取资源——去${r}格外挖；若确需改建，请天神调整 data/base-protect.json。`
+    }
+  } catch { /* bad config ignored */ }
+  return null
+}
+
 export async function digAt(bot: Bot, args: Args): Promise<string> {
   const { x, y, z } = coordArgs(args)
   if (x === undefined || y === undefined || z === undefined) return 'x, y, z are required'
   const target = new Vec3(x, y, z)
+  const refusal = baseProtectRefusal(target, bot.entity!.position)
+  if (refusal) return refusal
   let block = bot.blockAt(target)
   if (!block) return `cannot inspect block at (${x}, ${y}, ${z}) (chunk not loaded?)`
   if (block.boundingBox === 'empty') return `already air at (${x}, ${y}, ${z})`
@@ -852,6 +922,62 @@ export async function digAt(bot: Bot, args: Args): Promise<string> {
   await pickupNearby(bot)
   const after = bot.inventory.items().reduce((s, it) => s + it.count, 0)
   return `dug ${block.name} at (${x}, ${y}, ${z})` + (after > before ? ' (picked up drops)' : '')
+}
+
+/**
+ * mc_tunnel 的单步原语：在脚所在高度向 (dirX,dirZ) 挖 2 格高通道并前进一格。
+ * 纯平地行走 + 直呼 bot.dig，完全不依赖 pathfinder 的跳跃判定——这是它能在
+ * 1.21.11 跳跃物理 bug（mineflayer#3911，上游未修）下仍然确定生效的原因。
+ * 返回 'ok' 或人话失败原因（安全拦截/基岩/水/走不动）。
+ */
+async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string> {
+  const pos = bot.entity!.position
+  const feet = Math.floor(pos.y)
+  const base = pos.floored()
+  const ahead = new Vec3(base.x + dirX, feet, base.z + dirZ)
+
+  // 基地保护区拦截（与 digAt 同一规矩：远程挖拒绝，贴身自救放行）
+  for (const dy of [0, 1]) {
+    const refusal = baseProtectRefusal(ahead.offset(0, dy, 0), pos)
+    if (refusal) return refusal
+  }
+
+  // 安全检查：下一格脚下必须实心且不是液体（防挖向悬空/水域）；头顶上方也不许有液体渗下
+  const below = bot.blockAt(ahead.offset(0, -1, 0))
+  if (!below || below.boundingBox === 'empty' || /water|lava|bubble/.test(below.name)) {
+    return `stop: 通道前方脚下是 ${below ? below.name : '未加载区'}——再挖就是悬空/水域，换个方向`
+  }
+  const above = bot.blockAt(ahead.offset(0, 2, 0))
+  if (above && /water|lava/.test(above.name)) {
+    return `stop: 通道上方有 ${above.name}——挖穿会淹/烫，换个方向`
+  }
+
+  // 挖脚下层与头层（外层重试 3 轮：对付砾石/沙回落）
+  for (let round = 0; round < 3; round++) {
+    let solidLeft = false
+    for (const dy of [0, 1]) {
+      const cell = ahead.offset(0, dy, 0)
+      const blk = bot.blockAt(cell)
+      if (!blk) return `stop: 区块未加载 (${cell.x},${cell.y},${cell.z})`
+      if (blk.boundingBox === 'empty') continue
+      if (blk.diggable === false) return `stop: ${blk.name} 挖不动（基岩？），换个方向`
+      await bot.unequip('hand').catch(() => {})
+      await bot.tool.equipForBlock(blk)
+      await bot.dig(blk)
+      solidLeft = true
+    }
+    if (!solidLeft) break
+    await sleep(400) // 等回落物落定后重挖
+  }
+
+  // 平地前进一步（通道内是纯平地，无跳跃需求；gotoNear 含楔死自愈）
+  const target = new Vec3(ahead.x + 0.5, feet, ahead.z + 0.5)
+  const reached = await gotoNear(bot, target, 0.9, 8_000)
+  if (!reached) {
+    const p = bot.entity!.position
+    return `blocked: 已挖开 (${ahead.x},${ahead.y},${ahead.z}) 但走不进去（现 ${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}）——可再试一次或换方向`
+  }
+  return 'ok'
 }
 
 export function apply(ctx: Context) {
@@ -893,11 +1019,57 @@ export function apply(ctx: Context) {
       const target = new Vec3(x, y, z)
       log(`goto (${x}, ${y}, ${z})`)
       const reached = await gotoNear(bot, target, 3, 30_000)
+      const p = bot.entity!.position
+      const dist = p.distanceTo(target)
       if (!reached) {
-        const p = bot.entity!.position
         return `failed to reach (${x}, ${y}, ${z}); stopped at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})`
       }
-      return `reached (${x}, ${y}, ${z})`
+      let msg = `reached (${x}, ${y}, ${z}) — now at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}), ${dist.toFixed(1)} blocks away`
+      if (dist > 1.5) msg += ' (within pathfinder reach but not standing at it; 目标需要跳跃才能到达时寻路常失效——用 mc_tunnel 挖平直通道接近，或 mc_place 自行垫路)'
+      return msg
+    }),
+  }))
+
+  // ── Escape: deterministic horizontal tunnel (jump-free) ───────────────
+  ctx.tools.register(defineTool({
+    name: 'mc_tunnel',
+    description:
+      '沿指定方向挖一条水平的 2 格高通道并逐格前进（默认 8 格）——脱困专用：纯平地行走、完全不依赖跳跃，坑底/地下/被方块围住/寻路反复失败时，一次调用就取得确定进展。' +
+      '先用 mc_look 看清四周（避开水/岩浆、挑地形下坡的一侧），再选方向开挖；挖到露天或走不通会如实报告。也适合普通掘进（采石/挖走廊）。',
+    parameters: {
+      direction: { type: 'string', required: true, description: 'east(东+x) / west(西-x) / south(南+z) / north(北-z)' },
+      length: { type: 'number', description: '挖几格，默认 8，上限 24' },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+    timeoutMs: 300_000,
+    execute: guard(bot, async (args) => {
+      const dirMap: Record<string, [number, number]> = { east: [1, 0], west: [-1, 0], south: [0, 1], north: [0, -1] }
+      const d = String(args.direction ?? '').toLowerCase()
+      const v = dirMap[d]
+      if (!v) return 'direction 必须是 east / west / south / north'
+      const n = Math.max(1, Math.min(24, Math.floor(Number(args.length ?? 8))))
+      const startY = Math.floor(bot.entity!.position.y)
+      let dug = 0
+      for (let i = 0; i < n; i++) {
+        const r = await tunnelStep(bot, v[0], v[1])
+        if (r !== 'ok') {
+          const p = bot.entity!.position
+          return `${r}。本次沿 ${d} 共前进 ${dug} 格，现位于 (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})`
+        }
+        dug++
+      }
+      const p = bot.entity!.position
+      // 通道尽头环境快照：头顶是否露天（脱困信号）
+      let openSky = false
+      try {
+        for (let y = Math.floor(p.y) + 2; y < Math.floor(p.y) + 12; y++) {
+          const blk = bot.blockAt(new Vec3(Math.floor(p.x), y, Math.floor(p.z)))
+          if (!blk) break
+          if (blk.boundingBox !== 'empty') { openSky = false; break }
+          openSky = true
+        }
+      } catch { /* best effort */ }
+      return `已沿 ${d} 挖进 ${dug} 格（y=${startY} 层），现位于 (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})${openSky ? '——头顶已露天，脱困在望：继续向前或垫方块上来' : '。若仍未脱困，mc_look 观察后换方向继续 mc_tunnel，或沿通道走到底'}` + `；挖到的掉落物已随手捡起`
     }),
   }))
 
@@ -1436,7 +1608,7 @@ export function apply(ctx: Context) {
         .slice(0, 6)
         .map((e: any) => {
           const d = Math.round(bot.entity!.position.distanceTo(e.position))
-          // 玩家实体优先显示用户名，否则雷达里同伴永远是匿名 "player"
+          // 玩家实体优先显示用户名，否则雷达里同伴永远是匿名 "player"（上游 de8074d）
           const label = e.username ? `${e.username}(player)` : (e.displayName ?? e.name)
           return `${label}(${d}格)`
         })

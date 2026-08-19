@@ -37,7 +37,44 @@ async function loadVision(): Promise<Vision | null> {
       import('prismarine-viewer/viewer/lib/viewer.js'),
       import('prismarine-viewer/viewer/lib/worldView.js'),
     ])
-    const THREE = (threeMod as any).default
+    const THREE = (threeMod as any).default ?? threeMod
+    // prismarine-physics/viewer 的实体网格注册表没有 1.21.11 的新实体（text_display/
+    // glow_squid/item…），getEntityMesh 直接 throw——updateEntity 事件路径没被
+    // entities.update 的包装覆盖时仍会打断渲染/刷屏。在模块根上兜住：未知实体
+    // 给一个隐形小方块网格，所有调用点一次治愈（CJS exports 可变，全进程生效）。
+    const [entitiesMod] = await Promise.all([
+      import('prismarine-viewer/viewer/lib/entities.js'),
+    ])
+    const entitiesRaw = (entitiesMod as any).default ?? entitiesMod
+    const origGetEntityMesh = entitiesRaw.getEntityMesh
+    if (typeof origGetEntityMesh === 'function') {
+      entitiesRaw.getEntityMesh = (...fnArgs: unknown[]) => {
+        try {
+          return origGetEntityMesh(...fnArgs)
+        } catch {
+          const dummy = new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, 0.25, 0.25),
+            new THREE.MeshBasicMaterial({ visible: false }),
+          )
+          return dummy
+        }
+      }
+    }
+    // 兜底：entities.js 内部对同模块 getEntityMesh 的闭包引用改不了（模块内
+    // 解构绑定），它自己的 try/catch 会把「Unknown entity xxx」连栈打印刷屏但
+    // 不致命——进程级过滤这一种噪音（console.log/error 都钩，message 匹配），
+    // 其余输出原样放行。
+    const isEntityNoise = (a: unknown[]): boolean => {
+      const flat = a.map((x) => (x instanceof Error ? x.message : String(x))).join(' ')
+      return /^(Error: )?Unknown entity /.test(flat)
+    }
+    for (const level of ['error', 'log'] as const) {
+      const orig = console[level].bind(console)
+      console[level] = (...a: unknown[]) => {
+        if (isEntityNoise(a)) return
+        orig(...a)
+      }
+    }
     // prismarine-viewer 的 WorldView 依赖浏览器 Worker API，node 下用 worker_threads 顶替
     // 其 viewer/lib 内部还有裸用全局 THREE / window 的浏览器假设，一并补上
     // @ts-expect-error -- global polyfill
@@ -98,6 +135,18 @@ async function build(bot: Bot): Promise<CameraState> {
   const canvas = v.createCanvas(WIDTH, HEIGHT)
   const renderer = new v.THREE.WebGLRenderer({ canvas })
   const viewer = new v.Viewer(renderer)
+  // 1.21.11 新实体（text_display/glow_squid/item…）不在 prismarine-viewer 的
+  // 网格注册表里，Entities.update 遇到会 throw 并打断整帧渲染/截图。
+  // 包一层 try/catch：未知实体的网格缺失只影响它自己，不许连累整帧。
+  const entities = (viewer as unknown as { entities?: { update: (...a: unknown[]) => void } }).entities
+  if (entities?.update) {
+    const origUpdate = entities.update.bind(entities)
+    entities.update = (...a: unknown[]) => {
+      try {
+        origUpdate(...a)
+      } catch { /* unknown entity mesh: skip it, keep the frame */ }
+    }
+  }
   // 宽视野：Viewer 默认 75，这里按环境变量覆盖（懒初始化后首次截图生效）
   viewer.camera.fov = FOV
   viewer.camera.updateProjectionMatrix()

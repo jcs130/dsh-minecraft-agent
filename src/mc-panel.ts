@@ -21,7 +21,7 @@
 import Schema from '@deepseek-ai/schemastery'
 import type { Context } from '@deepseek-ai/cordis'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { closeSync, existsSync, openSync, readSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 
 export const name = 'mc-panel'
@@ -88,7 +88,38 @@ export interface PanelPayload {
   defects: Array<Record<string, unknown> & { file: string; tool: string }>
   latestShot: string | null
   uptimeSec: number
+  /** 俯视地形快照（mc-loop 每步写 map-<user>.json；2026-08-19 需求） */
+  topo: {
+    updatedAt?: string
+    r?: number
+    cx?: number
+    cy?: number
+    cz?: number
+    yaw?: number | null
+    cells?: string
+    heights?: number[]
+    entities?: Array<{ name: string; dx: number; dz: number }>
+  } | null
+  /** 编年史事件流（episodic 尾部）与击杀聚合 */
+  events: Array<{ ts: string; text: string; kill: boolean }>
+  kills: { recent: number; items: Array<{ ts: string; text: string }> }
 }
+
+/** 只读文件尾部 bytes 字节（episodic 会无限增长，全量读太重）。 */
+function tailFile(file: string, bytes: number): string {
+  const st = statSync(file)
+  const start = Math.max(0, st.size - bytes)
+  const buf = Buffer.alloc(st.size - start)
+  const fd = openSync(file, 'r')
+  try {
+    readSync(fd, buf, 0, buf.length, start)
+  } finally {
+    closeSync(fd)
+  }
+  return buf.toString('utf-8')
+}
+
+const KILL_RE = /击杀|杀死|斩杀|斩了|killed|slain|defeated|击败/
 
 const START_MS = Date.now()
 
@@ -158,6 +189,9 @@ export function collect(dataDir: string, username: string): PanelPayload {
     defects: [],
     latestShot: null,
     uptimeSec: Math.round((Date.now() - START_MS) / 1000),
+    topo: null,
+    events: [],
+    kills: { recent: 0, items: [] },
   }
   if (!u) return payload
   const statusRaw = readJson(join(dataDir, `status-${u}.json`))
@@ -214,6 +248,25 @@ export function collect(dataDir: string, username: string): PanelPayload {
       break
     }
   }
+  // 俯视地形快照（mc-loop writeMapSnapshot 每步更新）
+  payload.topo = readJson(join(dataDir, `map-${u}.json`)) as PanelPayload['topo']
+  // 编年史事件流（尾部 64KB ≈ 200+ 条）+ 击杀聚合
+  try {
+    const raw = tailFile(join(dataDir, `episodic-${u}.jsonl`), 64 * 1024)
+    const lines = raw.split('\n').filter(Boolean)
+    // 首行可能被截半，能解析就用
+    const events: Array<{ ts: string; text: string; kill: boolean }> = []
+    for (const l of lines.slice(-40)) {
+      try {
+        const e = JSON.parse(l) as { ts?: string; text?: string }
+        const text = e.text ?? ''
+        events.push({ ts: e.ts ?? '', text, kill: KILL_RE.test(text) })
+      } catch { /* skip broken line */ }
+    }
+    payload.events = events.reverse()
+    const kills = events.filter((e) => e.kill).slice(0, 10)
+    payload.kills = { recent: events.filter((e) => e.kill).length, items: kills }
+  } catch { /* no episodic yet */ }
   return payload
 }
 
@@ -305,18 +358,28 @@ function dashboardHtml(): string {
     + '@media(max-width:1000px){.bottom{grid-template-columns:1fr}}'
     + 'canvas{width:100%;border-radius:8px;background:#0b0d10}'
     + '.empty{color:var(--dim);font-size:12px;padding:6px 0}'
+    + '.vtab{font-size:11px;padding:2px 8px;border:1px solid #2a3346;border-radius:9px;background:transparent;color:var(--dim);cursor:pointer}'
+    + '.vtab:hover{color:#fff}'
     + '</style></head><body><div class="wrap">'
     + '<div class="top"><h1 id="title">…</h1><span class="sub" id="sub"></span>'
     + '<span style="flex:1"></span><span class="badge" id="live">…</span>'
-    + '<span class="badge" id="lv">—</span><span class="badge" id="skill">—</span></div>'
+    + '<span class="badge" id="lv">—</span><span class="badge" id="skill">—</span>'
+    + '<span class="badge" id="kills">⚔ —</span></div>'
     + '<div class="grid">'
-    + '<div><div class="card"><h2>第三人称视角</h2><div class="viewer" id="vwrap"><iframe id="vframe" src="about:blank"></iframe>'
+    + '<div><div class="card"><h2>游戏视角 <span style="float:right">'
+    + '<button class="vtab" id="vt-3" style="background:var(--acc)">轨道</button> '
+    + '<button class="vtab" id="vt-smooth">第一人称</button> '
+    + '<button class="vtab" id="vt-map">俯视地图</button></span></h2>'
+    + '<div class="viewer" id="vwrap"><iframe id="vframe" src="about:blank"></iframe>'
     + '<button class="fs" onclick="fs()">⛶ 全屏</button></div></div>'
     + '<div class="card"><h2>最近所见（agent 截图）</h2><div class="shotwrap" id="shot"></div></div></div>'
     + '<div><div class="card"><h2>状态</h2><div id="vitals">…</div></div>'
+    + '<div class="card"><h2>周围地形（实时俯视 33×33）</h2><canvas id="topo" width="330" height="330"></canvas>'
+    + '<div class="sub" id="toposub" style="color:var(--dim);font-size:11px;margin-top:4px">等待地形数据…</div></div>'
     + '<div class="card"><h2>生存知识库</h2><div id="wiki">…</div></div>'
     + '<div class="card"><h2>缺陷工单</h2><div id="defects">…</div></div></div></div>'
     + '<div class="card"><h2>思考与行动流</h2><div class="steps" id="steps">…</div></div>'
+    + '<div class="card"><h2>编年史事件流（⚔ 战斗击杀高亮）</h2><div class="steps" id="events" style="max-height:300px">…</div></div>'
     + '<div class="bottom">'
     + '<div class="card"><h2>背包</h2><div class="chips" id="inv">…</div></div>'
     + '<div class="card"><h2>已知资源点</h2><canvas id="mm" width="380" height="280"></canvas></div>'
@@ -344,6 +407,21 @@ function dashboardHtml(): string {
     + 'pts.forEach(function(q){g.fillStyle=q.c;g.beginPath();g.arc(X(q.x),Z(q.z),q.r,0,7);g.fill()});'
     + 'if(me){g.fillStyle="#4f8cff";g.beginPath();g.arc(X(me.x),Z(me.z),5,0,7);g.fill();g.strokeStyle="#9cc0ff";g.lineWidth=2;g.beginPath();g.arc(X(me.x),Z(me.z),8,0,7);g.stroke();g.lineWidth=1}'
     + 'g.fillStyle="#8a93a3";g.font="11px sans-serif";g.fillText("N ↑",6,14);g.fillText(Math.round(minx)+","+Math.round(minz),pad,c.height-8);var rt=Math.round(maxx)+","+Math.round(maxz);g.fillText(rt,c.width-pad-g.measureText(rt).width,c.height-8)}'
+    + 'function shade(hex,f){var n=parseInt(hex.slice(1),16),r=(n>>16)&255,gr=(n>>8)&255,b=n&255;r=Math.min(255,Math.round(r*(1+f)));gr=Math.min(255,Math.round(gr*(1+f)));b=Math.min(255,Math.round(b*(1+f)));return "rgb("+r+","+gr+","+b+")"}'
+    + 'function drawTopo(m){var c=document.getElementById("topo");if(!c)return;var g=c.getContext("2d");var sub=document.getElementById("toposub");'
+    + 'if(!m||!m.cells){sub.textContent="等待地形数据…";return}'
+    + 'var R=m.r||16,N=2*R+1,SZ=Math.floor(c.width/N);'
+    + 'var COL={g:"#4a7c3f",d:"#7a5b3a","#":"#6e6e6e",s:"#d9c07a","~":"#3a6ea5",L:"#e07020",w:"#8a6236",l:"#3a6b35",c:"#8f8f8f",o:"#f0c94a",T:"#ffcc44",b:"#e0564f",C:"#c39a6b",F:"#d9a03f",G:"#9fc6e8","?":"#556070",".":"#10141b"};'
+    + 'var hs=m.heights||[];for(var i=0;i<m.cells.length&&i<N*N;i++){var ch=m.cells[i],h=hs[i]||0;var base=COL[ch]||COL["?"];'
+    + 'g.fillStyle=shade(base,Math.max(-0.4,Math.min(0.4,h*0.06)));g.fillRect((i%N)*SZ,Math.floor(i/N)*SZ,SZ,SZ)}'
+    + '(m.entities||[]).forEach(function(e){var px=(e.dx+R)*SZ+SZ/2,pz=(e.dz+R)*SZ+SZ/2;var isP=/player/.test(e.name);'
+    + 'g.fillStyle=isP?"#4fd8ff":"#ff5a5a";g.beginPath();g.arc(px,pz,3,0,7);g.fill();'
+    + 'if(isP){g.fillStyle="#bfeaff";g.font="10px sans-serif";g.fillText(e.name.replace("(player)",""),px+5,pz+3)}});'
+    + 'var mx=R*SZ+SZ/2,mz=R*SZ+SZ/2;var yaw=m.yaw||0,ax=-Math.sin(yaw),az=Math.cos(yaw);'
+    + 'g.fillStyle="#fff";g.beginPath();g.arc(mx,mz,4,0,7);g.fill();'
+    + 'g.strokeStyle="#fff";g.lineWidth=2;g.beginPath();g.moveTo(mx,mz);g.lineTo(mx+ax*12,mz+az*12);g.stroke();g.lineWidth=1;'
+    + 'g.fillStyle="#8a93a3";g.font="11px sans-serif";g.fillText("N ↑",6,14);'
+    + 'sub.textContent="中心 "+(m.cx!=null?"("+m.cx+","+m.cy+","+m.cz+")":"—")+" · "+(m.entities||[]).length+" 实体 · "+hhmmss(m.updatedAt)}'
     + 'function render(p){var st=p.status&&p.status.bot?p.status.bot:null;'
     + 'document.title="穿越者面板 · "+((p.archive&&p.archive.name)||p.username||"?");'
     + 'document.getElementById("title").textContent="⚔ "+((p.archive&&p.archive.name)||st&&st.personaName||p.username||"未知穿越者");'
@@ -360,8 +438,12 @@ function dashboardHtml(): string {
     + '+"\<div class=vrow\>📍 坐标 "+(pos?pos.x+", "+pos.y+", "+pos.z:"—")+"\</div\>"'
     + '+"\<div class=vrow\>🧭 朝向 "+dirs[di]+" · ✋ 手持 "+(st.heldItem||"空手")+(st.sleeping?" · 😴 睡眠中":"")+"\</div\>"'
     + '+"\<div class=vrow\>🎯 目标 "+esc((p.memory&&p.memory.currentGoal)||(p.status&&p.status.recentSteps&&p.status.recentSteps.length?p.status.recentSteps[p.status.recentSteps.length-1].goal:"—"))+"\</div\>"'
-    + '+"\<div class=vrow\>⏱ 进程 "+fmtUptime(p.uptimeSec)+" · 更新 "+hhmmss(p.status&&p.status.updatedAt)+"\</div\>"}'
-    + 'var f=document.getElementById("vframe");if(st&&st.viewerPort&&!viewerSet){f.src="http://"+location.hostname+":"+st.viewerPort+"/?pv=3";viewerSet=true}'
+    + '+"\<div class=vrow\>⏱ 进程 "+fmtUptime(p.uptimeSec)+" · 更新 "+hhmmss(p.status&&p.status.updatedAt)+"\</div\>"'
+    + '+ "\<div class=vrow\>🧠 上下文提示卡 "+((p.status&&p.status.context&&p.status.context.cards||[]).length?(p.status.context.cards).map(function(k){return k.id+"×"+k.remain}).join(" "):"无（按需披露中）")+"\</div\>"}'
+    + 'var f=document.getElementById("vframe"),curPv="3";'
+    + 'function setPv(pv){curPv=pv;if(st&&st.viewerPort){f.src="http://"+location.hostname+":"+st.viewerPort+"/?pv="+pv;}["3","smooth","map"].forEach(function(k){var b=document.getElementById("vt-"+k);if(b){b.style.background=k===pv?"var(--acc)":"transparent";b.style.color=k===pv?"#0d1117":"var(--dim)"}})}'
+    + 'if(st&&st.viewerPort&&!viewerSet){setPv(curPv);viewerSet=true}'
+    + '["3","smooth","map"].forEach(function(k){var b=document.getElementById("vt-"+k);if(b)b.onclick=function(){setPv(k)}})'
     + 'var sh=document.getElementById("shot");if(p.latestShot&&p.latestShot!==lastShot){lastShot=p.latestShot;sh.innerHTML="\<img src=/shot/"+encodeURIComponent(p.latestShot)+"?t="+Date.now()+"\>"}else if(!p.latestShot){sh.innerHTML="\<div class=empty\>暂无截图\</div\>"}'
     + 'var steps=(p.status&&p.status.recentSteps)||[];var se=document.getElementById("steps");'
     + 'se.innerHTML=steps.length?steps.slice(-30).reverse().map(function(s){var bad=/error|could not|failed|timeout/i.test(s.outcome||"");'
@@ -377,7 +459,10 @@ function dashboardHtml(): string {
     + 'dd.innerHTML=ds.length?ds.slice(0,6).map(function(d){return "\<div class=item\>\<div\>⚒ "+esc(d.tool)+" ×"+(d.count!=null?d.count:"?")+"\</div\>\<div class=t\>"+esc(d.lastSample||d.lastAt||d.file)+"\</div\>\</div\>"}).join(""):"\<div class=empty\>无未决工单，运行健康\</div\>";'
     + 'var ar=p.archive,ad=document.getElementById("archive");'
     + 'ad.innerHTML=ar?"\<div class=item\>名字："+esc(ar.name)+"\</div\>\<div class=item\>称号："+esc(ar.epithet||"—")+"\</div\>\<div class=item\>来自："+esc(ar.source||"—")+"\</div\>\<div class=item\>MC 用户名："+esc(p.username)+"\</div\>":"\<div class=empty\>未注册穿越者档案\</div\>";'
-    + 'drawMap(p)}'
+    + 'var kb=document.getElementById("kills");kb.textContent=p.kills&&p.kills.recent?"⚔ 近期击杀 "+p.kills.recent:"⚔ 0";'
+    + 'var ev=document.getElementById("events");'
+    + 'ev.innerHTML=p.events&&p.events.length?p.events.slice(0,25).map(function(e){return "\<div class=step"+(e.kill?" err":"")+"\>\<div class=meta\>"+hhmmss(e.ts)+(e.kill?" · ⚔ 战斗":"")+"\</div\>\<div class=out\>"+esc(e.text.slice(0,260))+"\</div\>\</div\>"}).join(""):"\<div class=empty\>暂无编年史\</div\>";'
+    + 'drawTopo(p.topo);drawMap(p)}'
     + 'function tick(){fetch("/api/all").then(function(r){return r.json()}).then(render).catch(function(){})}'
     + 'tick();setInterval(tick,3000);'
     + '</script></body></html>'

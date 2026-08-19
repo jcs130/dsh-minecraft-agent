@@ -7,6 +7,7 @@ import { dirname, join, resolve } from 'node:path'
 import type { Bot } from 'mineflayer'
 import { takeLastImages } from './mc-vision'
 import { captureFirstPerson } from './mc-camera'
+import { buildCardsBlock, disclosedNow } from './mc-cards'
 
 export const name = 'mc-loop'
 export const inject = ['tools', 'mcbot', 'timer', 'mcMemory', 'mcTransmigrators', 'mcIdentity', 'mcMystic', 'mcWiki', 'mcAdapt', 'mcVillage']
@@ -166,6 +167,13 @@ export function apply(ctx: Context, config: Config) {
   }
   // 连续失败计数：连续若干步"没进展"就判定卡住，注入提示引导它换招/咏唱。
   let consecutiveFailures = 0
+  // 位置滞留看门狗（2026-08-19）：失败计数看不见「成功但原地打转」的卡死——
+  // 坑底每挖一块土都算"成功"，计数器永远清零，Asuna 在 (-83,~,136) 坑里
+  // 干耗 2.5h、Sasuke 两进两出深坑，全是这个盲区。用真实位移做第二信号：
+  // 睡觉不计；位移 >2.5 格（相对锚点）清零；滞留 ≥15 步注入警报，每 30 步
+  // 硬复位一次 pathfinder（楔死状态不能靠 LLM 换招自愈）。
+  let frozenAnchor: { x: number; y: number; z: number } | null = null
+  let frozenSteps = 0
   // ── 缺陷工单（自愈闭环 v0，2026-08-17）─────────────────────────────────
   // 起因：桐人对着熔炉反复 view/put_chest 卡死 25 步（#294-#319），失败信号
   // 早就足够，但没有任何机制把"工具能力缺陷"上报给会写代码的创世神。
@@ -387,6 +395,85 @@ export function apply(ctx: Context, config: Config) {
   // Recent decisions kept in memory for the web status snapshot.
   const recentSteps: Array<Record<string, unknown>> = []
 
+  /** 俯视地形图单格分类（33×33，中心=bot）。字符约定与面板渲染端一致。 */
+  function classifyBlock(n: string): string {
+    if (n.includes('water')) return '~'
+    if (n.includes('lava')) return 'L'
+    if (n.includes('torch')) return 'T'
+    if (n.includes('bed')) return 'b'
+    if (n.includes('chest')) return 'C'
+    if (n.includes('furnace') || n.includes('blast')) return 'F'
+    if (n.includes('glass')) return 'G'
+    if (n.includes('ore')) return 'o'
+    if (n === 'grass_block') return 'g'
+    if (n.includes('log') || n.includes('planks') || n.includes('stem')) return 'w'
+    if (n.includes('leaves')) return 'l'
+    if (n.includes('sand') || n.includes('gravel')) return 's'
+    if (n === 'dirt' || n.includes('podzol') || n.includes('mud') || n.includes('clay')) return 'd'
+    if (n === 'cobblestone' || n.includes('stone_bricks') || n.includes('bricks') || n.includes('concrete') || n.includes('quartz')) return 'c'
+    if (n === 'air' || n === 'cave_air' || n === 'void_air') return '.'
+    if (n === 'stone' || n.includes('deepslate') || n.includes('andesite') || n.includes('granite')
+      || n.includes('diorite') || n.includes('tuff') || n.includes('basalt') || n.includes('blackstone')
+      || n.includes('calcite') || n.includes('dripstone')) return '#'
+    return '?'
+  }
+
+  /**
+   * 俯视地形快照（2026-08-19 用户需求：面板展示周围地图状态）。
+   * 33×33 列扫描：每列从头顶 +6 往下找第一个实体方块（最深 -10），记录类别字符
+   * 与相对高度。一次 ~18.5K 次 blockAt（同步查 chunk 缓存），每步一次无感。
+   * 面板零耦合架构不变：照样落盘 data/map-<user>.json 由 mc-panel 读取。
+   */
+  function writeMapSnapshot(bot: Bot) {
+    try {
+      const p = bot.entity?.position
+      if (!p) return
+      const username = bot.username || 'unknown'
+      const R = 16
+      let cells = ''
+      const heights: number[] = []
+      for (let dz = -R; dz <= R; dz++) {
+        for (let dx = -R; dx <= R; dx++) {
+          let ch = '.'
+          let h = 0
+          for (let dy = 6; dy >= -10; dy--) {
+            const b = bot.blockAt(p.offset(dx, dy, dz))
+            if (b && b.name !== 'air' && b.name !== 'cave_air' && b.name !== 'void_air') {
+              ch = classifyBlock(b.name)
+              h = dy
+              break
+            }
+          }
+          cells += ch
+          heights.push(h)
+        }
+      }
+      // 16 格内实体点（含玩家用户名标注——与上游 de8074d 口径一致）
+      const ents: Array<{ name: string; dx: number; dz: number }> = []
+      for (const e of Object.values(bot.entities)) {
+        if (!e || e === bot.entity || !e.position) continue
+        const dx = e.position.x - p.x
+        const dz = e.position.z - p.z
+        if (dx * dx + dz * dz <= 16 * 16) {
+          ents.push({ name: (e as { username?: string }).username ? `${(e as { username?: string }).username}(player)` : (e.name ?? '?'), dx: Math.round(dx), dz: Math.round(dz) })
+        }
+      }
+      writeFileSync(
+        join(statusDir, `map-${username}.json`),
+        JSON.stringify({
+          updatedAt: new Date().toISOString(),
+          r: R,
+          cx: Math.floor(p.x), cy: Math.floor(p.y), cz: Math.floor(p.z),
+          yaw: bot.entity?.yaw ?? null,
+          cells, heights, entities: ents,
+        }),
+        'utf-8',
+      )
+    } catch {
+      // 地图快照失败不影响主循环
+    }
+  }
+
   /** Write a lightweight status snapshot for the web panel to poll. */
   function writeStatus(bot: Bot) {
     try {
@@ -411,10 +498,13 @@ export function apply(ctx: Context, config: Config) {
             heldItem: bot.heldItem ? bot.heldItem.name : null,
             inventory: bot.inventory.items().map((i) => ({ name: i.name, count: i.count })),
           },
+          // 此刻注入 system 尾部的提示卡（上下文披露状态，供面板展示）
+          context: { cards: disclosedNow() },
           recentSteps,
         }),
         'utf-8',
       )
+      writeMapSnapshot(bot)
     } catch (err) {
       log(`status write failed: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -442,7 +532,7 @@ export function apply(ctx: Context, config: Config) {
       .filter((e) => e !== bot.entity && p.distanceTo(e.position) < 12)
       .sort((a, b) => p.distanceTo(a.position) - p.distanceTo(b.position))
       .slice(0, 6)
-      // 玩家实体必须显示用户名——只报 "player" 会导致穿越者看见同伴却不知道是谁
+      // 玩家实体必须显示用户名——只报 "player" 会导致穿越者看见同伴却不知道是谁（上游 de8074d）
       .map((e) => `${e.username ? `${e.username}(player)` : e.name} @${Math.round(p.distanceTo(e.position))}m`)
     const resources: string[] = []
     for (const rname of RESOURCE_BLOCKS) {
@@ -529,63 +619,39 @@ export function apply(ctx: Context, config: Config) {
       const p = bot.entity?.position
       adaptBlock = ctx.mcAdapt?.promptBlock(bot.username || 'unknown', p ? Math.floor(p.x) : null, p ? Math.floor(p.z) : null) ?? ''
     } catch { /* mc-adapt 不可用时静默跳过 */ }
+
+    // 渐进式披露：按当前情境注入大块说明卡（魔法/集市/书信/睡觉/天赋/眼睛）
+    let cardsBlock = ''
+    try {
+      const mh = /health: (\d+)/.exec(status)?.[1]
+      const mf = /food: (\d+)/.exec(status)?.[1]
+      cardsBlock = buildCardsBlock(
+        {
+          status,
+          health: mh ? Number(mh) : 20,
+          food: mf ? Number(mf) : 20,
+          isNight: status.includes('time: NIGHT'),
+          stuck: consecutiveFailures >= 3,
+        },
+        log,
+      )
+    } catch { /* cards 不可用时静默跳过 */ }
     const system = [
       getPersona(),
-      wikiBlock,
-      memosBlock,
-      adaptBlock,
       config.goal ? `你的总体任务（若与人设冲突，以本条为准）：${config.goal}` : '',
       '',
       '关于「天神」与「真人玩家」：',
-      '- 「天神」其实就是你的「系统」——你自带的状态面板、能力清单，以及冥冥中指引你行动的那个声音，',
-      '  都来自系统（也就是天神）。系统赐你能力、告诉你状态，是你的力量来源，可以把它当成造物主。',
-      '- 真人玩家不是神。他们是这个世界里的「其他人」——可能是别的穿越者、村民，或是和你一样在方块世界里生活的人',
-      '  （比如 MengMeng 和她的家人）。你把他们当朋友、同伴，平等自然地相处，不必像对神明那样敬畏。',
-      '- 但来自真人玩家的话要认真听：',
-      '  他们问你话 → 用 mc_voice 回应（正常说话）；给你指示 → 尽量照做；给你东西（物品凭空出现在背包里）→ 那是同伴的好意，要心怀感激并善加利用。',
-      '- 跟真人玩家说话要自然、有礼貌，像和同伴聊天一样，别冷冰冰地报参数。',
+      '- 「天神」就是你的「系统」——状态面板、能力清单、冥冥中指引你行动的声音都来自它。系统赐你能力、告知状态，是你的力量来源，敬它如造物主。',
+      '- 真人玩家（如 MengMeng 和她的家人）是这个世界里的「其他人」：当朋友、同伴，平等自然地相处，绝不攻击他们。',
+      '- 真人玩家的话要认真听：问你话 → 用 mc_voice 回应；给你指示 → 尽量照做；物品凭空出现在背包里 → 是同伴好意，心怀感激并善加利用。跟他们说话自然有礼，像和同伴聊天，别冷冰冰报参数。',
       '',
-      '关于「说话与书信」（2026-08-17 世界规则）：',
-      '- 日常交流用 mc_voice：说话有距离感——正常说约48格内听见，喊（shout）约96格但每次费1点饱食度，悄悄话（whisper）只传身边约6格。隔得远就听不见，回执会告诉你谁听见了。',
-      '- mc_chat 是全服大喇叭（重大宣告才用）；填 to 参数则变成不限距离的私语直达。',
-      '- 书信：mc_mail 寄信（好友之间、离线可达——对方下次上线会收到提醒），适合给不在身边的同伴留言、捎话、正式致谢。',
-      '- 好友是写信的前置：mc_friend add 结交 → 对方 mc_friend accept 答应 → 互寄书信。把一起冒险过的同伴加为好友吧。',
-      '',
-      '关于「咏唱魔法」：',
-      '- 你可以「咏唱魔法」施展法术（使用 mc_chant 工具，用中二的口吻喊出咒语，咒语里必须带上法术关键词）。',
-      '- 你会这些法术：归乡（回家/回基地）、空间传送（传送/瞬移，可带距离和方向，如"撕裂虚空，传送十格"）、圣愈（治愈/回血）、饱食（充饥）、造物（变出木头/石头/煤/食物/工具等基础物资）、照明（火把/照亮）、破晓（天亮/白昼）、驱云（放晴）、大地塑形（挖地，会额外消耗饱食度）、陨石（天雷，会额外消耗生命）、鉴定（女神之眼，查看自身修为/魔力/生命体征/已掌握秘法与下一批解锁——想了解自己有什么能力时就咏唱它）。',
-      '- 紧急逆转化：魔力见底又必须立刻施法时，可咏唱「燃血」（燃烧 6 点生命 → 换取 15 魔力，Lv.5 解锁）或「炼食」（消耗 8 点饱食度 → 换取 6 魔力，Lv.2 解锁）。汇率必亏，只作保命奇招，不作日常补魔——魔力每秒自然恢复约 2%，等一等更划算。',
-      '- 法术分等级：每个法术都有等级门槛（见 mc_chant 工具说明里的清单），你的魔力层级不够时女神会拒绝施法。',
-      '  你的出生天赋例外——它与生俱来，无视等级门槛。修为层级=头顶绿色经验条（挖矿/杀怪/施法/供奉皆可积攒），层级提升后自动解锁更强的法术（女神会宣读新层级与新解锁的秘法）。',
-      '- 施法消耗魔力，魔力会随时间自动恢复。魔力不足时施法会失败，等一会儿就好；饿肚子时别用「大地塑形」，残血时别用「陨石」。',
-      '- 咏唱要克制：魔力有限，别每走一步就施法。只在真正需要时咏唱——迷路找不到家（归乡）、重伤（圣愈）、饿得不行（饱食/造物食物）、害怕黑夜（破晓）、想赶走风雨（驱云）、被怪物追杀需要逃命（空间传送）。',
-      '- 【三层自救铁律——法术是最后手段】遇困时按顺序尝试：①先用手头生存手段——嵌方块就 mc_dig 挖开头顶/身旁、坑底就对着脚下 mc_place 垫方块搭台阶、地形复杂就绕路或找坡道（mc_look 找 openSky 出口）；②手段无效或情况紧急再评估——mc_look 看清处境，换一个完全不同的思路；③真绝境才咏唱（传送脱困/圣愈救命）。咏唱脱困是丢脸的事：一个矿工被区区坑洞逼到用魔法，会被同伴笑话。能用双手解决的，绝不劳烦女神。',
-      '- 真正的求救是绝境：又饿又伤又回不了家、被怪物围殴濒死、身体怎么挖都嵌着不动——这时候才值得咏唱。其他求救：归乡（回家，需先睡床设重生点）/ 圣愈（回血）/ 饱食（充饥）。',
-      '- 咏唱时用中二、虔诚的中文喊出咒语，就像对造物主祈愿。',
-      '',
-      '关于「集市与村民」（附近的活人，不是怪物）：',
-      '- 状态里 village NPCs nearby 列出的名字（如铁匠·岳山、书商·墨白、货郎·福伯）是集市里的村民 NPC，头顶悬浮着他们今日的委托。他们不是怪物，不要攻击他们。',
-      '- 跟村民说话：直接在公屏喊他们的称呼+内容，例如「岳山，你好」「墨白 有什么任务」。他们听得懂中文，会回应你（回应会出现在 NPC/goddess words 里）。',
-      '- 接委托：问村民「有什么任务/委托」，他会告诉你想收什么货、给多少绿宝石。攒齐货物后走到他身边（5格内）用 mc_deliver 交付（耳语交割，不扰公屏；公屏喊交付他只会请你凑近低语）。绿宝石是硬通货，有的村民还会泄露法术咒语情报作为额外酬谢。',
-      '- 转交：给其他穿越者/玩家递物品，两人走到一起（5格内）后用 mc_deliver 说「通宝 @对方名字 给2煤」——集市掌柜·通宝（广场总柜台）公证交割，当面两清；对价你们自己谈好。',
-      '- 广场集市掌柜·通宝的柜台挂着全村当日委托；不熟悉行话的真人右键他就能用原版柜台直接交易。你是穿越者，走耳语 mc_deliver 更体面。',
-      '- 交付前先清点背包（看 inventory），数量不够交了会被退回。委托每天刷新，先到先得。',
-      '',
-      '关于「降临仪式与出生天赋」：',
-      '- 你刚穿越降临此界时，若还没有「出生天赋」（初始技能），女神会主持降临仪式，赐你自选一项法术作为出生天赋。',
-      '- 这是你降临此界要做的第一件事：当状态里 innate skill 显示「未选定」时，必须立刻用 mc_choose_innate 工具选定一项法术，选定之后才开始求生、采集、探索。',
-      '- 从候选法术里选一个最契合你人设与处境的（求生者选归乡/圣愈/饱食，好战者选传送/陨石等）。',
-      '- 出生天赋选定后降临即告完成，不必反复选择。',
-      '',
-      '关于「夜晚与睡觉」：',
-      '- 天黑后（状态里 time 显示 NIGHT）尽量回基地，找床睡觉（用 mc_sleep 工具），一觉睡到天亮，安全又省事。',
-      '- 如果附近没有床（状态里 bed within 48m 显示 no），可以先用 mc_place 放一张床（若背包里有）。',
-      '- 找不到床也没关系：躲进基地里别乱跑，或者 mc_chant 咏唱破晓术（天亮）把黑夜变白天。',
-      '',
-      '关于「你的眼睛」：',
-      '- mc_look：文字雷达，一瞬扫清四周——头顶有没有出口、眼前是什么方块、哪里有水/岩浆、附近有什么实体。进陌生地形、迷路、怀疑卡住时先看一眼。',
-      '- mc_see：睁开眼看到真实的第一人称画面（附在你的下一次观察里）。文字雷达信息不够、想确认地形细节或建筑外观时用。',
-      '- 两者都是看，不消耗任何资源。看不见就等于瞎走，勤用眼睛。',
+      '能力速览（详细规则会在相关情境下自动出现在提示末尾，此处只记要点）：',
+      '- 咏唱魔法（mc_chant，法术清单与等级门槛见其工具说明）：施法耗魔力、魔力随时间自动恢复；魔法是最后手段——能用手头工具和双手（挖、垫、绕路）解决的就绝不咏唱，真绝境才施法。',
+      '- 集市村民（岳山/墨白/福伯/通宝…）是活人不是怪物：可对话、接委托赚绿宝石、走近 5 格用 mc_deliver 耳语交付。',
+      '- 交流分层：mc_voice 说话有距离限制（喊更远但费饱食度，悄悄话最近）；mc_chat 全服宣告、填 to 则私语直达；好友（mc_friend）之间可用 mc_mail 寄书信。',
+      '- 天黑（time: NIGHT）尽快回基地找床睡（mc_sleep），没床可咏唱「破晓」把黑夜变白天。',
+      '- mc_look 是文字雷达、mc_see 睁眼看真实画面，都不耗资源——看不清处境先用眼睛。',
+      '- 出生天赋未选定时，必须立刻用 mc_choose_innate 选定，之后才开始求生。',
       '',
       '你的记忆（跨重启持久，坐标可靠）：',
       memory.summary(),
@@ -597,10 +663,9 @@ export function apply(ctx: Context, config: Config) {
       '- 发现新东西（资源、建筑）时，记下来。',
       '',
       '关于「长期记忆」（跨重启的往事回忆）：',
-      '- mc_remember 把重要经历写入你的长期记忆（新发现/重要交易/与人交往/教训/计划承诺），一次一件事，写完整句子带细节（坐标/人名/数量）。',
-      '- mc_recall 模糊检索往事：「我上次在哪见过钻石」「我和谁有什么约定」。想不起来就查，别瞎猜。',
-      '- 重要经历要主动记：遇见新朋友、发现新地点、达成交易、吃过亏——现在不记，重启后就忘了。',
-      '- mc_lore 查世界公共知识库（人人都可读）：世界来历、编年史大事、NPC 传闻、魔法与供奉规则。了解世界、查历史、打听人物时用它，别把传说当个人回忆。',
+      '- mc_remember 把重要经历写入长期记忆（新发现/重要交易/交往/教训/计划承诺），一次一件事，写完整句子带细节（坐标/人名/数量）；现在不记，重启就忘。',
+      '- mc_recall 模糊检索往事（「我上次在哪见过钻石」「我和谁有什么约定」），想不起来就查，别瞎猜。',
+      '- mc_lore 查世界公共知识库（世界来历、编年史、NPC 传闻、魔法与供奉规则），别把传说当个人回忆。',
       '',
       '每次行动前，先用一句话说出你的「思考」(thought)，再说明你当前在追求的「目标」(goal)，',
       '然后从可用工具里选一个最合适的执行。如果当前不需要行动，tool 填 "none"。',
@@ -617,16 +682,26 @@ export function apply(ctx: Context, config: Config) {
       '- args 必须是匹配该工具参数的合法 JSON。',
       '- 先保命（饿了吃、危险逃），再追求目标。',
       '- 偏好小而具体的一步，而不是宏大计划。',
+      '- 基地整洁：基地（床与储物箱所在处）周围 16 格内不挖掘、不采集、不乱搭方块——坑坑洼洼的基地没法住人；要资源去基地 16 格外取。',
+      cardsBlock,
+      wikiBlock,
+      memosBlock,
+      adaptBlock,
+
     ].filter(Boolean).join('\n')
 
     const recent = history
       .slice(-config.historyDepth)
       .map((h, i) => `${i + 1}. ${h}`)
       .join('\n')
-    const stuckHint =
-      consecutiveFailures >= 3
-        ? '\n\n⚠️ 你最近连续多次行动失败、卡在原地打转。别再重复同样的失败了！按三层自救铁律来：①先 mc_look 环顾四周（重点看头顶出口 openSky 和危险），用 mc_see 睁眼看真实画面；②身体嵌方块就 mc_dig 挖开、坑底就 mc_place 朝脚下垫方块搭台阶跳、或者绕路换思路——用双手和工具解决，这是矿工的本分；③以上全部无效、确认真绝境，才 mc_chant 咏唱「传送」向任一方向瞬移 5-10 格脱困。别把魔法当第一反应。'
+    const frozenHint =
+      frozenSteps >= 15
+        ? `\n\n🚨 位置滞留警报：你已在同一位置滞留 ${frozenSteps} 步、位移为零——当前做法没有带来任何进展，再重复也是白耗！立刻换打法：①mc_look + mc_see 看清头顶出口与四周（避开水/岩浆）；②首选 mc_tunnel 朝开阔方向挖平直逃生通道——纯平地行走、不依赖跳跃，必然有进展；③或 mc_place 垫台阶、咏唱「跃升」「传送」；④目标确实不可达就果断放弃，先回基地重整旗鼓。若你正在基地做正事（整理箱柜/合成/交谈）可忽略本警报。`
         : ''
+    const stuckHint =
+      (consecutiveFailures >= 3
+        ? '\n\n⚠️ 你最近连续多次行动失败、卡在原地打转。别再重复同样的失败了！按三层自救铁律来：①先 mc_look 环顾四周（重点看头顶出口 openSky 和危险），用 mc_see 睁眼看真实画面；②身体嵌方块就 mc_dig 挖开；坑底或被地形围住，首选 mc_tunnel 朝开阔方向挖平直逃生通道（不依赖跳跃、确定有效），或 mc_place 朝脚下垫方块搭台阶——用双手和工具解决，这是矿工的本分；③以上全部无效、确认真绝境，才 mc_chant 咏唱「传送」向任一方向瞬移 5-10 格脱困。别把魔法当第一反应。'
+        : '') + frozenHint
     const user = `当前状态：\n${status}\n\n最近行动（从旧到新）：\n${recent || '(无)'}${stuckHint}`
 
     // mc_see 截图若待消费：把画面（单张或多张环视）作为多模态内容附给模型
@@ -709,6 +784,8 @@ export function apply(ctx: Context, config: Config) {
     if (bot.isSleeping) {
       if (!wasSleeping) {
         wasSleeping = true
+        frozenSteps = 0
+        frozenAnchor = null
         void sleepReflect(bot)
       }
       writeStatus(bot)
@@ -720,6 +797,22 @@ export function apply(ctx: Context, config: Config) {
     try {
       const status = perceive(bot)
       lastStatus = status
+      // 位置滞留采样：真实位移是"成功打转"骗局照不出来的第二信号
+      const fp = bot.entity.position
+      if (frozenAnchor && Math.hypot(fp.x - frozenAnchor.x, fp.y - frozenAnchor.y, fp.z - frozenAnchor.z) <= 2.5) {
+        frozenSteps++
+        if (frozenSteps % 30 === 0) {
+          try {
+            const pfw = (bot as unknown as { pathfinder?: { setGoal(g: null): void } }).pathfinder
+            pfw?.setGoal(null)
+            bot.clearControlStates()
+          } catch { /* plugin not ready */ }
+          log(`position frozen ${frozenSteps} steps — pathfinder hard reset injected`)
+        }
+      } else {
+        frozenAnchor = { x: fp.x, y: fp.y, z: fp.z }
+        frozenSteps = 0
+      }
       ensureDeathListener(bot)
       // 自动「睁眼」：每步截一张第一人称画面给观察面板（默认开，MC_EYES_SHOT=0 关闭）。
       // 只展示不注入 LLM——模型要主动 mc_see 才会真正看图决策。

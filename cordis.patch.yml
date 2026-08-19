@@ -1,0 +1,7 @@
+# 组合包配置层（dsh.bundle.patch）。
+# dsh-minecraft-agent 的形态是"独立进程插件包"：每个 AI 玩家（穿越者）一个进程，
+# 由 lib/bootstrap.mjs 直接拉起（env 配置），不注入 dsh 主进程——因此本层为空。
+# 用户安装后：
+#   MC_USERNAME=Asuna MC_HOST=<服务器IP> MC_PANEL_PORT=3200 node node_modules/dsh-minecraft-agent/lib/bootstrap.mjs
+# 详细 env 变量见 README-INSTALL.md。
+[]
