@@ -440,8 +440,10 @@ export function apply(ctx: Context, config: Config) {
     const inv = items.length === 0 ? 'empty' : items.map((i) => `${i.name} x${i.count}`).join(', ')
     const nearby = Object.values(bot.entities)
       .filter((e) => e !== bot.entity && p.distanceTo(e.position) < 12)
+      .sort((a, b) => p.distanceTo(a.position) - p.distanceTo(b.position))
       .slice(0, 6)
-      .map((e) => `${e.name} @${Math.round(p.distanceTo(e.position))}m`)
+      // 玩家实体必须显示用户名——只报 "player" 会导致穿越者看见同伴却不知道是谁
+      .map((e) => `${e.username ? `${e.username}(player)` : e.name} @${Math.round(p.distanceTo(e.position))}m`)
     const resources: string[] = []
     for (const rname of RESOURCE_BLOCKS) {
       const b = bot.findBlock({ matching: (blk) => blk.name === rname, maxDistance: 32 })

@@ -1436,7 +1436,9 @@ export function apply(ctx: Context) {
         .slice(0, 6)
         .map((e: any) => {
           const d = Math.round(bot.entity!.position.distanceTo(e.position))
-          return `${e.displayName ?? e.name}(${d}格)`
+          // 玩家实体优先显示用户名，否则雷达里同伴永远是匿名 "player"
+          const label = e.username ? `${e.username}(player)` : (e.displayName ?? e.name)
+          return `${label}(${d}格)`
         })
 
       // 脚下地质
