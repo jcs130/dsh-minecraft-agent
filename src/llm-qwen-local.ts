@@ -334,8 +334,25 @@ async function* parseSse(body: ReadableStream<Uint8Array>): AsyncGenerator<strin
         if (data === null) continue
         if (data === '[DONE]') {
           sawDone = true
+          // 必须 yield 出去：`translate` 靠收到 `[DONE]` 来做收尾
+          //（block-end / usage / finish），直接 return 会让它误判为
+          // 流中断并抛 STREAM_CLOSED。
+          yield data
           return
         }
+        yield data
+      }
+    }
+    // 流已结束：flush decoder 并处理 buffer 残留。健壮兜底——
+    // 某些上游在 `[DONE]` 后可能不补 `\n\n`，此时它仍留在 buffer 里。
+    buffer += decoder.decode()
+    buffer = buffer.replace(/\r\n/g, '\n')
+    if (buffer.trim().length > 0) {
+      const data = extractData(buffer)
+      if (data === '[DONE]') {
+        sawDone = true
+        yield data
+      } else if (data !== null) {
         yield data
       }
     }
@@ -585,6 +602,12 @@ export class QwenLocalAdapter extends LlmAdapter {
   }
 
   async *stream(options: GenerateOptions): AsyncGenerator<StreamChunk> {
+    if (this.config.debug) {
+      console.log(
+        `[llm-qwen-local] STREAM model=${options.model} msgs=${options.messages.length} ` +
+          `tools=${options.tools?.length ?? 0} purpose=${options.purpose ?? '-'}`,
+      )
+    }
     const body = await serializeRequest(options, this.config, options.signal)
     const payload = JSON.stringify(body)
     const headers: Record<string, string> = {

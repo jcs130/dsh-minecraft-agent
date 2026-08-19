@@ -86,7 +86,8 @@ export async function apply(ctx: Context, config: Config = {}) {
   const intervalMs = config.intervalMs ?? 8000
   const username = config.username ?? 'HarnessBot'
   const sessionId = config.sessionId ?? `mc-${username}`
-  const persona = config.persona ?? DEFAULT_PERSONA
+  // 空串（bootstrap 在无环境变量时传 ''）也回退默认人格，避免空 section。
+  const persona = config.persona?.trim() ? config.persona : DEFAULT_PERSONA
   const goal = config.goal ?? 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
   const rules = config.rules ?? DEFAULT_RULES
 
@@ -97,8 +98,8 @@ export async function apply(ctx: Context, config: Config = {}) {
   // bot 门面在未连接时对属性访问抛错，这里兜底成占位文案。
   // ------------------------------------------------------------------
   const perceive = (): string => {
-    const bot = ctx.mcbot as unknown as Bot | null
     try {
+      const bot = ctx.mcbot as unknown as Bot | null
       const p = bot?.entity?.position
       if (!p) return '(尚未出生 — 等待身体接入方块世界)'
       const parts = [
@@ -131,6 +132,12 @@ export async function apply(ctx: Context, config: Config = {}) {
         maxTokens: config.maxTokens,
       },
       setup: (agentCtx) => {
+        agentCtx.on('agent/status', (payload) => {
+          console.log(`[mc-session] agent status -> ${payload.status} (${sessionId})`)
+        })
+        agentCtx.on('agent/error', (payload) => {
+          console.error(`[mc-session] agent/error (${sessionId}):`, payload.error)
+        })
         agentCtx.systemPrompt.section({
           name: 'deployment:persona',
           order: 0,

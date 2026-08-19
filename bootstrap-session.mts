@@ -60,6 +60,7 @@ await ctx.plugin(AgentLoop, { agents: [] })
 await ctx.plugin(llmQwenLocal, {
   baseURL: process.env.MC_LLM_BASE_URL ?? 'http://127.0.0.1:8890/v1',
   apiKey: process.env.MC_LLM_API_KEY ?? 'sk-local',
+  debug: process.env.MC_LLM_DEBUG === '1',
 })
 
 // ---- 穿越者「身体 + 工具 + 记忆 + 游戏业务」插件（无 mc-loop，由 mc-session 驱动）----
@@ -135,6 +136,17 @@ await ctx.plugin(mcVillage, {
   nearbyRadius: 28,
 })
 
+// ---- 从穿越者档案加载 persona（迁鸣人/桐人时按 MC_USERNAME 自动匹配）----
+// 优先级：MC_PERSONA 环境变量 > 档案 personaFile > mc-session 内置默认人格。
+const transmigrator = ctx.mcTransmigrators?.getByUsername(username)
+const personaFromRegistry = transmigrator?.persona?.trim() || ''
+if (transmigrator) {
+  console.log(
+    `[bootstrap-session] 命中穿越者档案: ${transmigrator.name}(${transmigrator.username}) ` +
+      `来源=${transmigrator.source ?? '随机'} persona=${personaFromRegistry.length} 字`,
+  )
+}
+
 // ---- 创建穿越者 session agent + Timer steer（新形态核心）----
 await ctx.plugin(mcSession, {
   enabled: true,
@@ -147,7 +159,7 @@ await ctx.plugin(mcSession, {
   goal:
     process.env.MC_GOAL ??
     '你刚从现代穿越到这个方块世界，一无所有。按优先级行动：先保证活下去（吃饱、血量安全、天黑前回基地），再收集木材/石头/煤/铁等基础物资，最后在基地附近建立并经营你的根据地。',
-  persona: process.env.MC_PERSONA ?? '',
+  persona: process.env.MC_PERSONA ?? personaFromRegistry,
 })
 
 console.log(
