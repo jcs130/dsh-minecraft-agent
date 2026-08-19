@@ -58,12 +58,14 @@ await ctx.plugin(mcMemory, {
   memoryPath: './data/mc-memory.json',
   maxPointsPerType: 20,
 })
-// 长期语义记忆（MemOS，user_id=mc-<username> 独立记忆池；服务挂了自动降级跳过）。
+// 长期语义记忆（可插拔后端：auto 探测 MemOS 失败自动降级本地 JSONL，别人开箱即用）。
 await ctx.plugin(mcMemos, {
   enabled: process.env.MC_MEMOS !== '0',
+  backend: process.env.MC_MEMOS_BACKEND ?? 'auto', // auto | memos | local
   baseUrl: process.env.MC_MEMOS_URL ?? 'http://127.0.0.1:8002',
   timeoutMs: 8_000,
   maxRecall: 5,
+  localDir: process.env.MC_MEMOS_LOCAL_DIR ?? './data/memory',
 })
 
 // 夜间自我进化（游戏夜入睡触发：MemOS 双池记忆蒸馏成 wiki 教训卡 + 长线成长记忆）。

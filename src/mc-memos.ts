@@ -1,12 +1,16 @@
 /**
- * mc-memos —— 穿越者的长期语义记忆（MemOS 接入，每人独立记忆池）。
+ * mc-memos —— 穿越者的长期语义记忆（可插拔后端，MemOS 优先、本地零依赖兜底）。
  *
- * 与 mc-memory（坐标/目标的程序化硬状态）互补：本插件把"经历"存进
- * 本机 MemOS（user_id = mc-<username>），语义检索跨重启可用——
- * "我上次在哪见过钻石""我跟谁交易过什么"这类模糊回忆。
+ * 与 mc-memory（坐标/目标的程序化硬状态）互补：本插件把"经历"存进长期记忆，
+ * 语义检索跨重启可用——"我上次在哪见过钻石""我跟谁交易过什么"这类模糊回忆。
+ *
+ * 后端路由（2026-08-19 解耦）：
+ *   - backend='memos'：直连 MemOS（家里/有服务的人用）
+ *   - backend='local' ：零依赖本地 JSONL + 关键词检索（别人开箱即用）
+ *   - backend='auto'（默认）：启动时探测 MemOS 端口，可达用 MemOS，不可达降级本地
  *
  * 铁律：
- *  - MemOS 挂了不炸 bot：所有调用 try-catch，失败返回友好提示。
+ *  - 记忆不可用不炸 bot：后端内部所有调用 try-catch，失败返回友好提示。
  *  - REST /product/add 必须用 messages 格式（role+content）——
  *    旧 memory_content 字段会被 SimpleStruct reader 静默丢弃（2026-08-17 实测）。
  *  - fast 模式检索是同步入库的（qdrant 向量层），不依赖 scheduler/Redis。
@@ -14,36 +18,36 @@
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { MemoryProvider, LocalMemoryBackend, LORE_POOL, poolNameOf } from './memory-provider'
 
 export const name = 'mc-memos'
 export const inject = ['tools', 'mcbot']
 
 export interface Config {
   enabled: boolean
+  /** 后端选择：auto=探测 MemOS 失败自动降级本地；memos=强制 MemOS；local=强制本地。 */
+  backend: string
   /** MemOS REST API 地址（穿越者进程与世界进程同机，默认本机）。 */
   baseUrl: string
   timeoutMs: number
   /** mc_recall 最多返回的记忆条数。 */
   maxRecall: number
+  /** 本地后端的记忆目录（backend=local 或 auto 降级时用）。 */
+  localDir: string
 }
 
 export const Config: Schema<Config> = Schema.object({
   enabled: Schema.boolean().default(true),
+  // 用 string 而非 union：非法值在 resolveProvider 里宽容回退 auto 探测，绝不因配置值抛错。
+  backend: Schema.string().default('auto'),
   baseUrl: Schema.string().default('http://127.0.0.1:8002'),
   timeoutMs: Schema.number().default(8_000),
   maxRecall: Schema.number().default(5),
+  localDir: Schema.string().default('./data/memory'),
 })
 
-export interface MemosService {
-  /** 把一条经历写入某穿越者的独立记忆池。失败返回 null（不抛）。 */
-  remember(username: string, content: string): Promise<string | null>
-  /** 语义检索某穿越者的长期记忆，返回格式化文本；无命中/失败返回 ''。 */
-  recall(username: string, query: string, topK?: number): Promise<string>
-  /** 检索公共知识库（世界设定/编年史/NPC 志等），返回格式化文本；无命中/失败返回 ''。 */
-  lore(query: string, topK?: number): Promise<string>
-  /** 跨池检索（个人记忆 + 公共知识库），用于进化复盘等需要全量视角的场景。 */
-  recallAll(username: string, query: string, topK?: number): Promise<string>
-}
+/** 下游插件（mc-adapt/mc-evolve/mc-identity/mc-loop）依赖的类型别名，签名保持不变。 */
+export type MemosService = MemoryProvider
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -53,10 +57,6 @@ declare module '@deepseek-ai/cordis' {
 
 function text(value: unknown) {
   return [{ type: 'text' as const, text: String(value) }]
-}
-
-function userIdOf(username: string): string {
-  return 'mc-' + (username || 'unknown').toLowerCase()
 }
 
 interface AddResponse {
@@ -80,17 +80,23 @@ interface SearchResponse {
   }
 }
 
-export function apply(ctx: Context, config: Config) {
-  if (!config.enabled) {
-    console.log('[mc-memos] disabled')
-    return
+/** MemOS 后端：全功能向量 RAG。REST 调用逻辑与旧版逐行一致（生产行为不变）。 */
+class MemOSBackend implements MemoryProvider {
+  private readonly baseUrl: string
+  private readonly timeoutMs: number
+  private readonly maxRecall: number
+
+  constructor(config: Config) {
+    this.baseUrl = config.baseUrl
+    this.timeoutMs = config.timeoutMs
+    this.maxRecall = config.maxRecall
   }
 
-  async function call(path: string, body: unknown): Promise<unknown> {
+  private async call(path: string, body: unknown): Promise<unknown> {
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), config.timeoutMs)
+    const timer = setTimeout(() => ctrl.abort(), this.timeoutMs)
     try {
-      const res = await fetch(config.baseUrl + path, {
+      const res = await fetch(this.baseUrl + path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -103,14 +109,11 @@ export function apply(ctx: Context, config: Config) {
     }
   }
 
-  const LORE_CUBE = 'mc-world'
-
-  async function searchRaw(userId: string, query: string, topK: number, cubes?: string[]): Promise<string[]> {
-    const r = (await call('/product/search', {
+  private async searchRaw(userId: string, query: string, topK: number, cubes?: string[]): Promise<string[]> {
+    const r = (await this.call('/product/search', {
       user_id: userId,
       query: query.slice(0, 500),
       mode: 'fast',
-      // 传入 cubes 时即跨池检索（如 ["mc-kirito", "mc-world"]）。
       ...(cubes ? { readable_cube_ids: cubes } : {}),
     })) as SearchResponse
     const d = r?.data
@@ -127,50 +130,129 @@ export function apply(ctx: Context, config: Config) {
     return hits.slice(0, topK)
   }
 
-  const service: MemosService = {
-    async remember(username: string, content: string): Promise<string | null> {
-      const c = content.trim()
-      if (!c) return null
-      try {
-        const r = (await call('/product/add', {
-          user_id: userIdOf(username),
-          // 必须用 messages 结构化格式；memory_content 旧字段会被 reader 静默丢弃。
-          messages: [{ role: 'assistant', content: c.slice(0, 2000) }],
-        })) as AddResponse
-        return r?.code === 200 ? (r.data?.[0]?.memory_id ?? 'ok') : null
-      } catch {
-        return null
-      }
-    },
-    async recall(username: string, query: string, topK = config.maxRecall): Promise<string> {
-      const q = query.trim()
-      if (!q) return ''
-      try {
-        return (await searchRaw(userIdOf(username), q, topK)).join('\n')
-      } catch {
-        return ''
-      }
-    },
-    async lore(query: string, topK = config.maxRecall): Promise<string> {
-      const q = query.trim()
-      if (!q) return ''
-      try {
-        return (await searchRaw(LORE_CUBE, q, topK)).join('\n')
-      } catch {
-        return ''
-      }
-    },
-    async recallAll(username: string, query: string, topK = config.maxRecall): Promise<string> {
-      const q = query.trim()
-      if (!q) return ''
-      try {
-        return (await searchRaw(userIdOf(username), q, topK, [userIdOf(username), LORE_CUBE])).join('\n')
-      } catch {
-        return ''
-      }
-    },
+  async remember(username: string, content: string): Promise<string | null> {
+    const c = content.trim()
+    if (!c) return null
+    try {
+      const r = (await this.call('/product/add', {
+        user_id: poolNameOf(username),
+        // 必须用 messages 结构化格式；memory_content 旧字段会被 reader 静默丢弃。
+        messages: [{ role: 'assistant', content: c.slice(0, 2000) }],
+      })) as AddResponse
+      return r?.code === 200 ? (r.data?.[0]?.memory_id ?? 'ok') : null
+    } catch {
+      return null
+    }
   }
-  ctx.provide('mcMemos', service)
+
+  async recall(username: string, query: string, topK = this.maxRecall): Promise<string> {
+    const q = query.trim()
+    if (!q) return ''
+    try {
+      return (await this.searchRaw(poolNameOf(username), q, topK)).join('\n')
+    } catch {
+      return ''
+    }
+  }
+
+  async lore(query: string, topK = this.maxRecall): Promise<string> {
+    const q = query.trim()
+    if (!q) return ''
+    try {
+      return (await this.searchRaw(LORE_POOL, q, topK)).join('\n')
+    } catch {
+      return ''
+    }
+  }
+
+  async recallAll(username: string, query: string, topK = this.maxRecall): Promise<string> {
+    const q = query.trim()
+    if (!q) return ''
+    try {
+      return (await this.searchRaw(poolNameOf(username), q, topK, [poolNameOf(username), LORE_POOL])).join('\n')
+    } catch {
+      return ''
+    }
+  }
+}
+
+/** 探测 MemOS 是否可达（GET /docs，2s 内收到 HTTP 响应即视为在）。 */
+async function memosReachable(baseUrl: string, timeoutMs: number): Promise<boolean> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), Math.min(timeoutMs, 2000))
+  try {
+    const res = await fetch(baseUrl + '/docs', { method: 'GET', signal: ctrl.signal })
+    return res.status < 500 // 200/401/404 都说明服务在监听
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function resolveProvider(config: Config): Promise<MemoryProvider> {
+  if (config.backend === 'local') return new LocalMemoryBackend(config.localDir)
+  if (config.backend === 'memos') return new MemOSBackend(config)
+  // auto：探测 MemOS，可达用 MemOS，不可达降级本地。
+  if (await memosReachable(config.baseUrl, config.timeoutMs)) return new MemOSBackend(config)
+  return new LocalMemoryBackend(config.localDir)
+}
+
+/**
+ * auto 模式的路由器：同步 provide 一个稳定的 MemoryProvider 引用，
+ * 后台异步探测 MemOS，不可达就把 active 热切到本地后端。
+ *
+ * ⚠️ 之所以不直接 async apply + await 探测后再 provide：cordis 的 ctx.provide
+ * 走 fiber.effect→assertActive，必须在 apply 同步执行期间调用；await 之后再
+ * provide 会因 fiber 已 inactive 而静默不注册（实测 reflect.store 为空）。
+ * 所以用「同步 provide 路由器 + 后台切换 active」绕开这个硬约束。
+ */
+class RoutingProvider implements MemoryProvider {
+  active: MemoryProvider
+  constructor(initial: MemoryProvider) {
+    this.active = initial
+  }
+  remember(username: string, content: string): Promise<string | null> {
+    return this.active.remember(username, content)
+  }
+  recall(username: string, query: string, topK?: number): Promise<string> {
+    return this.active.recall(username, query, topK)
+  }
+  lore(query: string, topK?: number): Promise<string> {
+    return this.active.lore(query, topK)
+  }
+  recallAll(username: string, query: string, topK?: number): Promise<string> {
+    return this.active.recallAll(username, query, topK)
+  }
+}
+
+export function apply(ctx: Context, config: Config) {
+  if (!config.enabled) {
+    console.log('[mc-memos] disabled')
+    return
+  }
+
+  let provider: MemoryProvider
+  let kind: string
+  if (config.backend === 'local') {
+    provider = new LocalMemoryBackend(config.localDir)
+    kind = `Local(${config.localDir})`
+  } else if (config.backend === 'memos') {
+    provider = new MemOSBackend(config)
+    kind = `MemOS(${config.baseUrl})`
+  } else {
+    // auto：默认 MemOS（家里/有服务者行为不变），后台探测不可达则切本地。
+    const router = new RoutingProvider(new MemOSBackend(config))
+    provider = router
+    kind = `auto(MemOS ${config.baseUrl} → local fallback)`
+    void (async () => {
+      if (!(await memosReachable(config.baseUrl, config.timeoutMs))) {
+        router.active = new LocalMemoryBackend(config.localDir)
+        console.log(`[mc-memos] MemOS(${config.baseUrl}) 不可达，已降级到本地记忆后端(${config.localDir})`)
+      }
+    })()
+  }
+  ctx.provide('mcMemos', provider)
 
   const currentUsername = (): string => (ctx.mcbot?.username as string) ?? ''
 
@@ -192,7 +274,7 @@ export function apply(ctx: Context, config: Config) {
       const content = String(args.content ?? '').trim()
       if (!content) return '没有要记的内容。'
       const username = currentUsername()
-      const id = await service.remember(username, content)
+      const id = await provider.remember(username, content)
       return id ? `已铭记：${content.slice(0, 60)}${content.length > 60 ? '…' : ''}` : '（记忆之河暂不可渡——没记上，稍后可再试。这不影响你继续行动。）'
     },
   }))
@@ -215,7 +297,7 @@ export function apply(ctx: Context, config: Config) {
       const query = String(args.query ?? '').trim()
       if (!query) return '想回忆什么？'
       const username = currentUsername()
-      const hits = await service.recall(username, query)
+      const hits = await provider.recall(username, query)
       if (!hits) return '（记忆一片空白——要么确实没经历过，要么记忆之河暂不可渡。）'
       return '你的回忆：\n' + hits
     },
@@ -238,11 +320,11 @@ export function apply(ctx: Context, config: Config) {
     execute: async (args: Record<string, unknown>) => {
       const query = String(args.query ?? '').trim()
       if (!query) return '想了解什么？'
-      const hits = await service.lore(query)
+      const hits = await provider.lore(query)
       if (!hits) return '（典籍暂不可查——知识之塔的门关着，稍后再试。）'
       return '你所查的世界知识：\n' + hits
     },
   }))
 
-  console.log(`[mc-memos] long-term semantic memory ready (${config.baseUrl}, user=mc-<name>, lore cube=${LORE_CUBE})`)
+  console.log(`[mc-memos] long-term semantic memory ready via ${kind}, user=mc-<name>, lore cube=${LORE_POOL}`)
 }
