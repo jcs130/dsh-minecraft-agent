@@ -20,6 +20,11 @@ const externals = [
   // peer：宿主 cordis 栈（内嵌形态由 dsh 安装目录提供；独立形态由本包 peer 依赖解析）
   '@deepseek-ai/cordis',
   '@deepseek-ai/cordis-plugin-timer',
+  '@deepseek-ai/dsh-agent',
+  '@deepseek-ai/dsh-agent-loop',
+  '@deepseek-ai/dsh-session',
+  '@deepseek-ai/dsh-llm',
+  '@deepseek-ai/dsh-attachment',
   '@deepseek-ai/dsh-system-prompt',
   '@deepseek-ai/dsh-tools',
   '@deepseek-ai/schemastery',
@@ -60,9 +65,11 @@ const PLUGIN_ENTRIES = [
   'mc-adapt',
   'mc-loop',
   'mc-panel',
+  'llm-qwen-local',
+  'mc-session',
 ]
 
-// 1) 独立进程入口（生产用法）
+// 1) 独立进程入口（生产用法：进程级 mc-loop 自驱形态）
 await build({
   entryPoints: ['bootstrap-mc.mts'],
   bundle: true,
@@ -70,6 +77,18 @@ await build({
   platform: 'node',
   target: 'node22',
   outfile: 'lib/bootstrap.mjs',
+  external: externals,
+  logLevel: 'info',
+})
+
+// 1b) 独立进程入口（新形态：dsh 原生 session agent）
+await build({
+  entryPoints: ['bootstrap-session.mts'],
+  bundle: true,
+  format: 'esm',
+  platform: 'node',
+  target: 'node22',
+  outfile: 'lib/bootstrap-session.mjs',
   external: externals,
   logLevel: 'info',
 })

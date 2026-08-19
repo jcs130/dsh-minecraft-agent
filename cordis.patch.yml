@@ -9,6 +9,19 @@
 # 用户可在自己 profile 的 cordis.patch.yml 里按 id 覆盖任意行（后层胜出，
 # 但需重述整行 config）。
 - insert:
+    # 本地 Qwen3.8 vLLM 的薄 OpenAI 适配器：把 `qwen-local` provider 注册进
+    # dsh 的 LLM runtime（:8890，含 VL image 块 + Qwen3.8 推理档位）。必须先于
+    # 任何会发起 LLM 调用的插件加载。
+    - id: llm-qwen-local
+      name: 'dsh-minecraft-agent/lib/plugins/llm-qwen-local.mjs'
+      config:
+        baseURL: 'http://127.0.0.1:8890/v1'
+        apiKey: 'sk-local'
+        models:
+          - id: 'qwen3.8-27b'
+            contextWindow: 262144
+            maxTokens: 8192
+
     - id: mc-bot
       name: 'dsh-minecraft-agent/lib/plugins/mc-bot.mjs'
       config:
@@ -61,15 +74,22 @@
     - id: mc-adapt
       name: 'dsh-minecraft-agent/lib/plugins/mc-adapt.mjs'
 
+    # 穿越者 = 独立 dsh session agent（新形态）：创建 agent + persona 阴影 +
+    # Timer steer。替代旧 mc-loop 自驱；mc-loop 在 profile 形态下关闭。
+    - id: mc-session
+      name: 'dsh-minecraft-agent/lib/plugins/mc-session.mjs'
+      config:
+        enabled: true
+        username: 'HarnessBot'
+        provider: 'qwen-local'
+        model: 'qwen3.8-27b'
+        intervalMs: 8000
+        goal: 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
+
     - id: mc-loop
       name: 'dsh-minecraft-agent/lib/plugins/mc-loop.mjs'
       config:
-        enabled: true
-        intervalMs: 8000
-        baseUrl: 'http://localhost:8890/v1'
-        apiKey: 'sk-local'
-        model: 'qwen3.8'
-        goal: 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
+        enabled: false
 
     - id: mc-panel
       name: 'dsh-minecraft-agent/lib/plugins/mc-panel.mjs'
