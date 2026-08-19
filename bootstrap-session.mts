@@ -29,6 +29,7 @@ import * as mcWiki from './src/mc-wiki.ts'
 import * as mcVillage from './src/mc-village.ts'
 import * as mcSession from './src/mc-session.ts'
 import * as mcPanel from './src/mc-panel.ts'
+import { writeFileSync } from 'node:fs'
 
 const RUN_MS = Number(process.env.RUN_MS ?? 0)
 // 进程级兜底（同 bootstrap-mc）：mineflayer/prismarine 内部 promise 拒绝升级为崩溃。
@@ -146,6 +147,35 @@ if (transmigrator) {
       `来源=${transmigrator.source ?? '随机'} persona=${personaFromRegistry.length} 字`,
   )
 }
+
+// ---- 9090 面板状态上报：session 架构没有 mc-loop，这里补写 status-<username>.json ----
+// 面板按 status 文件发现穿越者并 iframe 其 viewer；不写则面板永远显示旧快照/死口
+// （进程退出后文件停更，面板侧按 updatedAt 陈旧 >30s 判定离线并回落女神天眼）。
+const statusPath = `./data/status-${username}.json`
+const writeBotStatus = () => {
+  let botSnapshot: Record<string, unknown> = { online: false, username }
+  try {
+    const b = ctx.mcbot as any
+    const p = b?.entity?.position
+    if (p) {
+      botSnapshot = {
+        online: true,
+        username,
+        personaName: transmigrator?.name ?? username,
+        position: { x: Math.round(p.x), y: Math.round(p.y), z: Math.round(p.z) },
+        health: Math.round(b.health ?? 20),
+        food: Math.round(b.food ?? 20),
+        heldItem: b.heldItem?.name ?? null,
+        inventory: (b.inventory?.items() ?? []).map((it: any) => ({ name: it.name, count: it.count })),
+        viewerPort,
+      }
+    }
+  } catch { /* bot 门面未连接：写 online:false 即可 */ }
+  try {
+    writeFileSync(statusPath, JSON.stringify({ bot: botSnapshot, updatedAt: new Date().toISOString() }))
+  } catch { /* 面板可容忍写失败 */ }
+}
+setInterval(writeBotStatus, 3000)
 
 // ---- 创建穿越者 session agent + Timer steer（新形态核心）----
 await ctx.plugin(mcSession, {

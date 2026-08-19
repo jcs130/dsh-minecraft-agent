@@ -1,10 +1,13 @@
 /**
  * mc-panel: per-agent visualization dashboard for transmigrators.
  *
- * A pure read-only observer: serves an HTTP dashboard from the SAME data
+ * A read-only observer by default: serves an HTTP dashboard from the SAME data
  * files other plugins already write (status-<user>.json, mystic-state.json,
  * wiki-<user>.jsonl, mc-memory.json, defects/, screenshots/). Zero coupling
  * with mc-loop/mc-mystic internals — no service injection, no hooks.
+ * One exception (2026-08-20): the server ADDRESS is page-configurable — the
+ * panel writes data/mc-connection.json and mc-bot (file watcher) reconnects;
+ * still file-based, still zero service coupling.
  *
  * This is the plugin-repo (A) counterpart of the world-side panel (:9090):
  * each transmigrator process exposes ITS OWN agent's situation, so any
@@ -14,6 +17,9 @@
  * Endpoints:
  *   GET /          dashboard (zh-CN, dark, polls /api/all every 3s)
  *   GET /api/all   one JSON payload with everything below
+ *   GET  /api/connection        server address: override file + runtime truth
+ *   POST /api/connection        {host, port} -> saves override, bot reconnects
+ *   POST /api/connection/reset  drop override (back to cordis config defaults)
  *   GET /shot/<u>/<file.jpg>  screenshots under data/screenshots (guarded)
  *
  * Config: MC_PANEL_HOST (default 127.0.0.1) / MC_PANEL_PORT (default 3200).
@@ -21,8 +27,9 @@
 import Schema from '@deepseek-ai/schemastery'
 import type { Context } from '@deepseek-ai/cordis'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { closeSync, existsSync, openSync, readSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
+import { CONNECTION_FILE, RUNTIME_FILE, validateOverrides, type RuntimeConnection } from './mc-connection'
 
 export const name = 'mc-panel'
 export const inject: string[] = []
@@ -103,6 +110,11 @@ export interface PanelPayload {
   /** 编年史事件流（episodic 尾部）与击杀聚合 */
   events: Array<{ ts: string; text: string; kill: boolean }>
   kills: { recent: number; items: Array<{ ts: string; text: string }> }
+  /** 服务器连接（2026-08-20：地址页面可配）。override = 用户覆盖文件；runtime = bot 回写真相 */
+  connection: {
+    override: { host?: string; port?: number; updatedAt?: string; updatedBy?: string } | null
+    runtime: RuntimeConnection | null
+  }
 }
 
 /** 只读文件尾部 bytes 字节（episodic 会无限增长，全量读太重）。 */
@@ -192,7 +204,11 @@ export function collect(dataDir: string, username: string): PanelPayload {
     topo: null,
     events: [],
     kills: { recent: 0, items: [] },
+    connection: { override: null, runtime: null },
   }
+  // 服务器连接信息（进程级，与 username 无关）
+  payload.connection.override = readJson(join(dataDir, CONNECTION_FILE)) as PanelPayload['connection']['override']
+  payload.connection.runtime = readJson(join(dataDir, RUNTIME_FILE)) as RuntimeConnection | null
   if (!u) return payload
   const statusRaw = readJson(join(dataDir, `status-${u}.json`))
   const status = (statusRaw ?? {}) as StatusSnapshot
@@ -293,14 +309,66 @@ function handleShot(dataDir: string, req: IncomingMessage, res: ServerResponse):
   }
 }
 
+/** 读请求体（带大小上限），连接设置 POST 用。 */
+function readBody(req: IncomingMessage, limit = 8192): Promise<string> {
+  return new Promise((resolveBody, reject) => {
+    let size = 0
+    const chunks: Buffer[] = []
+    req.on('data', (c: Buffer) => {
+      size += c.length
+      if (size > limit) {
+        reject(new Error('body too large'))
+        req.destroy()
+        return
+      }
+      chunks.push(c)
+    })
+    req.on('end', () => resolveBody(Buffer.concat(chunks).toString('utf-8')))
+    req.on('error', reject)
+  })
+}
+
 export function apply(ctx: Context, config: PanelConfig): void {
   if (!config.enabled) return
   const dataDir = resolve(config.dataDir)
   const server = createServer((req, res) => {
     try {
-      const url = req.url ?? '/'
+      const url = (req.url ?? '/').split('?')[0]
       if (url === '/api/all') return json(res, collect(dataDir, config.username))
       if (url.startsWith('/shot/')) return handleShot(dataDir, req, res)
+      // ── 服务器连接设置（2026-08-20：地址页面可配，不再写死 cordis.patch.yml）──
+      if (url === '/api/connection' && (req.method === 'GET' || req.method === 'HEAD')) {
+        return json(res, collect(dataDir, config.username).connection)
+      }
+      if (url === '/api/connection' && (req.method === 'POST' || req.method === 'PUT')) {
+        readBody(req).then(
+          (body) => {
+            try {
+              const parsed = JSON.parse(body) as unknown
+              const v = validateOverrides(parsed)
+              if (!v.ok) return json(res, { ok: false, error: v.error })
+              mkdirSync(dataDir, { recursive: true })
+              const payload = { ...v.value, updatedAt: new Date().toISOString(), updatedBy: 'mc-panel' }
+              writeFileSync(join(dataDir, CONNECTION_FILE), JSON.stringify(payload, null, 2) + '\n', 'utf-8')
+              console.log(`[mc-panel] connection override saved: ${v.value.host}:${v.value.port ?? '(default)'} (bot auto-reconnects)`)
+              json(res, { ok: true, saved: v.value })
+            } catch (err) {
+              json(res, { ok: false, error: (err as Error).message })
+            }
+          },
+          (err) => { try { res.writeHead(400).end((err as Error).message) } catch { /* socket gone */ } },
+        )
+        return
+      }
+      if ((url === '/api/connection/reset' && req.method === 'POST') || (url === '/api/connection' && req.method === 'DELETE')) {
+        try {
+          unlinkSync(join(dataDir, CONNECTION_FILE))
+          console.log('[mc-panel] connection override removed (back to profile defaults)')
+          return json(res, { ok: true, reset: true })
+        } catch {
+          return json(res, { ok: true, reset: true, note: 'no override file' })
+        }
+      }
       if (url === '/' || url.startsWith('/?')) {
         const html = Buffer.from(dashboardHtml(), 'utf-8')
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': html.length })
@@ -360,6 +428,10 @@ function dashboardHtml(): string {
     + '.empty{color:var(--dim);font-size:12px;padding:6px 0}'
     + '.vtab{font-size:11px;padding:2px 8px;border:1px solid #2a3346;border-radius:9px;background:transparent;color:var(--dim);cursor:pointer}'
     + '.vtab:hover{color:#fff}'
+    + '.conn{background:#141821;border:1px solid var(--line);border-radius:6px;color:var(--fg);padding:4px 8px;font-size:13px;flex:1;min-width:0}'
+    + '.btn{background:var(--acc);border:0;border-radius:6px;color:#fff;padding:4px 12px;font-size:12px;cursor:pointer}'
+    + '.btn:hover{filter:brightness(1.15)}'
+    + '.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--dim)}'
     + '</style></head><body><div class="wrap">'
     + '<div class="top"><h1 id="title">…</h1><span class="sub" id="sub"></span>'
     + '<span style="flex:1"></span><span class="badge" id="live">…</span>'
@@ -373,7 +445,15 @@ function dashboardHtml(): string {
     + '<div class="viewer" id="vwrap"><iframe id="vframe" src="about:blank"></iframe>'
     + '<button class="fs" onclick="fs()">⛶ 全屏</button></div></div>'
     + '<div class="card"><h2>最近所见（agent 截图）</h2><div class="shotwrap" id="shot"></div></div></div>'
-    + '<div><div class="card"><h2>状态</h2><div id="vitals">…</div></div>'
+    + '<div><div class="card"><h2>服务器连接（页面可配）</h2>'
+    + '<div class="vrow" id="conn-eff">…</div>'
+    + '<div class="vrow"><input class="conn" id="conn-host" placeholder="服务器地址（IP/域名）" spellcheck="false">'
+    + '<input class="conn" id="conn-port" placeholder="端口" style="width:76px;flex:none" inputmode="numeric"></div>'
+    + '<div class="vrow"><button class="btn" id="conn-save">保存并重连</button>'
+    + '<button class="btn ghost" id="conn-reset">恢复默认</button>'
+    + '<span class="sub" id="conn-msg" style="font-size:11px"></span></div>'
+    + '<div class="sub" style="font-size:11px;color:var(--dim)">改动约 2-5 秒内自动生效：bot 用新地址重建连接，无需重启</div></div>'
+    + '<div class="card"><h2>状态</h2><div id="vitals">…</div></div>'
     + '<div class="card"><h2>周围地形（实时俯视 33×33）</h2><canvas id="topo" width="330" height="330"></canvas>'
     + '<div class="sub" id="toposub" style="color:var(--dim);font-size:11px;margin-top:4px">等待地形数据…</div></div>'
     + '<div class="card"><h2>生存知识库</h2><div id="wiki">…</div></div>'
@@ -386,7 +466,19 @@ function dashboardHtml(): string {
     + '<div class="card"><h2>档案</h2><div id="archive">…</div></div>'
     + '</div></div>'
     + '<script>'
-    + 'let viewerSet=false,lastShot=null;'
+    + 'let viewerSet=false,lastShot=null;let connEdited=false;'
+    + '["conn-host","conn-port"].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener("input",function(){connEdited=true})});'
+    + 'document.getElementById("conn-save").onclick=function(){'
+    + 'var h=document.getElementById("conn-host").value.trim(),pp=document.getElementById("conn-port").value.trim();'
+    + 'var body={host:h};if(pp)body.port=parseInt(pp,10);'
+    + 'var m=document.getElementById("conn-msg");m.textContent="保存中…";'
+    + 'fetch("/api/connection",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})'
+    + '.then(function(r){return r.json()}).then(function(j){m.textContent=j.ok?"已保存，bot 重连中（约 2-5 秒）":"失败："+(j.error||"未知错误")})'
+    + '.catch(function(e){m.textContent="请求失败："+e});};'
+    + 'document.getElementById("conn-reset").onclick=function(){'
+    + 'var m=document.getElementById("conn-msg");m.textContent="恢复中…";connEdited=false;'
+    + 'fetch("/api/connection/reset",{method:"POST"}).then(function(r){return r.json()})'
+    + '.then(function(j){m.textContent=j.ok?"已恢复配置默认（bot 重连中）":"失败"}).catch(function(e){m.textContent="请求失败："+e});};'
     + 'function fs(){var w=document.getElementById("vwrap");if(document.fullscreenElement){document.exitFullscreen()}else{w.requestFullscreen&&w.requestFullscreen()}}'
     + 'function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"}[c]})}'
     + 'function hhmmss(ts){try{return new Date(ts).toLocaleTimeString("zh-CN",{hour12:false})}catch(e){return ""}}'
@@ -430,6 +522,12 @@ function dashboardHtml(): string {
     + 'var lv=document.getElementById("lv"),sk=document.getElementById("skill");'
     + 'lv.textContent=p.mystic&&p.mystic.level!=null?"Lv."+p.mystic.level:"Lv.—";'
     + 'sk.textContent=p.mystic&&p.mystic.innateSkill?"天赋「"+p.mystic.innateSkill+"」":"天赋未定";'
+    + 'var cn=p.connection||{},rt=cn.runtime,ce=document.getElementById("conn-eff");'
+    + 'if(rt){var cAge=Date.now()-new Date(rt.updatedAt).getTime();'
+    + 'var ccls="badge "+(rt.connected?"on":"off"),ctxt=rt.connected?"已连接":(cAge<30000?"重连中…":"未连接");'
+    + 'ce.innerHTML="生效 \<b\>"+esc(rt.host+":"+rt.port)+"\</b\> · "+(rt.source==="override"?"页面设置":"配置默认")+" · \<span class=\'"+ccls+"\'>"+ctxt+"\</span\>";'
+    + 'if(!connEdited){if(rt.host)document.getElementById("conn-host").value=rt.host;document.getElementById("conn-port").value=rt.port||"";}}'
+    + 'else{ce.innerHTML="\<span class=empty\>等待 bot 上报连接状态…\</span\>"}'
     + 'var v=document.getElementById("vitals");if(!st){v.innerHTML="\\<div class=empty>暂无状态数据（等待 agent 连接服务器…）\\</div>"}else{'
     + 'var hp=st.health==null?0:st.health,fd=st.food==null?0:st.food,pos=st.position;'
     + 'var dirs=["南","西","北","东"],yaw=st.yaw==null?0:st.yaw,deg=((yaw*180/Math.PI)+360)%360,di=Math.round(deg/90)%4;'
