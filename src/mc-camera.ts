@@ -8,7 +8,8 @@
 import { mkdir, readdir, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Worker } from 'node:worker_threads'
-import { Vec3 } from 'vec3'
+// default import：同 mc-tools.ts 的 CJS interop 说明
+import Vec3 from 'vec3'
 import type { Bot } from 'mineflayer'
 
 // ⚠️ 3D 渲染栈（three / node-canvas-webgl / prismarine-viewer viewer）必须懒加载：

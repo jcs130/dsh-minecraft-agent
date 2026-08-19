@@ -78,3 +78,7 @@ ritual-e2e-*.log
 *.vbs 
 
 __pycache__/
+
+# local build/test artifacts
+*.tgz
+smoke-viewer.cjs

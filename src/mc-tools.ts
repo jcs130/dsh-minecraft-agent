@@ -3,7 +3,9 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Bot, Chest, Dispenser, EnchantmentTable, EquipmentDestination, Furnace, Villager } from 'mineflayer'
 import type { Block } from 'prismarine-block'
 import pf from 'mineflayer-pathfinder'
-import { Vec3 } from 'vec3'
+// default import：vec3 是纯 CJS（module.exports = Vec3 类），Node ESM 的
+// cjs-module-lexer 检测不出具名导出，具名 import 在打包产物（纯 ESM）里会炸。
+import Vec3 from 'vec3'
 import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
 import { resolve } from 'node:path'

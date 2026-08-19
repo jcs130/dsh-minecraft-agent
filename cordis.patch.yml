@@ -1,7 +1,75 @@
-# 组合包配置层（dsh.bundle.patch）。
-# dsh-minecraft-agent 的形态是"独立进程插件包"：每个 AI 玩家（穿越者）一个进程，
-# 由 lib/bootstrap.mjs 直接拉起（env 配置），不注入 dsh 主进程——因此本层为空。
-# 用户安装后：
-#   MC_USERNAME=Asuna MC_HOST=<服务器IP> MC_PANEL_PORT=3200 node node_modules/dsh-minecraft-agent/lib/bootstrap.mjs
-# 详细 env 变量见 README-INSTALL.md。
-[]
+# 组合包配置层（dsh.bundle.patch，官方安装形态的激活开关）。
+#
+# `dsh plugin --profile <name> add <tarball|npm|github>` 安装本包后，本层把
+# 穿越者侧 13 个插件注入 dsh 主进程：dsh --profile <name> "<任务>" 启动即得
+# 一个 Minecraft 穿越者 agent（工具/记忆/咏唱/村庄/进化全量挂载）。
+# 世界侧插件（mc-god/mc-rcon/magic/ritual/social/logwatch/worlddb）属服务器
+# 端项目，不在本包——见 README 双仓边界说明。
+#
+# 用户可在自己 profile 的 cordis.patch.yml 里按 id 覆盖任意行（后层胜出，
+# 但需重述整行 config）。
+- insert:
+    - id: mc-bot
+      name: 'dsh-minecraft-agent/lib/plugins/mc-bot.mjs'
+      config:
+        host: 'localhost'
+        port: 25565
+        username: 'HarnessBot'
+        autoReconnect: true
+        viewerEnabled: false
+
+    - id: mc-tools
+      name: 'dsh-minecraft-agent/lib/plugins/mc-tools.mjs'
+
+    - id: mc-memory
+      name: 'dsh-minecraft-agent/lib/plugins/mc-memory.mjs'
+      config:
+        memoryPath: './data/mc-memory.json'
+        maxPointsPerType: 20
+
+    - id: mc-transmigrator
+      name: 'dsh-minecraft-agent/lib/plugins/mc-transmigrator.mjs'
+      config:
+        registryPath: './data/transmigrators.json'
+
+    - id: mc-identity
+      name: 'dsh-minecraft-agent/lib/plugins/mc-identity.mjs'
+
+    - id: mc-mystic
+      name: 'dsh-minecraft-agent/lib/plugins/mc-mystic.mjs'
+
+    - id: mc-wiki
+      name: 'dsh-minecraft-agent/lib/plugins/mc-wiki.mjs'
+
+    - id: mc-village
+      name: 'dsh-minecraft-agent/lib/plugins/mc-village.mjs'
+
+    - id: mc-memos
+      name: 'dsh-minecraft-agent/lib/plugins/mc-memos.mjs'
+      config:
+        enabled: true
+        baseUrl: 'http://127.0.0.1:8002'
+        timeoutMs: 8000
+        maxRecall: 5
+
+    - id: mc-evolve
+      name: 'dsh-minecraft-agent/lib/plugins/mc-evolve.mjs'
+      config:
+        enabled: true
+        cooldownHours: 12
+
+    - id: mc-adapt
+      name: 'dsh-minecraft-agent/lib/plugins/mc-adapt.mjs'
+
+    - id: mc-loop
+      name: 'dsh-minecraft-agent/lib/plugins/mc-loop.mjs'
+      config:
+        enabled: true
+        intervalMs: 8000
+        baseUrl: 'http://localhost:8890/v1'
+        apiKey: 'sk-local'
+        model: 'qwen3.8'
+        goal: 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
+
+    - id: mc-panel
+      name: 'dsh-minecraft-agent/lib/plugins/mc-panel.mjs'
