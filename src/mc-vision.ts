@@ -29,9 +29,11 @@ export function setLastImages(images: CapturedImage[]): void {
   lastImagesAt = Date.now()
 }
 
-/** 取走最近的截图（超过 maxAgeMs 的旧图作废），取后即清。 */
-export function takeLastImages(maxAgeMs = 60_000): CapturedImage[] {
+/** 取走最近的截图（超过 maxAgeMs 的旧图作废），取后即清。
+ * maxImages: 端点单次 prompt 图片上限——vLLM/Qwen-VL 为 2（2026-08-19 Sasuke #353
+ * 实锤 LLM 400 "At most 2 image(s)"）。环顾四周存 3+ 角度时只带最新 2 张。 */
+export function takeLastImages(maxAgeMs = 60_000, maxImages = 2): CapturedImage[] {
   const imgs = lastImages
   lastImages = []
-  return Date.now() - lastImagesAt <= maxAgeMs ? imgs : []
+  return Date.now() - lastImagesAt <= maxAgeMs ? imgs.slice(-maxImages) : []
 }
