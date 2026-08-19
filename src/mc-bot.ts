@@ -36,10 +36,26 @@ declare module '@deepseek-ai/cordis' {
 
 type Handler = (...args: any[]) => void
 
-export function apply(ctx: Context, config: Config) {
+/** 门面类型别名（历史叫 McBotService，即 mcbot 门面 Proxy）。 */
+export type McBotService = Bot
+
+/** 一个穿越者 bot 连接的生命周期句柄：门面 + 断开。 */
+export interface BotService {
+  facade: Bot
+  dispose(): void
+}
+
+/**
+ * 创建一个独立 bot 连接（不依赖 cordis ctx）。
+ *
+ * 返回一个稳定「门面」：属性访问动态转发到当前 mineflayer 实例；
+ * on/once/off 注册进持久表，每次重连后新实例上线时全量重挂——事件监听
+ * 跨重连存活。调用方负责把 facade provide 进 scope，并在 scope 销毁时
+ * 调用 dispose() 断开 bot。
+ */
+export function createBotService(config: Config): BotService {
   const log = (msg: string) => console.log(`[mc-bot-service] ${msg}`)
   let disposed = false
-  let provided = false
   let currentBot: Bot | null = null
   let closeViewer: (() => void) | null = null
 
@@ -139,11 +155,6 @@ export function apply(ctx: Context, config: Config) {
       checkTimeoutInterval: 30_000,
     })
     currentBot = bot
-    // 只 provide 一次门面；后续重连不再覆盖 DI 值（门面永不过期）。
-    if (!provided) {
-      ctx.provide('mcbot', facade)
-      provided = true
-    }
 
     // 官方插件 + 把持久事件监听桥接到新实例
     bot.loadPlugin(pf.pathfinder)
@@ -242,8 +253,9 @@ export function apply(ctx: Context, config: Config) {
 
   connect()
 
-  ctx.effect(() => {
-    return () => {
+  return {
+    facade,
+    dispose() {
       disposed = true
       log('disposing, ending bot')
       if (closeViewer) {
@@ -251,9 +263,20 @@ export function apply(ctx: Context, config: Config) {
         closeViewer = null
       }
       if (currentBot) {
-        currentBot.end('plugin disposed')
+        currentBot.end('service disposed')
         currentBot = null
       }
-    }
-  })
+    },
+  }
+}
+
+/**
+ * 世界侧（Goddess spectator）仍走顶层单例：provide 一个门面，scope 销毁时
+ * 断开 bot。穿越者侧不再走 apply，而是由 mc-session 在每个 agent 的 setup 里
+ * 调用 createBotService 建立独立 bot 并 provide 到 agent scope。
+ */
+export function apply(ctx: Context, config: Config) {
+  const service = createBotService(config)
+  ctx.provide('mcbot', service.facade)
+  ctx.effect(() => service.dispose)
 }

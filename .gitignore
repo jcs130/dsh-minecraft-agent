@@ -82,3 +82,6 @@ __pycache__/
 # local build/test artifacts
 *.tgz
 smoke-viewer.cjs
+  
+/start-session-bot.bat  
+deepseek-harness/  

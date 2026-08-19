@@ -14,7 +14,7 @@ import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { setLastImage, setLastImages } from './mc-vision'
 
 export const name = 'mc-tools'
-export const inject = ['tools', 'mcbot']
+export const inject = ['tools']
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
@@ -23,18 +23,23 @@ function text(value: unknown) {
 }
 
 type Args = Record<string, unknown>
-type ToolExecutor = (args: Args) => Promise<string>
+type ToolExecutor = (args: Args, exec?: any) => Promise<string>
+type ToolBody = (bot: Bot, args: Args) => Promise<string>
 
 /**
  * Wraps every tool body with a safety net so a single exception can never
  * hang the agent or crash the runtime: it reports the error as a string
  * instead of throwing. Also short-circuits when the bot is not alive.
  */
-function guard(bot: Bot, fn: ToolExecutor): ToolExecutor {
-  return async (args: Args) => {
+function guard(fn: ToolBody): ToolExecutor {
+  return async (args: Args, exec?: any) => {
     try {
+      // per-agent 身体：从执行上下文解析当前 agent scope 的 mcbot 门面，
+      // 不再闭包捕获顶层单例（一个进程多个穿越者，各自一个 bot）。
+      const bot = exec?.agent?.ctx?.mcbot as Bot | undefined
+      if (!bot) return 'bot not available (agent has no body)'
       if (!bot.entity) return 'bot is not connected / has not spawned yet'
-      return await fn(args)
+      return await fn(bot, args)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return `tool error: ${msg}`
@@ -983,7 +988,6 @@ async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string>
 }
 
 export function apply(ctx: Context) {
-  const bot: Bot = ctx.mcbot
   const log = (msg: string) => console.log(`[mc-tools] ${msg}`)
 
   // ── Observe: position / health / food / held item / inventory ────────
@@ -992,7 +996,7 @@ export function apply(ctx: Context) {
     description: 'Get the bot\'s current state: position, health, food, held item and inventory.',
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
-    execute: guard(bot, async () => {
+    execute: guard(async (bot) => {
       const p = bot.entity!.position
       const items = bot.inventory.items().map((i) => `${i.name} x${i.count}`)
       return JSON.stringify({
@@ -1016,7 +1020,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const { x, y, z } = args as { x: number; y: number; z: number }
       const target = new Vec3(x, y, z)
       log(`goto (${x}, ${y}, ${z})`)
@@ -1044,7 +1048,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 300_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const dirMap: Record<string, [number, number]> = { east: [1, 0], west: [-1, 0], south: [0, 1], north: [0, -1] }
       const d = String(args.direction ?? '').toLowerCase()
       const v = dirMap[d]
@@ -1086,7 +1090,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 120_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const blockType = String(args.blockType ?? '')
       const num = Math.max(1, Math.floor(Number(args.count ?? 1)))
       if (!blockType) return 'blockType is required'
@@ -1150,7 +1154,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => digAt(bot, args)),
+    execute: guard(async (bot, args) => digAt(bot, args)),
   }))
 
   // ── Build: place a block at coordinates ───────────────────────────────
@@ -1166,7 +1170,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const blockType = String(args.blockType ?? '')
       const target = new Vec3(Math.floor(Number(args.x)), Math.floor(Number(args.y)), Math.floor(Number(args.z)))
       const item = bot.inventory.items().find((i) => i.name === blockType)
@@ -1217,7 +1221,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const mobType = String(args.mobType ?? '')
       const kill = args.kill !== false
       const mob = bot.nearestEntity(
@@ -1259,7 +1263,7 @@ export function apply(ctx: Context) {
     description: 'Walk to and pick up dropped items near the bot.',
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
-    execute: guard(bot, async () => {
+    execute: guard(async (bot) => {
       await pickupNearby(bot)
       return 'picked up nearby items'
     }),
@@ -1276,7 +1280,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const itemName = String(args.itemType ?? '')
       const count = Math.max(1, Math.floor(Number(args.count ?? 1)))
       if (!itemName) return 'itemType is required'
@@ -1296,7 +1300,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 30_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const itemName = String(args.itemType ?? '')
       const destination = String(args.destination ?? 'hand')
       if (!itemName) return 'itemType is required'
@@ -1319,7 +1323,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const itemName = String(args.itemType ?? '')
       let item: any
       if (itemName) {
@@ -1366,7 +1370,7 @@ export function apply(ctx: Context) {
       to: { type: 'string', description: '私语直达：对方游戏ID。填了就只对这个人说（不限距离），留空则公屏广播' },
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const msg = String(args.message ?? '').trim()
       if (!msg) return 'no message'
       const to = String(args.to ?? '').trim()
@@ -1396,7 +1400,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => viewChest(bot, args)),
+    execute: guard(async (bot, args) => viewChest(bot, args)),
   }))
 
   // ── Storage: deposit items from inventory into a chest ────────────────
@@ -1414,7 +1418,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => transferWithChest(bot, args, 'deposit')),
+    execute: guard(async (bot, args) => transferWithChest(bot, args, 'deposit')),
   }))
 
   // ── Storage: withdraw items from a chest into inventory ───────────────
@@ -1432,7 +1436,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => transferWithChest(bot, args, 'withdraw')),
+    execute: guard(async (bot, args) => transferWithChest(bot, args, 'withdraw')),
   }))
 
   // ── Furnace: smelt items in furnace / blast furnace / smoker ──────────
@@ -1451,7 +1455,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 120_000,
-    execute: guard(bot, async (args) => doSmelt(bot, args)),
+    execute: guard(async (bot, args) => doSmelt(bot, args)),
   }))
 
   // ── Furnace: look inside a furnace ────────────────────────────────────
@@ -1467,7 +1471,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => viewFurnaceContent(bot, args)),
+    execute: guard(async (bot, args) => viewFurnaceContent(bot, args)),
   }))
 
   // ── Enchanting: enchant an item at the nearest enchanting table ───────
@@ -1481,7 +1485,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => doEnchant(bot, args)),
+    execute: guard(async (bot, args) => doEnchant(bot, args)),
   }))
 
   // ── Trade: interact with the nearest villager ─────────────────────────
@@ -1495,7 +1499,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const tradeIndex = args.tradeIndex === undefined || args.tradeIndex === null
         ? undefined
         : Math.floor(Number(args.tradeIndex))
@@ -1512,7 +1516,7 @@ export function apply(ctx: Context) {
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 60_000,
-    execute: guard(bot, async () => {
+    execute: guard(async (bot) => {
       const bed = bot.findBlock({
         matching: (b) => !!b && (b.name === 'bed' || b.name.endsWith('_bed')),
         maxDistance: 48,
@@ -1539,7 +1543,7 @@ export function apply(ctx: Context) {
       '环顾四周：面向什么、眼前方块、头顶有没有露天出口（卡坑自救关键）、四面环境、脚下地质、附近水/岩浆等危险、附近实体。纯文字雷达，极快，零消耗。迷路、卡住、进入陌生地形时先用它。',
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
-    execute: guard(bot, async () => {
+    execute: guard(async (bot) => {
       const pos = bot.entity!.position.floored()
       const headY = pos.y + 1 // 头部所在格
 
@@ -1651,7 +1655,7 @@ export function apply(ctx: Context) {
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     timeoutMs: 30_000,
-    execute: guard(bot, async (args) => {
+    execute: guard(async (bot, args) => {
       const mode = String(args.look ?? 'front')
       if (mode === 'around') {
         try {
