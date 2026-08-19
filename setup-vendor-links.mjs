@@ -19,8 +19,14 @@ const LINKS = [
   ['cordis', 'vendor/cordis'],
   ['schemastery', 'vendor/schemastery'],
   ['cordis-plugin-timer', 'vendor/timer'],
+  // session-agent 形态（bootstrap-session）依赖的官方核心栈
+  ['dsh-llm', 'packages/llm/llm'],
+  ['dsh-session', 'packages/core/session'],
   ['dsh-system-prompt', 'packages/core/system-prompt'],
   ['dsh-tools', 'packages/core/tools'],
+  ['dsh-agent', 'packages/core/agent'],
+  ['dsh-agent-loop', 'packages/core/agent-loop'],
+  ['dsh-attachment', 'packages/attachment/attachment'],
 ]
 
 if (!existsSync(path.join(harnessRoot, 'package.json'))) {
