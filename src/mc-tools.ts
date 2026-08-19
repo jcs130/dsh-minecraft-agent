@@ -14,7 +14,12 @@ import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { setLastImage, setLastImages } from './mc-vision'
 
 export const name = 'mc-tools'
-export const inject = ['tools']
+export const inject = ['tools', 'mcbot']
+
+// 进程级插件 ctx（apply 时捕获）。official one-bot-per-process 形态下
+// root 的 mcbot 单例就是本进程唯一穿越者的身体；多 agent 形态下
+// guard 优先走 exec.agent.ctx.mcbot（per-agent isolate 身体），这里只做 fallback。
+let pluginCtx: Context | undefined
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
@@ -27,6 +32,22 @@ type ToolExecutor = (args: Args, exec?: any) => Promise<string>
 type ToolBody = (bot: Bot, args: Args) => Promise<string>
 
 /**
+ * 解析"这一步该用哪具身体"：优先 agent scope 的 per-agent mcbot
+ * （多穿越者进程形态），访问失败（agent ctx 未 inject mcbot，cordis 会
+ * throw "cannot get property without inject"——official web profile 的
+ * session agent 正是这种情况）则回落进程单例。
+ */
+function resolveBot(exec: any): Bot | undefined {
+  try {
+    const b = exec?.agent?.ctx?.mcbot
+    if (b) return b as Bot
+  } catch { /* agent ctx 无 mcbot inject —— 走进程单例 fallback */ }
+  try {
+    return pluginCtx?.mcbot as Bot | undefined
+  } catch { return undefined }
+}
+
+/**
  * Wraps every tool body with a safety net so a single exception can never
  * hang the agent or crash the runtime: it reports the error as a string
  * instead of throwing. Also short-circuits when the bot is not alive.
@@ -36,7 +57,7 @@ function guard(fn: ToolBody): ToolExecutor {
     try {
       // per-agent 身体：从执行上下文解析当前 agent scope 的 mcbot 门面，
       // 不再闭包捕获顶层单例（一个进程多个穿越者，各自一个 bot）。
-      const bot = exec?.agent?.ctx?.mcbot as Bot | undefined
+      const bot = resolveBot(exec)
       if (!bot) return 'bot not available (agent has no body)'
       if (!bot.entity) return 'bot is not connected / has not spawned yet'
       return await fn(bot, args)
@@ -989,6 +1010,7 @@ async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string>
 
 export function apply(ctx: Context) {
   const log = (msg: string) => console.log(`[mc-tools] ${msg}`)
+  pluginCtx = ctx
 
   // ── Observe: position / health / food / held item / inventory ────────
   ctx.tools.register(defineTool({
