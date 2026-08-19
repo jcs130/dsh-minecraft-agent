@@ -85,3 +85,4 @@ smoke-viewer.cjs
   
 /start-session-bot.bat  
 deepseek-harness/  
+.commitmsg.tmp  

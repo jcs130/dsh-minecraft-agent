@@ -1,7 +1,0 @@
-feat: per-agent bot body for session agents
-
-- mc-bot: export createBotService() (standalone bot lifecycle, no cordis ctx);
-  apply() keeps world-side top-level singleton form
-- mc-tools: drop mcbot inject; guard() resolves body per-execution from
-  exec.agent.ctx.mcbot so one process can host multiple transmigrators
-- gitignore: local ops bat + nested scratch dir
