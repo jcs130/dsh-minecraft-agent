@@ -13,23 +13,20 @@ dsh-minecraft-agent 是一个 [DeepSeek Harness](https://github.com/deepseek-ai/
 
 ## 安装
 
-### 方式 A：git 直装（推荐先体验）
+### 方式 A：git 直装（推荐，零构建脚本）
 
 ```sh
-dsh plugin --profile mc add github:jcs130/dsh-minecraft-agent#<commit-sha>
+dsh plugin --profile mc add github:jcs130/dsh-minecraft-agent
 ```
 
-首次 add 会因 pnpm ≥10 构建授权失败。把 pnpm 提示的确切包键加进
-`$DSH_HOME/profiles/mc/pnpm-workspace.yaml`：
+lib/ 预构建产物已随仓库分发（无 prepare 脚本、无原生编译依赖），
+pnpm ≥10/11 无需任何 allowBuilds 配置，直接装完。
 
-```yaml
-allowBuilds:
-  dsh-minecraft-agent: true   # 允许 prepare 脚本运行（仅 esbuild 打包，无网络动作）
-```
+> 可选：视觉栈（mc-camera 第一人称截图）依赖 node-canvas-webgl + canvas，
+> 缺失时自动降级（不影响工具/记忆/咏唱等主功能）。需要的话自行
+> `pnpm add node-canvas-webgl canvas`（Windows 需预编译版，Linux 可源码编译）。
 
-重新执行 add 即可。
-
-### 方式 B：tarball（免构建授权）
+### 方式 B：tarball（离线分发）
 
 作者侧 `npm pack` 产出 `dsh-minecraft-agent-0.1.0.tgz`（已含 lib/ 预构建产物）：
 
