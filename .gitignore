@@ -63,7 +63,7 @@ tools/assets_cache/
 /src/mc-god.ts
 /src/mc-logwatch.ts
 /src/mc-magic.ts
-/src/mc-offering.ts
+# mc-offering.ts 是穿越者侧(mc-mystic)+世界侧共用的零依赖纯函数词典，必须随包分发
 /src/mc-rcon.ts
 /src/mc-ritual.ts
 /src/mc-worlddb.ts
