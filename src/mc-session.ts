@@ -17,13 +17,16 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import type { Bot } from 'mineflayer'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
 export const name = 'mc-session'
 
 // agents（dsh-agent 注册表）+ timer（cordis-plugin-timer）为必需服务；
-// mcbot 是穿越者的「身体」，但 bot 可能尚未连接，故通过 ctx.mcbot 门面
-// 惰性访问（门面在未连接时对属性访问抛错，perceive 内部 try/catch 兜底）。
-export const inject = ['agents', 'timer']
+// mcbot 是穿越者的「身体」，状态写手（writeStatus）需要直接读它——
+// cordis 铁律：未声明 inject 的服务属性访问直接抛错（writeStatus failed:
+// cannot get property "mcbot" without inject 的教训，2026-08-20）。
+export const inject = ['agents', 'timer', 'mcbot']
 
 export interface Config {
   /** 关闭本插件（世界侧部署或纯工具形态不需要 session agent）。默认 true。 */
@@ -48,6 +51,10 @@ export interface Config {
   rules?: string
   /** 目标（首次 steer 的唤醒语，也会拼进 rules）。 */
   goal?: string
+  /** 状态文件目录（mc-panel 读 status-<username>.json）。 */
+  dataDir?: string
+  /** 3D 视角 viewer 端口（写进状态文件给面板 iframe 用）。 */
+  viewerPort?: number
 }
 
 export const Config: Schema<Config> = Schema.object({
@@ -59,6 +66,8 @@ export const Config: Schema<Config> = Schema.object({
   model: Schema.string().default('qwen3.8-27b'),
   maxTokens: Schema.number(),
   intervalMs: Schema.number().default(8000),
+  dataDir: Schema.string().default('./data'),
+  viewerPort: Schema.number().default(3200),
   persona: Schema.string(),
   rules: Schema.string(),
   goal: Schema.string(),
@@ -121,17 +130,14 @@ export async function apply(ctx: Context, config: Config = {}) {
   // 创建穿越者 session agent。setup 里挂 persona 阴影（官方 section/context），
   // 不写 config agents[]——每个穿越者独立人格必须程序化创建。
   // ------------------------------------------------------------------
-  let handle: AgentHandle | null = null
-  try {
-    handle = await ctx.agents.create({
-      sessionId: SessionId(sessionId),
-      ...(config.cwd ? { meta: { cwd: config.cwd } } : {}),
-      agentOptions: {
-        provider: config.provider ?? 'qwen-local',
-        model: config.model ?? 'qwen3.8-27b',
-        maxTokens: config.maxTokens,
-      },
-      setup: (agentCtx) => {
+  const agentOptions = {
+    provider: config.provider ?? 'qwen-local',
+    model: config.model ?? 'qwen3.8-27b',
+    maxTokens: config.maxTokens,
+  }
+  // 人格/规则/状态 section 挂载（create 与 resume 共用同一 setup）。
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mountSetup = (agentCtx: any) => {
         agentCtx.on('agent/status', (payload) => {
           console.log(`[mc-session] agent status -> ${payload.status} (${sessionId})`)
         })
@@ -153,15 +159,47 @@ export async function apply(ctx: Context, config: Config = {}) {
           order: 100,
           text: perceive,
         })
-      },
-    })
-  } catch (err) {
-    console.error(`[mc-session] 创建穿越者 agent 失败（factory 未就绪？）:`, err)
-    return
+  }
+  let handle: AgentHandle | null = null
+  let resumed = false
+  // 启动竞态兜底：bundle 波应用时 dsh-agent 工厂可能尚未注册（agent-loop
+  // 插件晚于本插件加载），失败不放弃 —— 间隔重试，最多 10 次（约 30s）。
+  // 2026-08-20 教训：官方模式是「先 resume 再 create」——磁盘已有该 id 的
+  // 持久化日志时，PersistenceCoordinator 会以 id collision 拒绝 create
+  // （强杀进程/崩溃后重启的必经路径），必须 resume 续命；resume 失败
+  // （磁盘无此会话）才走 create 新建。
+  for (let attempt = 1; ; attempt++) {
+    try {
+      try {
+        handle = await ctx.agents.resume({
+          resumeSessionId: SessionId(sessionId),
+          agentOptions,
+          setup: mountSetup,
+        })
+        resumed = true
+        log(`transmigrator agent resumed (resume): session=${sessionId}`)
+      } catch {
+        handle = await ctx.agents.create({
+          sessionId: SessionId(sessionId),
+          ...(config.cwd ? { meta: { cwd: config.cwd } } : {}),
+          agentOptions,
+          setup: mountSetup,
+        })
+        log(`transmigrator agent created fresh (create): session=${sessionId}`)
+      }
+      break
+    } catch (err) {
+      if (attempt >= 10) {
+        console.error(`[mc-session] 创建穿越者 agent 失败（已重试 ${attempt} 次，放弃）:`, err)
+        return
+      }
+      console.warn(`[mc-session] agent 工厂未就绪（第 ${attempt} 次尝试），3 秒后重试…`)
+      await new Promise<void>((resolve) => setTimeout(resolve, 3000))
+    }
   }
 
   const agent = handle.agent
-  log(`穿越者 agent 已创建: session=${sessionId} model=${config.model ?? 'qwen3.8-27b'}`)
+  log(`穿越者 agent ${resumed ? '已恢复(resume)' : '已创建(create)'}: session=${sessionId} model=${config.model ?? 'qwen3.8-27b'}`)
 
   // 插件卸载时销毁 agent（断开 session / 释放资源）
   ctx.effect(() => {
@@ -177,13 +215,60 @@ export async function apply(ctx: Context, config: Config = {}) {
       source: { kind: 'plugin', plugin: 'mc-session' },
     })
 
-  // 唤醒首 tick：把目标作为第一条 steer 消息。
-  agent.steer(
-    createUserMessage({
-      content: [{ type: 'text', text: `你降临到了方块世界。目标：${goal}` }],
-      source: { kind: 'plugin', plugin: 'mc-session' },
-    }),
-  )
+  // ------------------------------------------------------------------
+  // 状态写手：每 3s 落一份 status-<username>.json（mc-panel 数据源）。
+  // 2026-08-20 教训：旧版靠 mc-loop 写状态，session 形态没有 mc-loop，
+  // 面板就瞎了（iframe 黑屏/数据停更）。这里直接补上：
+  // 连接态/生命/饱食/位置/朝向/手持/背包/viewer 端口。
+  // ------------------------------------------------------------------
+  const statusDir = resolve(config.dataDir ?? './data')
+  try {
+    mkdirSync(statusDir, { recursive: true })
+  } catch {}
+  const writeStatus = () => {
+    try {
+      const b = ctx.mcbot as unknown as Bot | null
+      const p = b?.entity?.position
+      const status = {
+        updatedAt: new Date().toISOString(),
+        username,
+        connected: !!p,
+        viewerPort: config.viewerPort ?? 3200,
+        recentSteps: [] as unknown[],
+        bot: {
+          personaName: username,
+          health: b?.health ?? null,
+          food: b?.food ?? null,
+          position: p
+            ? { x: +p.x.toFixed(1), y: +p.y.toFixed(1), z: +p.z.toFixed(1) }
+            : null,
+          yaw: b?.entity?.yaw != null ? +b.entity.yaw.toFixed(1) : null,
+          heldItem: b?.heldItem?.name ?? null,
+          sleeping: !!(b as Bot & { isSleeping?: boolean } | null)?.isSleeping,
+          inventory: (b?.inventory?.items?.() ?? [])
+            .slice(0, 36)
+            .map((it) => ({ name: it.name, count: it.count })),
+          viewerPort: config.viewerPort ?? 3200,
+        },
+      }
+      writeFileSync(join(statusDir, `status-${username}.json`), JSON.stringify(status))
+    } catch (e) {
+      console.warn('[mc-session] writeStatus failed:', e)
+    }
+  }
+  writeStatus()
+  ctx.setInterval(writeStatus, 3000)
+
+  // 唤醒首 tick：把目标作为第一条 steer 消息（resume 的老会话不再重复唤醒，
+  // 它已有进行中的对话上下文）。
+  if (!resumed) {
+    agent.steer(
+      createUserMessage({
+        content: [{ type: 'text', text: `你降临到了方块世界。目标：${goal}` }],
+        source: { kind: 'plugin', plugin: 'mc-session' },
+      }),
+    )
+  }
 
   // 自主心跳：每 intervalMs steer 一次。agent.steer 会排队（inbox），
   // 不会并发打断正在进行的 turn。
