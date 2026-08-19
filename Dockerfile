@@ -40,11 +40,16 @@ WORKDIR /app
 #    ⚠️ 所有 --no-save 包必须在同一条 npm 命令里安装：npm 每次按 package.json+lock
 #    对账，后一条 --no-save 会把前一条装的当 extraneous 清掉（实测踩坑）。
 COPY deepseek-harness/scratch-plugin/package.json deepseek-harness/scratch-plugin/package-lock.json ./
-RUN npm install --omit=optional --legacy-peer-deps --no-audit --no-fund \
+# --ignore-scripts：419fd0b 起 package.json 带 prepare 钩子（esbuild 打包
+# bootstrap-mc.mts→lib/），但 npm install 层此文件尚不存在（后面层才 COPY），
+# prepare 必失败断层。原生包（canvas/gl/better-sqlite3）的安装脚本改由下方
+# 显式 npm rebuild 补跑（rebuild 时用环境变量局部放开 scripts）。
+RUN npm install --omit=optional --legacy-peer-deps --no-audit --no-fund --ignore-scripts \
   --registry=https://registry.npmmirror.com \
-  && npm install --no-save --legacy-peer-deps --no-audit --no-fund \
+  && npm install --no-save --legacy-peer-deps --no-audit --no-fund --ignore-scripts \
   tsx @standard-schema/spec canvas@3.2.3 gl@8.1.6 \
-  --registry=https://registry.npmmirror.com
+  --registry=https://registry.npmmirror.com \
+  && npm_config_ignore_scripts=false npm rebuild canvas gl better-sqlite3 --no-audit --no-fund
 
 # 2) dsh 底座（vendor + packages，symlink 进 node_modules 等价 Windows junction）。
 COPY deepseek-harness/vendor /app/dsh/vendor
@@ -83,6 +88,7 @@ COPY deepseek-harness/scratch-plugin/src/mc-bot.ts \
      deepseek-harness/scratch-plugin/src/mc-offering.ts \
      deepseek-harness/scratch-plugin/src/mc-wiki.ts \
      deepseek-harness/scratch-plugin/src/mc-village.ts \
+     deepseek-harness/scratch-plugin/src/mc-cards.ts \
      deepseek-harness/scratch-plugin/src/mc-loop.ts \
      deepseek-harness/scratch-plugin/src/mc-panel.ts \
      deepseek-harness/scratch-plugin/src/shims.d.ts \
