@@ -145,6 +145,22 @@ node tools/patch_viewer_bundle.cjs
 - [ ] 更多工具：`useToolOn`（方块交互）
 - [ ] 一支演示视频
 
+## 扩展与贡献
+
+### 新建一个穿越者
+
+穿越者 = 一段人格 + 一个独立 session。三步：
+
+1. **配置人格**：写一份人格档案（背景故事 + 人格 + 出生天赋 + 世界观滤镜）。内置示例：**桐人**、**鸣人**（`mc-transmigrator` 的档案注册表）。
+2. **独立 session**：每个穿越者一个独立 dsh session/agent，人格经 `ctx.agents.create({ sessionId, setup })` 挂 persona，互不串味。
+3. **自主循环**：`mc-loop` 数秒一次触发（感知 → 决策 → 行动 → 观察）。技能在游戏内通过降临仪式习得——出生时是纯人格白纸，天赋进游戏后才获得。
+
+### 接入一个新游戏
+
+穿越者与世界的交互收敛到 `src/world-adapter.ts`（世界抽象单一入口，当前实现是 mineflayer 的 `Bot`）。接入新游戏 = 实现同一操作面（连接、感知、移动、交互、事件），智能体侧（persona / 记忆 / 自主循环 / 工具语义）零改动。
+
+mineflayer 类型依赖只允许出现在 `mc-bot` / `mc-tools` / `mc-camera` 与 `world-adapter.ts` 里，其余插件一律走 `ctx.mcbot` / `ctx.mcMemos` 门面——换游戏 / 换环境时无需改动智能体基座。
+
 ## 许可证
 
 MIT — 见 [LICENSE](LICENSE)。示例人物档案（`data/transmigrators/`：桐人、鸣人）引用第三方虚构角色，仅作演示用途。
