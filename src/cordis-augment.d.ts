@@ -54,13 +54,9 @@ declare module '../../vendor/cordis/lib/types/context' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     effect(execute: () => any, label?: string): any
     mcbot: import('./mc-bot.ts').McBotService
-    mcRcon: import('./mc-rcon.ts').RconService
-    mcMagic: import('./mc-magic.ts').MagicService
-    mcWorlddb: import('./mc-worlddb.ts').WorlddbService
     mcMemory: import('./mc-memory.ts').MemoryService
     mcMystic: import('./mc-mystic.ts').MysticService
     mcTransmigrators: import('./mc-transmigrator.ts').TransmigratorService
-    mcGod: import('./mc-god.ts').GodService
     mcWiki: import('./mc-wiki.ts').WikiService
   }
 }

@@ -133,7 +133,6 @@ await ctx.plugin(mcPanel, {
   username,
 })
 await ctx.plugin(mcVillage, {
-  dataDir: process.env.MC_DATA_DIR ?? './data',
   nearbyRadius: 28,
 })
 

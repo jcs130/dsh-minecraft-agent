@@ -7,31 +7,73 @@
  * session → 本插件用 Timer 数秒 steer 一次，persona / 规则 / 状态快照全部走
  * 官方 system-prompt section / context 机制，工具调用走 dsh 原生 tool call。
  *
- * 铁律：本插件只做「创建 agent + persona 阴影 + Timer steer」，不碰 RCON、
- * 不碰世界侧任何东西（天神侧 mc-god 唯一握 RCON）。施法产物只有咒语字符串
- * （mc_chant），服务器命令/魔法 ID 映射一律不进穿越者。
+ * 多穿越者（2026-08-20，A 方案）：config.agents 非空时 = 单 dsh web 进程
+ * 多 agent 形态——每个条目一具身体（createBotService）+ 一个 session
+ * agent；身体注册表 root provide 成 `mcbots` 服务（工具层按
+ * exec.agent.id 直查自己的身体，见 mc-bots.ts），root `mcbot` 单例回落
+ * 为首个身体（未 per-agent 化的 root 消费者兜底）。此形态下必须禁用
+ * mc-bot 插件（否则同名双连接互踢）。agents 为空时 = 旧单身体形态，
+ * 身体仍由 mc-bot 插件提供，行为与历史版本一致。
+ *
+ * 铁律：本插件只做「创建 agent + persona 阴影 + Timer steer + 多身体装配」，
+ * 不碰 RCON、不碰世界侧任何东西（天神侧 mc-god 唯一握 RCON）。施法产物
+ * 只有咒语字符串（mc_chant），服务器命令/魔法 ID 映射一律不进穿越者。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { AgentHandle } from '@deepseek-ai/dsh-agent'
+// 官方人格段身份（与 dsh-persona 插件同一段名/序号，官方互操作契约）：
+// 穿越者档案库（data/transmigrators/*.persona.md）在此段覆盖部署级缺省。
+import { PERSONA_SECTION, PERSONA_ORDER } from '@deepseek-ai/dsh-system-prompt'
 import type { Bot } from 'mineflayer'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync, watchFile, unwatchFile } from 'node:fs'
+import { realpath } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import { createBotService, type BotService } from './mc-bot'
+import { CONNECTION_FILE, loadOverrides } from './mc-connection'
+import type { McBotEntry } from './mc-bots'
 
 export const name = 'mc-session'
 
-// agents（dsh-agent 注册表）+ timer（cordis-plugin-timer）为必需服务；
-// mcbot 是穿越者的「身体」，状态写手（writeStatus）需要直接读它——
-// cordis 铁律：未声明 inject 的服务属性访问直接抛错（writeStatus failed:
-// cannot get property "mcbot" without inject 的教训，2026-08-20）。
-export const inject = ['agents', 'timer', 'mcbot']
+// agents（dsh-agent 注册表）+ timer（cordis-plugin-timer）为必需服务。
+// 注意：不 inject mcbot——多穿越者形态下 root mcbot 由本插件自己 provide
+//（inject 会让本插件等待 mcbot 服务就绪，自己 provide 自己 = 死锁）；
+// 单身体形态经 ctx.get('mcbot')（官方免 inject 读服务口）取 mc-bot 的单例。
+export const inject = ['agents', 'timer']
+
+export interface AgentEntry {
+  /** 穿越者名字（= MC 用户名）。 */
+  username: string
+  /** 独立 session id（不传则自动 mc-<username>）。 */
+  sessionId?: string
+  /** 3D 视角 viewer 端口（不传按 3200 + 序号 递增）。 */
+  viewerPort?: number
+  /** 人格覆盖（不传用 mc-identity 档案 persona+backstory → config.persona → 内置默认）。 */
+  persona?: string
+  /** 目标覆盖。 */
+  goal?: string
+  /** 规则覆盖。 */
+  rules?: string
+  /** 模型覆盖（provider/model/maxTokens）。 */
+  provider?: string
+  model?: string
+  maxTokens?: number
+  /** 心跳间隔覆盖（毫秒）。 */
+  intervalMs?: number
+  /** 工作目录覆盖。 */
+  cwd?: string
+  /** 条目开关。 */
+  enabled?: boolean
+}
 
 export interface Config {
   /** 关闭本插件（世界侧部署或纯工具形态不需要 session agent）。默认 true。 */
   enabled?: boolean
-  /** 穿越者名字（= MC 用户名，也用作 session id 的后半段）。 */
+  /** 多穿越者名册：非空 = 单进程多 agent 形态（须同时禁用 mc-bot 插件）。 */
+  agents?: AgentEntry[]
+  /** 穿越者名字（单身体形态；多形态忽略）。 */
   username?: string
   /** 独立 session id（不传则自动 mc-<username>）。 */
   sessionId?: string
@@ -53,12 +95,33 @@ export interface Config {
   goal?: string
   /** 状态文件目录（mc-panel 读 status-<username>.json）。 */
   dataDir?: string
-  /** 3D 视角 viewer 端口（写进状态文件给面板 iframe 用）。 */
+  /** 3D 视角 viewer 端口（单身体形态默认；多身体按序号递增）。 */
   viewerPort?: number
+  /** 多身体形态：MC 服务器地址/端口（默认 127.0.0.1:25565，可被 data/mc-connection.json 覆盖）。 */
+  host?: string
+  port?: number
+  /** 多身体形态：断线自动重连。 */
+  autoReconnect?: boolean
+  /** 多身体形态：是否开 3D viewer（默认 true）。 */
+  viewerEnabled?: boolean
 }
 
 export const Config: Schema<Config> = Schema.object({
   enabled: Schema.boolean().default(true),
+  agents: Schema.array(Schema.object({
+    username: Schema.string().required(),
+    sessionId: Schema.string(),
+    viewerPort: Schema.number(),
+    persona: Schema.string(),
+    goal: Schema.string(),
+    rules: Schema.string(),
+    provider: Schema.string(),
+    model: Schema.string(),
+    maxTokens: Schema.number(),
+    intervalMs: Schema.number(),
+    cwd: Schema.string(),
+    enabled: Schema.boolean().default(true),
+  })),
   username: Schema.string().default('HarnessBot'),
   sessionId: Schema.string(),
   cwd: Schema.string(),
@@ -71,6 +134,10 @@ export const Config: Schema<Config> = Schema.object({
   persona: Schema.string(),
   rules: Schema.string(),
   goal: Schema.string(),
+  host: Schema.string().default('127.0.0.1'),
+  port: Schema.number().default(25565),
+  autoReconnect: Schema.boolean().default(true),
+  viewerEnabled: Schema.boolean().default(true),
 })
 
 const DEFAULT_PERSONA = [
@@ -89,18 +156,159 @@ const DEFAULT_RULES = [
   '不要一次性规划一长串动作，一步一步来。',
 ].join('\n')
 
+const DEFAULT_GOAL = 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
+
 export async function apply(ctx: Context, config: Config = {}) {
   if (config.enabled === false) return
 
-  const intervalMs = config.intervalMs ?? 8000
-  const username = config.username ?? 'HarnessBot'
-  const sessionId = config.sessionId ?? `mc-${username}`
-  // 空串（bootstrap 在无环境变量时传 ''）也回退默认人格，避免空 section。
-  const persona = config.persona?.trim() ? config.persona : DEFAULT_PERSONA
-  const goal = config.goal ?? 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
-  const rules = config.rules ?? DEFAULT_RULES
-
   const log = (msg: string) => console.log(`[mc-session] ${msg}`)
+  const dataDir = resolve(config.dataDir ?? './data')
+  try {
+    mkdirSync(dataDir, { recursive: true })
+  } catch { /* 已存在或不可建 */ }
+
+  /** root mcbot 免 inject 读取（单身体形态 = mc-bot 单例；多身体形态 = 首个身体）。 */
+  const rootBot = (): Bot | null => {
+    try {
+      const c = ctx as unknown as { get?: (n: string) => unknown }
+      return ((c.get?.('mcbot') as Bot | undefined) ?? null)
+    } catch {
+      return null
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 多穿越者身体层（config.agents 非空时启用）。
+  // 每个条目一具 createBotService 身体；注册表 provide 成 root `mcbots`
+  // 服务（工具层按 exec.agent.id 直查，见 mc-bots.ts）；root `mcbot`
+  // 单例 = 首个身体（mc-adapt 事件桥等未 per-agent 化的 root 消费者兜底）。
+  // ⚠️ 此形态必须禁用 mc-bot 插件，否则 root 双 provide 撞车 + 同名双连接互踢。
+  // ------------------------------------------------------------------
+  const multiEntries = (config.agents ?? []).filter((a) => a.enabled !== false)
+  const registry: McBotEntry[] = []
+  if (multiEntries.length) {
+    const services: BotService[] = []
+    const ov = loadOverrides(dataDir)
+    const baseHost = ov.host ?? config.host ?? '127.0.0.1'
+    const basePort = ov.port ?? config.port ?? 25565
+    if (rootBot()) {
+      log('⚠️ 检测到 mcbot 单例已存在（mc-bot 插件未禁用？）——多身体模式下应禁用 mc-bot，否则同名双连接互踢')
+    }
+    multiEntries.forEach((a, i) => {
+      const service = createBotService(
+        {
+          host: baseHost,
+          port: basePort,
+          username: a.username,
+          autoReconnect: config.autoReconnect ?? true,
+          viewerEnabled: config.viewerEnabled ?? true,
+          viewerPort: a.viewerPort ?? ((config.viewerPort ?? 3200) + i),
+          viewerFirstPerson: false,
+        },
+        { dataDir, source: ov.host ? 'override' : 'default', primaryRuntime: i === 0 },
+      )
+      services.push(service)
+      registry.push({ username: a.username, sessionIds: [], facade: service.facade })
+      log(`body #${i} created for ${a.username} -> ${baseHost}:${basePort} viewer=${a.viewerPort ?? ((config.viewerPort ?? 3200) + i)}`)
+    })
+    try {
+      ctx.provide('mcbot', registry[0].facade)
+    } catch (err) {
+      log(`root mcbot provide 跳过（已存在？${err instanceof Error ? err.message : err}）`)
+    }
+    ctx.provide('mcbots', registry)
+    // 服务器地址页面可配（data/mc-connection.json 热改 → 全部身体重连）
+    const ovFile = join(dataDir, CONNECTION_FILE)
+    watchFile(ovFile, { interval: 2000 }, () => {
+      try {
+        const next = loadOverrides(dataDir)
+        const desired = {
+          host: next.host ?? config.host ?? '127.0.0.1',
+          port: next.port ?? config.port ?? 25565,
+        }
+        for (const svc of services) {
+          const cur = svc.status()
+          if (cur.host === desired.host && cur.port === desired.port) continue
+          svc.reconfigure(desired, next.host ? 'override' : 'default')
+        }
+      } catch { /* 覆盖文件半写状态：忽略本轮 */ }
+    })
+    ctx.effect(() => () => {
+      unwatchFile(ovFile)
+      for (const svc of services) svc.dispose()
+    })
+  }
+
+  // ------------------------------------------------------------------
+  // 穿越者条目展开：多模式 = agents 名册；单模式 = 旧 config 单条目。
+  // ------------------------------------------------------------------
+  const entries: Array<{ entry: AgentEntry; facade: Bot | null }> = multiEntries.length
+    ? multiEntries.map((a) => ({ entry: a, facade: registry.find((r) => r.username === a.username)?.facade ?? null }))
+    : [{
+        entry: {
+          username: config.username ?? 'HarnessBot',
+          sessionId: config.sessionId,
+          persona: config.persona,
+          goal: config.goal,
+          rules: config.rules,
+          provider: config.provider,
+          model: config.model,
+          maxTokens: config.maxTokens,
+          intervalMs: config.intervalMs,
+          cwd: config.cwd,
+          viewerPort: config.viewerPort,
+        },
+        facade: null,
+      }]
+
+  for (const { entry, facade } of entries) {
+    try {
+      await spawnTransmigrator(ctx, entry, facade, { config, dataDir, log, rootBot })
+    } catch (err) {
+      console.error(`[mc-session] 穿越者 ${entry.username} 装配失败（不影响其他穿越者）:`, err)
+    }
+  }
+}
+
+/** 单个穿越者的完整装配：session agent + persona 阴影 + 状态写手 + 心跳。 */
+async function spawnTransmigrator(
+  ctx: Context,
+  entry: AgentEntry,
+  facade: Bot | null,
+  deps: { config: Config; dataDir: string; log: (m: string) => void; rootBot: () => Bot | null },
+) {
+  const { config, dataDir, log, rootBot } = deps
+  const username = entry.username
+  const sessionId = entry.sessionId ?? `mc-${username}`
+  const intervalMs = entry.intervalMs ?? config.intervalMs ?? 8000
+  const viewerPort = entry.viewerPort ?? config.viewerPort ?? 3200
+  const goal = entry.goal ?? config.goal ?? DEFAULT_GOAL
+  const rules = entry.rules ?? config.rules ?? DEFAULT_RULES
+  /** 本穿越者的身体：多模式 = 装配时捕获的专属门面；单模式 = root 单例实时读。 */
+  const body = (): Bot | null => facade ?? rootBot()
+
+  // 人格优先级：条目覆盖 > mc-identity 档案（persona+backstory，身份之锚）
+  // > 全局 config.persona > 内置 isekai 默认。
+  const anchorOf = (u: string): string => {
+    try {
+      const c = ctx as unknown as { get?: (n: string) => unknown }
+      const svc = c.get?.('mcIdentity') as { anchor?: (u: string) => string } | undefined
+      const t = svc?.anchor?.(u)
+      return typeof t === 'string' && t.trim() ? t : ''
+    } catch {
+      return ''
+    }
+  }
+  const anchorText = anchorOf(username)
+  const personaSource = entry.persona?.trim()
+    ? 'config.entry(inline)'
+    : anchorText
+      ? 'identity-file(档案库)'
+      : config.persona?.trim()
+        ? 'config(inline)'
+        : 'builtin'
+  const persona = entry.persona?.trim() || anchorText || config.persona?.trim() || DEFAULT_PERSONA
+  log(`persona: ${personaSource} (${persona.length} chars)`)
 
   // ------------------------------------------------------------------
   // 状态快照（动态 section）：每次组装 system prompt 时实时读取 bot 状态。
@@ -108,7 +316,7 @@ export async function apply(ctx: Context, config: Config = {}) {
   // ------------------------------------------------------------------
   const perceive = (): string => {
     try {
-      const bot = ctx.mcbot as unknown as Bot | null
+      const bot = body()
       const p = bot?.entity?.position
       if (!p) return '(尚未出生 — 等待身体接入方块世界)'
       const parts = [
@@ -131,9 +339,9 @@ export async function apply(ctx: Context, config: Config = {}) {
   // 不写 config agents[]——每个穿越者独立人格必须程序化创建。
   // ------------------------------------------------------------------
   const agentOptions = {
-    provider: config.provider ?? 'qwen-local',
-    model: config.model ?? 'qwen3.8-27b',
-    maxTokens: config.maxTokens,
+    provider: entry.provider ?? config.provider ?? 'qwen-local',
+    model: entry.model ?? config.model ?? 'qwen3.8-27b',
+    maxTokens: entry.maxTokens ?? config.maxTokens,
   }
   // 人格/规则/状态 section 挂载（create 与 resume 共用同一 setup）。
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,9 +352,11 @@ export async function apply(ctx: Context, config: Config = {}) {
         agentCtx.on('agent/error', (payload) => {
           console.error(`[mc-session] agent/error (${sessionId}):`, payload.error)
         })
+        // 官方人格段：persona 正文来自档案文件（见上方人格优先级），
+        // 段名/序号用官方常量——与 dsh-persona 插件同一身份，天然互操作。
         agentCtx.systemPrompt.section({
-          name: 'deployment:persona',
-          order: 0,
+          name: PERSONA_SECTION,
+          order: PERSONA_ORDER,
           text: persona,
         })
         agentCtx.systemPrompt.section({
@@ -181,7 +391,7 @@ export async function apply(ctx: Context, config: Config = {}) {
       } catch {
         handle = await ctx.agents.create({
           sessionId: SessionId(sessionId),
-          ...(config.cwd ? { meta: { cwd: config.cwd } } : {}),
+          ...((entry.cwd ?? config.cwd) ? { meta: { cwd: entry.cwd ?? config.cwd } } : {}),
           agentOptions,
           setup: mountSetup,
         })
@@ -190,16 +400,68 @@ export async function apply(ctx: Context, config: Config = {}) {
       break
     } catch (err) {
       if (attempt >= 10) {
-        console.error(`[mc-session] 创建穿越者 agent 失败（已重试 ${attempt} 次，放弃）:`, err)
+        console.error(`[mc-session] 创建穿越者 agent ${username} 失败（已重试 ${attempt} 次，放弃）:`, err)
         return
       }
-      console.warn(`[mc-session] agent 工厂未就绪（第 ${attempt} 次尝试），3 秒后重试…`)
+      console.warn(`[mc-session] agent 工厂未就绪（${username} 第 ${attempt} 次尝试），3 秒后重试…`)
       await new Promise<void>((resolve) => setTimeout(resolve, 3000))
     }
   }
 
   const agent = handle.agent
-  log(`穿越者 agent ${resumed ? '已恢复(resume)' : '已创建(create)'}: session=${sessionId} model=${config.model ?? 'qwen3.8-27b'}`)
+  // 注册表回填 sessionId（工具层按 exec.agent.id 直查身体的键）
+  try {
+    const c = ctx as unknown as { get?: (n: string) => unknown }
+    const reg = c.get?.('mcbots') as McBotEntry[] | undefined
+    const r = reg?.find((e) => e.username === username)
+    if (r && !r.sessionIds.includes(sessionId)) r.sessionIds.push(sessionId)
+  } catch { /* 单身体形态无注册表 */ }
+  log(`穿越者 agent ${resumed ? '已恢复(resume)' : '已创建(create)'}: session=${sessionId} model=${agentOptions.model}`)
+
+  // ------------------------------------------------------------------
+  // 连续记忆桥（2026-08-20）：session 形态的情景记忆由 mc-tools 的 guard()
+  // 逐动作 append 进 episodic-<username>.jsonl；会话轮换/重建（fresh create）
+  // 时回灌尾部条目作「前世记忆碎片」——没有这一步，轮换 = 失忆。
+  // resume 的老会话自带完整 transcript，不需要回灌。
+  // ------------------------------------------------------------------
+  const readEpisodicTail = (n: number): string[] => {
+    try {
+      const lines = readFileSync(join(dataDir, `episodic-${username}.jsonl`), 'utf8').split('\n').filter(Boolean)
+      return lines.slice(-n).map((l) => {
+        try { return (JSON.parse(l) as { text?: string }).text ?? '' } catch { return '' }
+      }).filter(Boolean)
+    } catch { return [] } // 首次降临：无前世记忆，正常
+  }
+
+  // ------------------------------------------------------------------
+  // 工作区归属（2026-08-20）：程序化创建的 session 不进任何工作区分组
+  //（官方只把 UI 里从工作区新建的会话 attach 进注册表）→ 全落「未分组」。
+  // 这里在 agent 就绪后把 sessionId 挂进 cwd 对应的工作区（幂等，重复
+  // attach 无副作用）。ctx.get(name) 是 cordis 官方的免 inject 读服务口
+  //——独立 bootstrap 形态没有 workspaceRegistry 时返回 undefined，直接跳过。
+  // ------------------------------------------------------------------
+  const attachToWorkspace = async (): Promise<boolean> => {
+    try {
+      const c = ctx as unknown as { get?: (n: string) => unknown }
+      const reg = c.get?.('workspaceRegistry') as { list?: () => Array<{ path: string; title: string; attachSession: (id: unknown) => Promise<void> }> } | undefined
+      if (!reg?.list) return false
+      const cwdPath = entry.cwd ?? config.cwd ?? process.cwd()
+      const real = await realpath(cwdPath).catch(() => cwdPath)
+      const ws = reg.list().find((w) => w.path === real || w.path === cwdPath)
+      if (!ws) return false
+      await ws.attachSession(SessionId(sessionId))
+      log(`session 已挂入工作区「${ws.title}」`)
+      return true
+    } catch (e) {
+      log(`workspace attach 失败（非致命）: ${e instanceof Error ? e.message : String(e)}`)
+      return false
+    }
+  }
+  for (let i = 0; i < 6; i++) {
+    if (await attachToWorkspace()) break
+    // registry / 会话头可能晚于本插件就绪：间隔重试（累计 ~75s 后放弃）
+    await new Promise<void>((r) => setTimeout(r, 5000 + i * 5000))
+  }
 
   // 插件卸载时销毁 agent（断开 session / 释放资源）
   ctx.effect(() => {
@@ -217,23 +479,16 @@ export async function apply(ctx: Context, config: Config = {}) {
 
   // ------------------------------------------------------------------
   // 状态写手：每 3s 落一份 status-<username>.json（mc-panel 数据源）。
-  // 2026-08-20 教训：旧版靠 mc-loop 写状态，session 形态没有 mc-loop，
-  // 面板就瞎了（iframe 黑屏/数据停更）。这里直接补上：
-  // 连接态/生命/饱食/位置/朝向/手持/背包/viewer 端口。
   // ------------------------------------------------------------------
-  const statusDir = resolve(config.dataDir ?? './data')
-  try {
-    mkdirSync(statusDir, { recursive: true })
-  } catch {}
   const writeStatus = () => {
     try {
-      const b = ctx.mcbot as unknown as Bot | null
+      const b = body()
       const p = b?.entity?.position
       const status = {
         updatedAt: new Date().toISOString(),
         username,
         connected: !!p,
-        viewerPort: config.viewerPort ?? 3200,
+        viewerPort,
         recentSteps: [] as unknown[],
         bot: {
           personaName: username,
@@ -248,23 +503,28 @@ export async function apply(ctx: Context, config: Config = {}) {
           inventory: (b?.inventory?.items?.() ?? [])
             .slice(0, 36)
             .map((it) => ({ name: it.name, count: it.count })),
-          viewerPort: config.viewerPort ?? 3200,
+          viewerPort,
         },
       }
-      writeFileSync(join(statusDir, `status-${username}.json`), JSON.stringify(status))
+      writeFileSync(join(dataDir, `status-${username}.json`), JSON.stringify(status))
     } catch (e) {
-      console.warn('[mc-session] writeStatus failed:', e)
+      console.warn(`[mc-session] writeStatus failed (${username}):`, e)
     }
   }
   writeStatus()
   ctx.setInterval(writeStatus, 3000)
 
   // 唤醒首 tick：把目标作为第一条 steer 消息（resume 的老会话不再重复唤醒，
-  // 它已有进行中的对话上下文）。
+  // 它已有进行中的对话上下文）。fresh create（含会话轮换）时附带前世记忆
+  // 碎片——episodic 尾部条目，让穿越者记得「上一世」自己在做什么。
   if (!resumed) {
+    const tail = readEpisodicTail(20)
+    const memoryBlock = tail.length
+      ? `\n\n你在一次长眠后苏醒，前世的记忆碎片涌入脑海（从旧到新）：\n${tail.map((t) => `· ${t}`).join('\n')}\n结合这些记忆，继续你未竟的旅途。`
+      : ''
     agent.steer(
       createUserMessage({
-        content: [{ type: 'text', text: `你降临到了方块世界。目标：${goal}` }],
+        content: [{ type: 'text', text: `你降临到了方块世界。目标：${goal}${memoryBlock}` }],
         source: { kind: 'plugin', plugin: 'mc-session' },
       }),
     )
@@ -277,7 +537,7 @@ export async function apply(ctx: Context, config: Config = {}) {
       try {
         agent.steer(nudge())
       } catch (err) {
-        console.error(`[mc-session] steer failed:`, err)
+        console.error(`[mc-session] steer failed (${username}):`, err)
       }
     }
   }, intervalMs)

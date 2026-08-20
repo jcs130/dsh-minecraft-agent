@@ -8,8 +8,8 @@ import pf from 'mineflayer-pathfinder'
 import Vec3 from 'vec3'
 import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
-import { resolve } from 'node:path'
-import { existsSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { setLastImage, setLastImages } from './mc-vision'
 
@@ -48,6 +48,28 @@ function resolveBot(exec: any): Bot | undefined {
 }
 
 /**
+ * 情景记忆记录器（2026-08-20）：session 形态没有 mc-loop 的 per-step 记录，
+ * 但每个动作都过 guard() 这个唯一咽喉点——在这里把「做了什么、结果如何」
+ * append 进 episodic-<username>.jsonl（与 mc-loop 同一文件格式，mc-panel
+ * 编年史直接可读；会话轮换/重启后 mc-session 回灌尾部条目 = 连续记忆）。
+ * 位置前缀让记忆碎片自带空间上下文。写失败静默（记忆是增强不是依赖）。
+ */
+const EPISODIC_DIR = resolve(process.cwd(), 'data')
+function recordEpisodic(bot: Bot, args: Args, outcome: string, failed = false): void {
+  const u = bot.username
+  if (!u) return
+  const p = bot.entity?.position
+  const pos = p ? `(${Math.round(p.x)},${Math.round(p.y)},${Math.round(p.z)}) ` : ''
+  let argsStr = ''
+  try {
+    const s = JSON.stringify(args)
+    if (s && s !== '{}') argsStr = ` ${s.slice(0, 120)}`
+  } catch { /* 循环参数等序列化失败：省略 */ }
+  const text2 = `${failed ? '✗ ' : ''}${pos}->${argsStr} = ${String(outcome).slice(0, 220)}`
+  appendFileSync(join(EPISODIC_DIR, `episodic-${u}.jsonl`), JSON.stringify({ ts: new Date().toISOString(), text: text2 }) + '\n', 'utf8')
+}
+
+/**
  * Wraps every tool body with a safety net so a single exception can never
  * hang the agent or crash the runtime: it reports the error as a string
  * instead of throwing. Also short-circuits when the bot is not alive.
@@ -60,9 +82,12 @@ function guard(fn: ToolBody): ToolExecutor {
       const bot = resolveBot(exec)
       if (!bot) return 'bot not available (agent has no body)'
       if (!bot.entity) return 'bot is not connected / has not spawned yet'
-      return await fn(bot, args)
+      const out = await fn(bot, args)
+      try { recordEpisodic(bot, args, out) } catch { /* 记忆写失败不影响行动 */ }
+      return out
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
+      try { const b = resolveBot(exec); if (b) recordEpisodic(b, args, msg, true) } catch { /* noop */ }
       return `tool error: ${msg}`
     }
   }
@@ -1011,6 +1036,7 @@ async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string>
 export function apply(ctx: Context) {
   const log = (msg: string) => console.log(`[mc-tools] ${msg}`)
   pluginCtx = ctx
+  try { mkdirSync(EPISODIC_DIR, { recursive: true }) } catch { /* 已存在 */ }
 
   // ── Observe: position / health / food / held item / inventory ────────
   ctx.tools.register(defineTool({

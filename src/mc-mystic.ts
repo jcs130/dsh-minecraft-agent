@@ -4,7 +4,109 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import type { WorldAdapter as Bot } from './world-adapter'
-import { resolveOfferingText, sumItemCount } from './mc-offering.ts'
+
+// ── 供奉解析（2026-08-20 自 mc-offering.ts 内联：供奉是穿越者私聊行为，纯客户端函数随迁；世界侧 RCON 版在 B 仓）──
+/** 供品词典：中文名 → 物品 id（不含 minecraft: 前缀）。 */
+const OFFERING_ITEMS: Record<string, string> = {
+  // 食物（口粮级）
+  '面包': 'bread',
+  '熟牛肉': 'cooked_beef',
+  '牛排': 'cooked_beef',
+  '烤猪排': 'cooked_porkchop',
+  '烤鸡': 'cooked_chicken',
+  '金胡萝卜': 'golden_carrot',
+  '金苹果': 'golden_apple',
+  '蛋糕': 'cake',
+  '南瓜派': 'pumpkin_pie',
+  '苹果': 'apple',
+  '甜浆果': 'sweet_berries',
+  // 基础材料
+  '煤': 'coal',
+  '木炭': 'charcoal',
+  '铁': 'iron_ingot',
+  '铁锭': 'iron_ingot',
+  '铜': 'copper_ingot',
+  '铜锭': 'copper_ingot',
+  '金': 'gold_ingot',
+  '金锭': 'gold_ingot',
+  '圆石': 'cobblestone',
+  '木头': 'oak_log',
+  '纸': 'paper',
+  '书': 'book',
+  // 贵重之物（最能打动女神）
+  '钻石': 'diamond',
+  '绿宝石': 'emerald',
+  '红石': 'redstone',
+  '青金石': 'lapis_lazuli',
+  '石英': 'quartz',
+  '萤石粉': 'glowstone_dust',
+  '紫水晶': 'amethyst_shard',
+  '末影珍珠': 'ender_pearl',
+  '烈焰棒': 'blaze_rod',
+  '恶魂之泪': 'ghast_tear',
+  '附魔书': 'enchanted_book',
+}
+
+/** id → 中文名反查（供品回显用；同 id 多个中文名时取最具体的那个）。 */
+const OFFERING_ITEM_CN: Record<string, string> = (() => {
+  const map: Record<string, string> = {}
+  for (const [cn, id] of Object.entries(OFFERING_ITEMS)) {
+    if (!map[id] || cn.length > map[id].length) map[id] = cn
+  }
+  return map
+})()
+
+export interface ResolvedOffering {
+  /** 归一化物品 id（带 minecraft: 前缀）。 */
+  id: string
+  /** 供奉数量（1-64）。 */
+  count: number
+  /** 回显名（中文优先，英文 id 兜底）。 */
+  cn: string
+}
+
+/**
+ * 解析供奉描述。支持：
+ *   「面包x3」「面包×3」「面包*3」「面包 3」「面包3」「3个面包」「3 面包」「diamond 2」
+ * 返回 null = 无法辨认（物品不在词典里，也不是合法 id）。
+ */
+function resolveOfferingText(text: string): ResolvedOffering | null {
+  const raw = text.trim().replace(/^供奉[:：]?\s*/, '')
+  if (!raw) return null
+  let name = raw
+  let count = 1
+  const patterns: Array<[RegExp, (m: RegExpMatchArray) => void]> = [
+    [/^(.+?)[x×*＊]\s*(\d+)$/i, (m) => { name = m[1]; count = parseInt(m[2], 10) }],
+    [/^(\d+)\s*[个只块颗组张本]\s*(.+)$/, (m) => { name = m[2]; count = parseInt(m[1], 10) }],
+    [/^(.+?)\s+(\d+)$/, (m) => { name = m[1]; count = parseInt(m[2], 10) }],
+    [/^(.+?)(\d+)$/, (m) => { name = m[1]; count = parseInt(m[2], 10) }],
+  ]
+  for (const [re, apply] of patterns) {
+    const m = raw.match(re)
+    if (m) { apply(m); break }
+  }
+  name = name.trim()
+  if (!name) return null
+  count = Math.max(1, Math.min(64, Math.floor(count)))
+
+  // 中文词典直查
+  if (OFFERING_ITEMS[name]) {
+    const id = OFFERING_ITEMS[name]
+    return { id: `minecraft:${id}`, count, cn: name }
+  }
+  // 英文 id 直填（可带/不带 minecraft: 前缀，空格转下划线）
+  const norm = name.toLowerCase().replace(/\s+/g, '_').replace(/^minecraft:/, '')
+  if (OFFERING_ITEM_CN[norm]) {
+    return { id: `minecraft:${norm}`, count, cn: OFFERING_ITEM_CN[norm] }
+  }
+  return null
+}
+
+/** 从 mineflayer 背包（或任意 {name,count} 列表）里统计某 id（可带/不带前缀）的总数。 */
+function sumItemCount(items: Array<{ name: string; count: number }>, id: string): number {
+  const bare = id.toLowerCase().replace(/^minecraft:/, '')
+  return items.reduce((sum, it) => (it.name === bare || it.name === `minecraft:${bare}` ? sum + it.count : sum), 0)
+}
 
 /**
  * mc-mystic —— 穿越者侧的神秘接口（薄层，零权限）。
@@ -313,13 +415,27 @@ export function apply(ctx: Context, config: Config) {
     },
   }))
 
-  // ── mc_pray：私聊祈愿（慢路径，入女神收件箱异步处理，可能被拒绝）──
+  // ── 世界提问识别（2026-08-20 分仓解耦）─────────────────────────────────
+// 客户端没有服务器的运行状态与历史背景——想知道世界之事（历史/居民/规则），
+// 唯一正道是经女神聊天渠道求得。mc_pray 里识别出的问句走「问：」快速答疑
+// 通道（女神翻世界档案直接作答），其余照旧走祈愿队列。
+function looksLikeWorldQuestion(wish: string): boolean {
+  const b = wish.trim()
+  if (!b) return false
+  if (!/[?？]$/.test(b)) return false
+  // 疑问词开头（可带称呼前缀「女神，」），或问的就是这个世界本身
+  const stripped = b.replace(/^(女神|天神|神)(大人)?[，,、:：\s]*/, '')
+  return /^(什么|为什么|为甚么|怎|如何|哪|谁|多少|几|何时|这个世界|世界|此界|这里的?)/.test(stripped)
+}
+
+// ── mc_pray：私聊祈愿（慢路径，入女神收件箱异步处理，可能被拒绝）──
   ctx.tools.register(defineTool({
     name: 'mc_pray',
     description:
-      '向天神（女神）默默祈愿。两层用法：' +
-      '①【已学会的技能】不要祈愿——自己用 mc_chant 咏唱瞬发即可，女神只会计较你的魔力够不够；' +
-      '②【还没学会的技能/法则之外的恩典】才值得祈愿：如「请施展神力送我回家」「我快饿死了，求赐食物」「求女神破晓驱散黑夜」。' +
+      '向天神（女神）默默祈愿或发问。三层用法：' +
+      '①【想了解这个世界】历史大事、村庄居民、此界规则——你降临时对此界一无所知，档案都在女神那里：把 wish 写成问句（如「这个世界有谁住着？」「此界的规则是什么？」「近几日世界发生过什么？」），女神会翻世界档案直接作答（答案经私语送达）；' +
+      '②【已学会的技能】不要祈愿——自己用 mc_chant 咏唱瞬发即可，女神只会计较你的魔力够不够；' +
+      '③【还没学会的技能/法则之外的恩典】才值得祈愿：如「请施展神力送我回家」「我快饿死了，求赐食物」「求女神破晓驱散黑夜」。' +
       '女神握有全部技艺，会视情形裁量：可能代施、可能拒绝、可能提条件。' +
       '神恩不轻授：祈愿时宜献上供奉（见 offering 参数）——供品从你的行囊消失、归入神库，女神按供品贵贱与你的供奉历史掂量虔诚度，再决定帮不帮、帮多少。' +
       '祈愿会进入女神的收件箱按序处理——本工具立即返回「已上达天听」，神谕稍后以女神私聊送达（留心之后的私语，勿重复祈愿、勿枯等）。' +
@@ -355,20 +471,31 @@ export function apply(ctx: Context, config: Config) {
       // 「祈愿：」前缀 = 显式祈愿标记（2026-08-18 方案A）：女神侧私语分流据此
       // 把祈愿和咏唱区分开——带前缀绝不按咒语结算，自然语言祈愿碰巧含法术
       // 关键词也不会被误当成咏唱。
+      // 世界提问（2026-08-20）：问句且无供奉 → 「问：」快速答疑通道，女神翻
+      // 世界档案直接作答（客户端零服务器数据，世界知识全经聊天渠道求得）。
+      const asking = !offeringText && looksLikeWorldQuestion(wish)
       try {
-        bot.whisper(config.godName, offer ? `祈愿：${wish}｜供奉：${offer.cn}x${offer.count}` : `祈愿：${wish}`)
+        if (asking) {
+          bot.whisper(config.godName, `问：${wish}`)
+        } else {
+          bot.whisper(config.godName, offer ? `祈愿：${wish}｜供奉：${offer.cn}x${offer.count}` : `祈愿：${wish}`)
+        }
       } catch {
         return '你的祈愿没能送达（连接异常）。'
       }
-      // 只等「已上达天听」的入场回执（程序秒回）；神谕本身异步送达，
+      // 提问等女神的直接作答（[女神] 前缀私语，LLM 作答需数十秒）；
+      // 祈愿只等「已上达天听」的入场回执（程序秒回），神谕本身异步送达，
       // 会在之后的私语里出现——决策循环的聊天上下文能听见。
       const ack = await waitForReply(
         bot,
-        (from, msg, via) => via === 'whisper' && from === config.godName && msg.includes('上达天听'),
-        config.prayTimeoutMs,
+        (from, msg, via) => via === 'whisper' && from === config.godName
+          && (asking ? msg.startsWith('[女神]') : msg.includes('上达天听')),
+        asking ? 60_000 : config.prayTimeoutMs,
       )
       if (ack) return ack
-      return '祈愿已低声诵出（女神的回执尚未传来——也许神力繁忙，稍后留意私语）。'
+      return asking
+        ? '疑问已上呈（女神正在翻阅世界档案——稍后留意私语，勿重复发问）。'
+        : '祈愿已低声诵出（女神的回执尚未传来——也许神力繁忙，稍后留意私语）。'
     },
   }))
 
