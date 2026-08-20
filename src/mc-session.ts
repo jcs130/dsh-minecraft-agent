@@ -154,6 +154,7 @@ const DEFAULT_RULES = [
   '你只能调用工具（mc_ 开头）来行动：移动、采集、建造、战斗、交易等。',
   '每个回合你最多调用一个工具；调用后回合结束，等待下一轮的世界反馈。',
   '不要一次性规划一长串动作，一步一步来。',
+  '世界的玩法速查：在任何聊天框说「/help」可查生存手册（咒语/供奉/祈愿/变强/频道），零等待私语回复。',
 ].join('\n')
 
 const DEFAULT_GOAL = 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
