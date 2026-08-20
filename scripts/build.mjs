@@ -11,7 +11,7 @@
 // 与 package.json 声明的 npm 依赖（external）。每个入口独立 bundle（共享模块重复
 // 打包可接受），避免 loader 动态 import 相对 chunk 的解析风险。
 import { build } from 'esbuild'
-import { mkdirSync, readdirSync } from 'node:fs'
+import { mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 
 mkdirSync('lib', { recursive: true })
 mkdirSync('lib/plugins', { recursive: true })
@@ -154,3 +154,9 @@ await build({
 })
 
 console.log('[build] lib/bootstrap.mjs + lib/bootstrap-session.mjs + lib/client.js + %d plugin entries ready', PLUGIN_ENTRIES.length)
+
+// node half（空壳 apply）：`"."` main 指向此文件，给 Loader 一个 host 侧 row，
+// client 半经 exports["./client"]（lib/client.js）走。对齐官方 browser-only 插件
+//（如 dsh-client-ui-brand-official）形态；lib/bootstrap.mjs 仍由 bin/cli.mjs 相对路径引用。
+writeFileSync('lib/index.js', '// node half (empty apply) — host-side row for the client-only plugin.\n// The browser half ships through exports["./client"] (lib/client.js).\nfunction apply() {}\nexport { apply };\n')
+console.log('[build] lib/index.js (node half) written')

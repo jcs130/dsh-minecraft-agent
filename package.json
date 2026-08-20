@@ -12,10 +12,10 @@
     "ai"
   ],
   "license": "MIT",
-  "main": "lib/bootstrap.mjs",
+  "main": "lib/index.js",
   "exports": {
     ".": {
-      "default": "./lib/bootstrap.mjs"
+      "default": "./lib/index.js"
     },
     "./client": {
       "default": "./lib/client.js"
@@ -36,8 +36,7 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-sidebar",
-        "@deepseek-ai/dsh-client-ui-slots"
+        "@deepseek-ai/dsh-client-ui-sidebar"
       ]
     }
   },

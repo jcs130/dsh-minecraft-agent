@@ -97,3 +97,9 @@
 
     - id: mc-panel
       name: 'dsh-minecraft-agent/lib/plugins/mc-panel.mjs'
+
+    # 控制面板 = 本包 client 半（exports["./client"] → lib/client.js）。
+    # 纯包名 row 触发 dsh-client-modules 扫描；`"."` main 为空壳 node half（apply 空壳），
+    # 对齐官方 browser-only 插件形态（dsh-client-ui-brand-official）。
+    - id: mc-client
+      name: 'dsh-minecraft-agent'
