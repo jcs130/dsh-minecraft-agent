@@ -107,10 +107,11 @@ for (const name of PLUGIN_ENTRIES) {
   })
 }
 
-// 3) 浏览器 client 半（官方 dsh.client 插件形态）：footer 按钮 + 浮动面板，
-//    内嵌 <iframe src="/mc-panel/"> 复用 server 端 dashboard。产物
-//    lib/client.js 由 package.json 的 exports["./client"] 暴露，dsh web 扫描
-//    dsh.client 声明后经 /plugins/dsh-minecraft-agent/client.js 注入。
+// 3) 浏览器 client 半（官方 dsh.client 插件形态）：会话视图环 conversation.view
+//    tab「MC面板」（与「对话」「轨迹」同一行），视图内嵌 <iframe src="/mc-panel/">
+//    复用 server 端 dashboard。产物 lib/client.js 由 package.json 的
+//    exports["./client"] 暴露，dsh web 扫描 dsh.client 声明后经
+//    /plugins/dsh-minecraft-agent/client.js 注入。
 //    产出形态对齐官方 packages/client/tsdown.client.ts 的 clientConfig：
 //    format cjs + platform browser + banner/footer 包 window.__ModuleLoader__.load。
 const CLIENT_EXTERNALS = [
@@ -126,10 +127,11 @@ const CLIENT_EXTERNALS = [
   '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-attachment',
   '@deepseek-ai/dsh-client-schema-form',
-  // runtime 的 client 面（ClientContext 类型来源）+ sidebar 的 footer.action
-  // slot 声明。均为 type-only import（esbuild 擦除），列 external 防 resolve。
+  // runtime 的 client 面（ClientContext 类型来源）+ conversation 的
+  // conversation.view slot 声明。均为 type-only import（esbuild 擦除），列
+  // external 防 resolve。
   '@deepseek-ai/dsh-client-runtime/client',
-  '@deepseek-ai/dsh-client-ui-sidebar/client',
+  '@deepseek-ai/dsh-client-ui-conversation/client',
 ]
 
 await build({
