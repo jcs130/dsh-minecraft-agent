@@ -280,7 +280,7 @@ async function spawnTransmigrator(
 ) {
   const { config, dataDir, log, rootBot } = deps
   const username = entry.username
-  const sessionId = entry.sessionId ?? `mc-${username}`
+  let sessionId = entry.sessionId ?? `mc-${username}`
   const intervalMs = entry.intervalMs ?? config.intervalMs ?? 8000
   const viewerPort = entry.viewerPort ?? config.viewerPort ?? 3200
   const goal = entry.goal ?? config.goal ?? DEFAULT_GOAL
@@ -389,14 +389,34 @@ async function spawnTransmigrator(
         })
         resumed = true
         log(`transmigrator agent resumed (resume): session=${sessionId}`)
-      } catch {
-        handle = await ctx.agents.create({
-          sessionId: SessionId(sessionId),
-          ...((entry.cwd ?? config.cwd) ? { meta: { cwd: entry.cwd ?? config.cwd } } : {}),
-          agentOptions,
-          setup: mountSetup,
-        })
-        log(`transmigrator agent created fresh (create): session=${sessionId}`)
+      } catch (resumeErr) {
+        // 根因可见化：resume 失败原因此前被静默吞掉，排障只能瞎猜（2026-08-20 教训）
+        log(`resume ${sessionId} 失败：${(resumeErr as Error)?.message ?? resumeErr}，转 create`)
+        try {
+          handle = await ctx.agents.create({
+            sessionId: SessionId(sessionId),
+            ...((entry.cwd ?? config.cwd) ? { meta: { cwd: entry.cwd ?? config.cwd } } : {}),
+            agentOptions,
+            setup: mountSetup,
+          })
+          log(`transmigrator agent created fresh (create): session=${sessionId}`)
+        } catch (createErr) {
+          const cmsg = String((createErr as Error)?.message ?? createErr)
+          if (!cmsg.includes('already exists')) throw createErr
+          // store 污染兜底（2026-08-20）：resume 在 enter 之后失败会把 session
+          // 泄漏进内存 store，本进程内后续 create 永远撞 already exists（本次
+          // 10 连败根因）。轮换 session id 续命——episodic 回灌兜住记忆连续性，
+          // 旧 transcript 留在盘上不丢。
+          sessionId = `${sessionId}-r${Date.now().toString(36)}`
+          log(`create 撞 already exists（store 被半初始化 session 污染），轮换 session id → ${sessionId}`)
+          handle = await ctx.agents.create({
+            sessionId: SessionId(sessionId),
+            ...((entry.cwd ?? config.cwd) ? { meta: { cwd: entry.cwd ?? config.cwd } } : {}),
+            agentOptions,
+            setup: mountSetup,
+          })
+          log(`transmigrator agent created fresh (rotated): session=${sessionId}`)
+        }
       }
       break
     } catch (err) {

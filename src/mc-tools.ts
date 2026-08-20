@@ -1,4 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
+import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Bot, Chest, Dispenser, EnchantmentTable, EquipmentDestination, Furnace, Villager } from 'mineflayer'
 import type { Block } from 'prismarine-block'
@@ -15,6 +16,16 @@ import { setLastImage, setLastImages } from './mc-vision'
 
 export const name = 'mc-tools'
 export const inject = ['tools', 'mcbot']
+
+export interface Config {
+  /** 运行时数据目录（episodic 记忆 / 截图）。默认 ./data 按 cwd 解析；
+   * dsh web 形态须在 profile patch yml 里统一指到 profile data，
+   * 与 mc-session / mc-panel 同源，避免读写裂盘。 */
+  dataDir?: string
+}
+export const Config: Schema<Config> = Schema.object({
+  dataDir: Schema.string().default('./data'),
+})
 
 // 进程级插件 ctx（apply 时捕获）。official one-bot-per-process 形态下
 // root 的 mcbot 单例就是本进程唯一穿越者的身体；多 agent 形态下
@@ -54,7 +65,7 @@ function resolveBot(exec: any): Bot | undefined {
  * 编年史直接可读；会话轮换/重启后 mc-session 回灌尾部条目 = 连续记忆）。
  * 位置前缀让记忆碎片自带空间上下文。写失败静默（记忆是增强不是依赖）。
  */
-const EPISODIC_DIR = resolve(process.cwd(), 'data')
+let EPISODIC_DIR = resolve(process.cwd(), 'data')
 function recordEpisodic(bot: Bot, args: Args, outcome: string, failed = false): void {
   const u = bot.username
   if (!u) return
@@ -871,7 +882,7 @@ const CHROME_PATH = process.env.CHROME_PATH
   || (process.platform === 'win32'
     ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
     : '/usr/bin/chromium')
-const SHOTS_ROOT = resolve('./data/screenshots')
+let SHOTS_ROOT = resolve(process.cwd(), 'data/screenshots')
 let seeBrowser: Browser | null = null
 let seePage: Page | null = null
 
@@ -1036,10 +1047,18 @@ async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string>
   return 'ok'
 }
 
-export function apply(ctx: Context) {
+export function apply(ctx: Context, config: Config = {}) {
   const log = (msg: string) => console.log(`[mc-tools] ${msg}`)
   pluginCtx = ctx
+  // dataDir 统一（2026-08-20 裂盘修复）：episodic 记忆与截图此前硬编码
+  // process.cwd()/data，dsh web 以工作区根为 cwd 启动 → 写进工作区根 data，
+  // 而 mc-session/mc-panel 读写 profile data → 记忆链路读写不同源。
+  // 现在与其余 writer 一样 config 驱动，profile patch yml 统一指向。
+  EPISODIC_DIR = resolve(config.dataDir ?? './data')
+  SHOTS_ROOT = join(EPISODIC_DIR, 'screenshots')
   try { mkdirSync(EPISODIC_DIR, { recursive: true }) } catch { /* 已存在 */ }
+  try { mkdirSync(SHOTS_ROOT, { recursive: true }) } catch { /* 已存在 */ }
+  log(`dataDir=${EPISODIC_DIR}`)
 
   // ── Observe: position / health / food / held item / inventory ────────
   ctx.tools.register(defineTool({

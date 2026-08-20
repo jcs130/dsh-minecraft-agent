@@ -33,6 +33,10 @@
 
     - id: mc-tools
       name: 'dsh-minecraft-agent/lib/plugins/mc-tools.mjs'
+      # episodic 记忆与截图的运行时目录；须与 mc-session/mc-panel 的 dataDir 同源
+      # （默认 ./data 按 dsh 进程 cwd 解析，标准形态下即 profile data）。
+      config:
+        dataDir: './data'
 
     - id: mc-memory
       name: 'dsh-minecraft-agent/lib/plugins/mc-memory.mjs'
