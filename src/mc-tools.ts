@@ -194,6 +194,9 @@ async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000):
     gotoPromise.catch(() => { /* late rejection after settle is expected */ })
     const watchdog = setInterval(() => {
       if (settled || !abort) return
+      // 2026-08-20 crash fix: connection lost -> bot.entity undefined. An
+      // uncaught throw in this timer killed the whole process (11:14 incident).
+      if (!bot.entity) { stallTicks = 99; abort(); return }
       const moved = bot.entity!.position.distanceTo(startPos)
       if (moved > bestProgress + 0.4) {
         bestProgress = moved
@@ -216,7 +219,7 @@ async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000):
       settled = true
       // 假成功防护（mineflayer#3911 家族）：1.21.11 物理/位置脱同步时 pathfinder
       // 可能 resolve 但实体实际不在目标附近——用真实距离兜底校验
-      const dist = bot.entity!.position.distanceTo(pos)
+      const dist = bot.entity ? bot.entity.position.distanceTo(pos) : Infinity
       if (dist > reach + 1.5) {
         console.error(`[mc-tools] gotoNear FALSE-POSITIVE: resolved but real dist=${dist.toFixed(2)} > reach+1.5 — treat as wedged`)
         return { reached: false, wedged: true }
@@ -224,7 +227,7 @@ async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000):
       return { reached: true, wedged: false }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      const moved = bot.entity!.position.distanceTo(startPos)
+      const moved = bot.entity ? bot.entity.position.distanceTo(startPos) : -1
       const wedged = stallTicks >= 2
       console.error(`[mc-tools] gotoNear FAIL: ${msg} | moved=${moved.toFixed(2)} target=(${pos.x},${pos.y},${pos.z}) reach=${reach}${wedged ? ' | WEDGE detected' : ''}`)
       return { reached: false, wedged }
