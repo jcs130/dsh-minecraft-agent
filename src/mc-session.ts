@@ -33,6 +33,7 @@ import { realpath } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
+import { takeLastImages } from './mc-vision'
 import type { McBotEntry } from './mc-bots'
 
 export const name = 'mc-session'
@@ -66,6 +67,8 @@ export interface AgentEntry {
   cwd?: string
   /** 条目开关。 */
   enabled?: boolean
+  /** 自主心跳开关：false = 不自动 steer（等用户在控制端手动开始）。默认 true。 */
+  autoSteer?: boolean
 }
 
 export interface Config {
@@ -87,6 +90,8 @@ export interface Config {
   maxTokens?: number
   /** 自主心跳 steer 间隔（毫秒）。 */
   intervalMs?: number
+  /** 自主心跳开关：false = 不自动 steer（等用户在控制端手动开始）。默认 true。 */
+  autoSteer?: boolean
   /** 人格（穿越者前世档案）；不传用内置 isekai 默认人格。 */
   persona?: string
   /** 世界规则 + 当前目标 + 工具使用指引。 */
@@ -121,6 +126,7 @@ export const Config: Schema<Config> = Schema.object({
     intervalMs: Schema.number(),
     cwd: Schema.string(),
     enabled: Schema.boolean().default(true),
+    autoSteer: Schema.boolean(),
   })),
   username: Schema.string().default('HarnessBot'),
   sessionId: Schema.string(),
@@ -129,6 +135,7 @@ export const Config: Schema<Config> = Schema.object({
   model: Schema.string().default('qwen3.8-27b'),
   maxTokens: Schema.number(),
   intervalMs: Schema.number().default(8000),
+  autoSteer: Schema.boolean().default(true),
   dataDir: Schema.string().default('./data'),
   viewerPort: Schema.number().default(3200),
   persona: Schema.string(),
@@ -144,17 +151,16 @@ const DEFAULT_PERSONA = [
   '你是一名穿越到方块世界的异乡人。你带着前世的一缕记忆降临这片大地，',
   '要在荒野中求生、探索、成长。你拥有自己的名字与人格，不是机器，不是工具，',
   '而是一个有血有肉、会饿、会怕、会好奇的旅人。',
-  '你只能通过「咏唱咒语」（调用工具）与这个世界交互，无法直接看到代码或命令。',
-  '做任何事之前先想清楚为什么；一次只做一个动作，做完观察结果再决定下一步。',
+  '你有手（工具）也有嘴（说话）：既能动手采集建造战斗，也能开口咏唱、祈愿、提问、与这个世界的一切生灵交谈。',
+  '做任何事之前先想清楚为什么；一次专注做一件事，做完观察结果再决定下一步。',
 ].join('')
 
 const DEFAULT_RULES = [
   '这是一个方块生存世界。白天安全，夜晚有怪物，受伤会掉血，饥饿会掉饱食度。',
-  '你必须自己采集木头、挖矿、找食物、搭庇护所，努力活下去。',
-  '你只能调用工具（mc_ 开头）来行动：移动、采集、建造、战斗、交易等。',
-  '每个回合你最多调用一个工具；调用后回合结束，等待下一轮的世界反馈。',
-  '不要一次性规划一长串动作，一步一步来。',
-  '世界的玩法速查：在任何聊天框说「/help」可查生存手册（咒语/供奉/祈愿/变强/频道），零等待私语回复。',
+  '你有手、有嘴、有一条命。工具（mc_ 开头）是你的手；聊天框是你的嘴——说话、咏唱、祈愿、提问、与 NPC 交谈都算行动，这个世界听得懂人话（「文字即接口」）。全部用法写在入服欢迎信息和 /help 手册里，自行查阅、自行探索。',
+  '没有标准答案：怎么活得更好由你决定，鼓励你尝试任何方式——包括没人教过你的。',
+  '一次专注做一件事，做完看世界的反馈，再决定下一步。',
+  '你在成长：白天多经历、多试错，夜里睡着后你会自发复盘今天的经历，把教训沉淀成生存智慧。经历越丰富，你越长本事。',
 ].join('\n')
 
 const DEFAULT_GOAL = 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
@@ -282,6 +288,7 @@ async function spawnTransmigrator(
   const username = entry.username
   let sessionId = entry.sessionId ?? `mc-${username}`
   const intervalMs = entry.intervalMs ?? config.intervalMs ?? 8000
+  const autoSteer = entry.autoSteer ?? config.autoSteer ?? true
   const viewerPort = entry.viewerPort ?? config.viewerPort ?? 3200
   const goal = entry.goal ?? config.goal ?? DEFAULT_GOAL
   const rules = entry.rules ?? config.rules ?? DEFAULT_RULES
@@ -314,6 +321,10 @@ async function spawnTransmigrator(
   // ------------------------------------------------------------------
   // 状态快照（动态 section）：每次组装 system prompt 时实时读取 bot 状态。
   // bot 门面在未连接时对属性访问抛错，这里兜底成占位文案。
+  // 2026-08-20 补环境感知：旧版只有位置/血量/饱食/背包/时间，穿越者对
+  // 「周围有什么」一无所知（用户观察：从没告诉过他周围环境）。现在每轮
+  // 自动带：朝向、脚下地质、16 格实体雷达（含玩家）、8 格危险液体。
+  // 纯 mineflayer 只读查询，零工具调用、零 LLM 额外往返。
   // ------------------------------------------------------------------
   const perceive = (): string => {
     try {
@@ -325,10 +336,59 @@ async function spawnTransmigrator(
         `生命: ${Math.round(bot!.health)} / 20`,
         `饱食: ${Math.round(bot!.food)} / 20`,
       ]
+      // 朝向（mineflayer yaw：forward = (-sin yaw, -cos yaw)）
+      try {
+        const yaw = bot!.entity!.yaw ?? 0
+        const dx = -Math.sin(yaw)
+        const dz = -Math.cos(yaw)
+        parts.push(`面向: ${Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? '东' : '西') : (dz > 0 ? '南' : '北')}`)
+      } catch { /* yaw 缺席跳过 */ }
+      // 脚下地质
+      try {
+        const under = bot!.blockAt(p.offset(0, -1, 0))
+        if (under) parts.push(`脚下: ${under.name}`)
+      } catch { /* blockAt 失败跳过 */ }
       const inv = bot!.inventory.items()
       if (inv.length) parts.push(`背包: ${inv.map((i) => `${i.name} x${i.count}`).join(', ')}`)
       const isNight = bot!.time?.timeOfDay != null && bot!.time.timeOfDay > 13000 && bot!.time.timeOfDay < 23000
       parts.push(`时间: ${isNight ? '夜晚（危险）' : '白天'}`)
+      // 实体雷达（16 格，最多 6 个，玩家显用户名）
+      try {
+        const ents = Object.values((bot as unknown as { entities?: Record<string, unknown> }).entities ?? {})
+          .filter((e) => {
+            const ent = e as { name?: string; position?: { distanceTo: (v: unknown) => number } }
+            return !!ent && ent !== bot!.entity && !!ent.name && !!ent.position && p.distanceTo(ent.position) <= 16
+          })
+          .sort((a, b) => {
+            const ea = a as { position: { distanceTo: (v: unknown) => number } }
+            const eb = b as { position: { distanceTo: (v: unknown) => number } }
+            return p.distanceTo(ea.position) - p.distanceTo(eb.position)
+          })
+          .slice(0, 6)
+          .map((e) => {
+            const ent = e as { username?: string; displayName?: string; name: string; position: { distanceTo: (v: unknown) => number } }
+            const label = ent.username ? `${ent.username}(玩家)` : (ent.displayName ?? ent.name)
+            return `${label} ${Math.round(p.distanceTo(ent.position))}格`
+          })
+        if (ents.length) parts.push(`附近: ${ents.join(', ')}`)
+      } catch { /* 实体雷达失败不阻塞 */ }
+      // 危险液体（8 格内最近一处）
+      try {
+        const hazards: string[] = []
+        for (const [names, label] of [
+          [['lava', 'flowing_lava'], '岩浆'],
+          [['water', 'flowing_water'], '水'],
+        ] as const) {
+          for (const name of names) {
+            const hb = bot!.findBlock({ matching: (b: unknown) => !!b && (b as { name?: string }).name === name, maxDistance: 8 })
+            if (hb) {
+              hazards.push(`${label} ${Math.round(p.distanceTo(hb.position))}格`)
+              break
+            }
+          }
+        }
+        if (hazards.length) parts.push(`危险: ${hazards.join(', ')}`)
+      } catch { /* 危险扫描失败不阻塞 */ }
       return parts.join('\n')
     } catch {
       return '(身体尚未接入方块世界)'
@@ -492,11 +552,68 @@ async function spawnTransmigrator(
     }
   })
 
-  const nudge = () =>
-    createUserMessage({
-      content: [{ type: 'text', text: '观察当前状态，执行你的下一步行动（一次只做一个动作）。' }],
+  const nudgeText = () => '看看现在的你和周围的世界，选择你此刻最想做的事，去行动（动手或开口都行）。'
+
+  // ------------------------------------------------------------------
+  // 视觉回喂（2026-08-20）：mc_see 截图写入视觉槽后，旧 session 形态没人
+  // 消费——工具承诺「画面会附在下一轮观察里」实际从未兑现，穿越者从来没
+  // 亲眼见过画面。现在心跳 steer 前取走槽内截图，走官方附件服务
+  // （ctx.attachments.saveImage → ImageAttachmentRef）转成 ImageBlock 拼
+  // 进 nudge——llm-qwen-local 适配器已声明 image 模态并序列化为
+  // image_url，vLLM(Qwen-VL) 端到端直通。图片上限 2 张/条（Qwen-VL 实测
+  // "At most 2 image(s)"，见 mc-vision）。
+  // ------------------------------------------------------------------
+  type AttachmentsSvc = {
+    saveImage?: (input: { data: Uint8Array; mediaType: string; name?: string }) => Promise<unknown>
+  }
+  const attachmentsSvc = (): AttachmentsSvc | undefined => {
+    try {
+      const c = ctx as unknown as { get?: (n: string) => unknown }
+      return c.get?.('attachments') as AttachmentsSvc | undefined
+    } catch {
+      return undefined
+    }
+  }
+  const decodeDataUrl = (dataUrl: string): { data: Uint8Array; mediaType: string } | null => {
+    const m = /^data:(image\/(?:png|jpeg|webp|gif));base64,([\s\S]*)$/.exec(dataUrl)
+    if (!m) return null
+    return { mediaType: m[1], data: new Uint8Array(Buffer.from(m[2], 'base64')) }
+  }
+  const buildNudge = async (): Promise<ReturnType<typeof createUserMessage>> => {
+    // 附件服务缺席就不消费视觉槽（截图留在槽里等下一轮，60s 时效兜底）
+    const svc = attachmentsSvc()
+    const imgs = svc?.saveImage ? takeLastImages(60_000, 2, username) : []
+    const blocks: Array<Record<string, unknown>> = []
+    for (const img of imgs) {
+      const dec = decodeDataUrl(img.dataUrl)
+      if (!dec) continue
+      try {
+        const ref = await svc!.saveImage!({
+          data: dec.data,
+          mediaType: dec.mediaType as 'image/jpeg',
+          // name 只作显示名，剥掉相对路径只留文件名
+          name: img.file ? img.file.split(/[\\/]/).pop() : undefined,
+        })
+        blocks.push({ type: 'image', attachment: ref })
+        if (img.label) blocks.push({ type: 'text', text: `（上面这张：你${img.label}的画面）` })
+      } catch (e) {
+        log(`截图转附件失败（跳过该张）: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    }
+    if (blocks.length) {
+      blocks.push({
+        type: 'text',
+        text: `（附图：你刚才用 mc_see 睁眼看到的真实画面${imgs.length > 1 ? '，按 前→右→后→左 顺序环视一圈' : ''}——请结合亲眼所见决策）\n\n${nudgeText()}`,
+      })
+      log(`nudge 携带 ${blocks.filter((b) => b.type === 'image').length} 张截图`)
+    } else {
+      blocks.push({ type: 'text', text: nudgeText() })
+    }
+    return createUserMessage({
+      content: blocks as never,
       source: { kind: 'plugin', plugin: 'mc-session' },
     })
+  }
 
   // ------------------------------------------------------------------
   // 状态写手：每 3s 落一份 status-<username>.json（mc-panel 数据源）。
@@ -538,7 +655,8 @@ async function spawnTransmigrator(
   // 唤醒首 tick：把目标作为第一条 steer 消息（resume 的老会话不再重复唤醒，
   // 它已有进行中的对话上下文）。fresh create（含会话轮换）时附带前世记忆
   // 碎片——episodic 尾部条目，让穿越者记得「上一世」自己在做什么。
-  if (!resumed) {
+  // autoSteer=false 时跳过唤醒与心跳：agent 只被创建/恢复，等用户在控制端手动开始。
+  if (autoSteer && !resumed) {
     const tail = readEpisodicTail(20)
     const memoryBlock = tail.length
       ? `\n\n你在一次长眠后苏醒，前世的记忆碎片涌入脑海（从旧到新）：\n${tail.map((t) => `· ${t}`).join('\n')}\n结合这些记忆，继续你未竟的旅途。`
@@ -552,14 +670,20 @@ async function spawnTransmigrator(
   }
 
   // 自主心跳：每 intervalMs steer 一次。agent.steer 会排队（inbox），
-  // 不会并发打断正在进行的 turn。
-  ctx.setInterval(() => {
-    if (handle) {
-      try {
-        agent.steer(nudge())
-      } catch (err) {
-        console.error(`[mc-session] steer failed (${username}):`, err)
+  // 不会并发打断正在进行的 turn。心跳消息可能携带 mc_see 截图（多模态）。
+  if (autoSteer) {
+    ctx.setInterval(() => {
+      if (handle) {
+        void buildNudge()
+          .then((msg) => {
+            try {
+              agent.steer(msg)
+            } catch (err) {
+              console.error(`[mc-session] steer failed (${username}):`, err)
+            }
+          })
+          .catch((err) => console.error(`[mc-session] buildNudge failed (${username}):`, err))
       }
-    }
-  }, intervalMs)
+    }, intervalMs)
+  }
 }

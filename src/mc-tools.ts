@@ -1734,18 +1734,18 @@ export function apply(ctx: Context, config: Config = {}) {
             dataUrl: 'data:image/jpeg;base64,' + s.buffer.toString('base64'),
             file: s.file,
             label: s.label,
-          })))
+          })), bot.username)
           return '已环顾四周：前/右/后/左 四张画面将在你的下一次观察中按顺序附上——请结合四面画面决策。'
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
           // 环视失败退回单张，别让 agent 白等一轮
           const { dataUrl, file } = await seeFirstPerson(bot)
-          setLastImage(dataUrl, file)
+          setLastImage(dataUrl, file, bot.username)
           return `环视失败（${msg}），已退回拍摄当前朝向单张画面。`
         }
       }
       const { dataUrl, file } = await seeFirstPerson(bot)
-      setLastImage(dataUrl, file)
+      setLastImage(dataUrl, file, bot.username)
       return '已拍摄第一人称画面，闭上眼后画面会立刻附在你的下一次观察中——请结合画面内容决定下一步。'
     }),
   }))

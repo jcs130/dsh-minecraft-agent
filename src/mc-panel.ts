@@ -293,8 +293,8 @@ function json(res: ServerResponse, body: unknown): void {
   res.end(buf)
 }
 
-function handleShot(dataDir: string, req: IncomingMessage, res: ServerResponse): void {
-  const rel = decodeURIComponent(req.url!.slice('/shot/'.length))
+function handleShot(dataDir: string, url: string, res: ServerResponse): void {
+  const rel = decodeURIComponent(url.slice('/shot/'.length))
   const full = resolveShotPath(dataDir, rel)
   if (!full) {
     res.writeHead(404).end('not found')
@@ -331,11 +331,16 @@ function readBody(req: IncomingMessage, limit = 8192): Promise<string> {
 export function apply(ctx: Context, config: PanelConfig): void {
   if (!config.enabled) return
   const dataDir = resolve(config.dataDir)
-  const server = createServer((req, res) => {
+  const PREFIX = '/mc-panel'
+  // 单一 handler：剥同源前缀后复用独立端口时代的路由判断
+  const handler = (req: IncomingMessage, res: ServerResponse) => {
     try {
-      const url = (req.url ?? '/').split('?')[0]
+      const raw = (req.url ?? '/').split('?')[0]
+      let url = raw
+      if (url === PREFIX) url = '/'
+      else if (url.startsWith(PREFIX + '/')) url = url.slice(PREFIX.length)
       if (url === '/api/all') return json(res, collect(dataDir, config.username))
-      if (url.startsWith('/shot/')) return handleShot(dataDir, req, res)
+      if (url.startsWith('/shot/')) return handleShot(dataDir, url, res)
       // ── 服务器连接设置（2026-08-20：地址页面可配，不再写死 cordis.patch.yml）──
       if (url === '/api/connection' && (req.method === 'GET' || req.method === 'HEAD')) {
         return json(res, collect(dataDir, config.username).connection)
@@ -379,7 +384,9 @@ export function apply(ctx: Context, config: PanelConfig): void {
       const msg = err instanceof Error ? err.message : String(err)
       try { res.writeHead(500).end(msg) } catch { /* socket gone */ }
     }
-  })
+  }
+  // 独立端口：独立进程（bootstrap）的主入口，也是 dsh web 进程的同源降级/数据端口
+  const server = createServer(handler)
   server.on('error', (err) => console.error(`[mc-panel] server error: ${(err as Error).message}`))
   server.listen(config.port, config.host, () => {
     console.log(`[mc-panel] dashboard: http://${config.host}:${config.port}/ (data=${dataDir}, user=${config.username || 'auto'})`)
@@ -388,11 +395,21 @@ export function apply(ctx: Context, config: PanelConfig): void {
   ctx.effect(() => () => {
     server.close()
   })
+
+  // dsh web 进程：等官方 webServer 服务就绪后，把同一 handler 挂到同源 /mc-panel 前缀。
+  // 独立进程无 webServer，这个 inject 永不触发，仅保留上面的独立端口。
+  ctx.inject(['webServer'], () => {
+    const ws = ctx.get('webServer')
+    if (!ws || typeof ws.register !== 'function') return
+    const disposeRoute = ws.register({ kind: 'prefix', path: PREFIX, handler })
+    ctx.effect(() => disposeRoute)
+    console.log(`[mc-panel] mounted same-origin at /mc-panel/ (data=${dataDir})`)
+  })
 }
 
 // ── dashboard HTML ──────────────────────────────────────────────────────────
 function dashboardHtml(): string {
-  return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+  return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="/mc-panel/">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>穿越者面板</title><style>'
     + ':root{--bg:#0f1115;--card:#1a1d24;--line:#262a33;--fg:#d7dce4;--dim:#8a93a3;--acc:#4f8cff;--ok:#3fb96f;--bad:#e0564f;--warn:#d9a03f}'
@@ -472,12 +489,12 @@ function dashboardHtml(): string {
     + 'var h=document.getElementById("conn-host").value.trim(),pp=document.getElementById("conn-port").value.trim();'
     + 'var body={host:h};if(pp)body.port=parseInt(pp,10);'
     + 'var m=document.getElementById("conn-msg");m.textContent="保存中…";'
-    + 'fetch("/api/connection",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})'
+    + 'fetch("api/connection",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})'
     + '.then(function(r){return r.json()}).then(function(j){m.textContent=j.ok?"已保存，bot 重连中（约 2-5 秒）":"失败："+(j.error||"未知错误")})'
     + '.catch(function(e){m.textContent="请求失败："+e});};'
     + 'document.getElementById("conn-reset").onclick=function(){'
     + 'var m=document.getElementById("conn-msg");m.textContent="恢复中…";connEdited=false;'
-    + 'fetch("/api/connection/reset",{method:"POST"}).then(function(r){return r.json()})'
+    + 'fetch("api/connection/reset",{method:"POST"}).then(function(r){return r.json()})'
     + '.then(function(j){m.textContent=j.ok?"已恢复配置默认（bot 重连中）":"失败"}).catch(function(e){m.textContent="请求失败："+e});};'
     + 'function fs(){var w=document.getElementById("vwrap");if(document.fullscreenElement){document.exitFullscreen()}else{w.requestFullscreen&&w.requestFullscreen()}}'
     + 'function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"}[c]})}'
@@ -542,7 +559,7 @@ function dashboardHtml(): string {
     + 'function setPv(pv){curPv=pv;if(st&&st.viewerPort){f.src="http://"+location.hostname+":"+st.viewerPort+"/?pv="+pv;}["3","smooth","map"].forEach(function(k){var b=document.getElementById("vt-"+k);if(b){b.style.background=k===pv?"var(--acc)":"transparent";b.style.color=k===pv?"#0d1117":"var(--dim)"}})}'
     + 'if(st&&st.viewerPort&&!viewerSet){setPv(curPv);viewerSet=true}'
     + '["3","smooth","map"].forEach(function(k){var b=document.getElementById("vt-"+k);if(b)b.onclick=function(){setPv(k)}})'
-    + 'var sh=document.getElementById("shot");if(p.latestShot&&p.latestShot!==lastShot){lastShot=p.latestShot;sh.innerHTML="\<img src=/shot/"+encodeURIComponent(p.latestShot)+"?t="+Date.now()+"\>"}else if(!p.latestShot){sh.innerHTML="\<div class=empty\>暂无截图\</div\>"}'
+    + 'var sh=document.getElementById("shot");if(p.latestShot&&p.latestShot!==lastShot){lastShot=p.latestShot;sh.innerHTML="\<img src=shot/"+encodeURIComponent(p.latestShot)+"?t="+Date.now()+"\>"}else if(!p.latestShot){sh.innerHTML="\<div class=empty\>暂无截图\</div\>"}'
     + 'var steps=(p.status&&p.status.recentSteps)||[];var se=document.getElementById("steps");'
     + 'se.innerHTML=steps.length?steps.slice(-30).reverse().map(function(s){var bad=/error|could not|failed|timeout/i.test(s.outcome||"");'
     + 'return "\<div class=step"+(bad?" err":"")+"\>\<div class=meta\>#"+(s.step||"?")+" · "+hhmmss(s.ts)+" · ⚒ "+esc(s.tool||"")+"\</div\>"'
@@ -561,7 +578,7 @@ function dashboardHtml(): string {
     + 'var ev=document.getElementById("events");'
     + 'ev.innerHTML=p.events&&p.events.length?p.events.slice(0,25).map(function(e){return "\<div class=step"+(e.kill?" err":"")+"\>\<div class=meta\>"+hhmmss(e.ts)+(e.kill?" · ⚔ 战斗":"")+"\</div\>\<div class=out\>"+esc(e.text.slice(0,260))+"\</div\>\</div\>"}).join(""):"\<div class=empty\>暂无编年史\</div\>";'
     + 'drawTopo(p.topo);drawMap(p)}'
-    + 'function tick(){fetch("/api/all").then(function(r){return r.json()}).then(render).catch(function(){})}'
+    + 'function tick(){fetch("api/all").then(function(r){return r.json()}).then(render).catch(function(){})}'
     + 'tick();setInterval(tick,3000);'
     + '</script></body></html>'
 }

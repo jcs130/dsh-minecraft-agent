@@ -31,6 +31,9 @@ declare module '@deepseek-ai/cordis' {
     /** Register a cleanup-aware effect; may return a disposer. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     effect(execute: () => any, label?: string): any
+    /** Wait for services, then run a callback in a context where they're injected. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    inject(deps: string[], callback: (ctx: any, config?: any) => any): any
   }
 }
 
@@ -53,6 +56,8 @@ declare module '../../vendor/cordis/lib/types/context' {
     provide(name: string, value?: unknown): () => void
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     effect(execute: () => any, label?: string): any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    inject(deps: string[], callback: (ctx: any, config?: any) => any): any
     mcbot: import('./mc-bot.ts').McBotService
     mcMemory: import('./mc-memory.ts').MemoryService
     mcMystic: import('./mc-mystic.ts').MysticService

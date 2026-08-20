@@ -107,4 +107,50 @@ for (const name of PLUGIN_ENTRIES) {
   })
 }
 
-console.log('[build] lib/bootstrap.mjs + %d plugin entries ready', PLUGIN_ENTRIES.length)
+// 3) 浏览器 client 半（官方 dsh.client 插件形态）：footer 按钮 + 浮动面板，
+//    内嵌 <iframe src="/mc-panel/"> 复用 server 端 dashboard。产物
+//    lib/client.js 由 package.json 的 exports["./client"] 暴露，dsh web 扫描
+//    dsh.client 声明后经 /plugins/dsh-minecraft-agent/client.js 注入。
+//    产出形态对齐官方 packages/client/tsdown.client.ts 的 clientConfig：
+//    format cjs + platform browser + banner/footer 包 window.__ModuleLoader__.load。
+const CLIENT_EXTERNALS = [
+  // dsh web 平台的 seed 模块（运行时由 factory 的 require 从 loader module
+  // table 解析，见 packages/client/web/src/platform.ts PLATFORM_MODULES）。
+  'react',
+  'react/jsx-runtime',
+  'react-dom',
+  'react-dom/client',
+  '@deepseek-ai/cordis',
+  '@deepseek-ai/dsh-client-ui-slots',
+  '@deepseek-ai/dsh-client-web-react',
+  '@deepseek-ai/dsh-client-ui-primitives',
+  '@deepseek-ai/dsh-client-ui-attachment',
+  '@deepseek-ai/dsh-client-schema-form',
+  // runtime 的 client 面（ClientContext 类型来源）+ sidebar 的 footer.action
+  // slot 声明。均为 type-only import（esbuild 擦除），列 external 防 resolve。
+  '@deepseek-ai/dsh-client-runtime/client',
+  '@deepseek-ai/dsh-client-ui-sidebar/client',
+]
+
+await build({
+  entryPoints: ['src/client.tsx'],
+  bundle: true,
+  format: 'cjs',
+  platform: 'browser',
+  target: 'es2020',
+  jsx: 'automatic',
+  outfile: 'lib/client.js',
+  external: CLIENT_EXTERNALS,
+  logLevel: 'info',
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
+  banner: {
+    js: 'window.__ModuleLoader__.load({ id: "dsh-minecraft-agent", factory: (require) => { var module = { exports: {} }; var exports = module.exports;',
+  },
+  footer: {
+    js: 'return module.exports; } });',
+  },
+})
+
+console.log('[build] lib/bootstrap.mjs + lib/bootstrap-session.mjs + lib/client.js + %d plugin entries ready', PLUGIN_ENTRIES.length)
