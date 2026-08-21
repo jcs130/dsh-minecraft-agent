@@ -309,6 +309,21 @@ export function apply(ctx: Context, config: Config) {
     return false
   }
 
+  /**
+   * 判断某次行动结果是否为「工具能力缺陷」（真错误/崩溃）——只用于缺陷工单追踪。
+   * 与 looksStuck 的关键区别：良性否定结果（no food in inventory / no X in
+   * inventory / food is already full / in the way 等）是工具的诚实回答，代表
+   * 「一时处境」而非「工具坏了」。把它们算进缺陷连胜会让「没食物」「背包没货」
+   * 这类正常处境被误报成 bug 淹没创世神（DEFECT-20260821-095442-mc_eat）。
+   * 缺陷只认两路信号：①guard 捕获的抛错（tool error:/ERROR: 前缀）②渲染/浏览器
+   * 栈崩溃家族（容器无头环境缺 canvas/webgl/chromium）。
+   */
+  function looksDefective(outcome: string): boolean {
+    if (outcome.startsWith('ERROR:') || outcome.startsWith('tool error:')) return true
+    if (/browserType\.launch|Executable doesn't exist|WebGLRenderer|node-canvas|chromium.*(not found|install one)/i.test(outcome)) return true
+    return false
+  }
+
   // ── Chat listening (the "gods" — real players — speak through chat) ──
   let watchedBot: Bot | null = null
   let lastChatTs = 0
@@ -834,7 +849,15 @@ export function apply(ctx: Context, config: Config) {
       // 连续失败计数：卡住信号（连续≥3 步没进展 → 下一轮注入咏唱提示）。
       if (looksStuck(outcome)) {
         consecutiveFailures++
-        // 缺陷工单追踪：同工具连续失败 → 达阈值落工单 + 通知创世神。
+        // 连续≥2 次失败且此目标未复盘过 → 蒸馏一条失败教训进生存知识库。
+        if (consecutiveFailures >= 2) maybeReflectFailure(decision.goal || lastGoal)
+      } else {
+        consecutiveFailures = 0
+      }
+      // 缺陷工单追踪：只认「工具能力缺陷」（looksDefective），不看良性否定结果。
+      // 没食物/背包没货/饱食已满是工具的诚实回答，属于「一时处境」，交给上面的
+      // 卡住提示引导换招；把它们算缺陷会淹没创世神（DEFECT-20260821-095442-mc_eat）。
+      if (looksDefective(outcome)) {
         if (decision.tool === streakTool) {
           streakCount++
         } else {
@@ -850,15 +873,10 @@ export function apply(ctx: Context, config: Config) {
           streakCount = 0
           streakSamples.length = 0 // 去重交给 open 工单，避免步步开单
         }
-        // 连续≥2 次失败且此目标未复盘过 → 蒸馏一条失败教训进生存知识库。
-        if (consecutiveFailures >= 2) maybeReflectFailure(decision.goal || lastGoal)
-      } else {
-        consecutiveFailures = 0
-        // 该工具成功了 → 它的失败连胜清零（能力缺陷 vs 一时处境，看的是连胜）。
-        if (decision.tool === streakTool) {
-          streakCount = 0
-          streakSamples.length = 0
-        }
+      } else if (decision.tool === streakTool) {
+        // 该工具成功了（或返回了良性结果）→ 它的缺陷连胜清零（能力缺陷只看连胜）。
+        streakCount = 0
+        streakSamples.length = 0
       }
       lastAction = decision.tool
       lastThought = decision.thought
