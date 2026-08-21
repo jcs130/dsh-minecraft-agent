@@ -52,6 +52,16 @@
     - id: mc-identity
       name: 'dsh-minecraft-agent/lib/plugins/mc-identity.mjs'
 
+    # 学习进度账本 + 停滞诊断（纯观测层：咏唱账本 / 魔力层级曲线 / 学习停滞告警）。
+    # 必须先于 mc-mystic（mc_chant 经 ctx.get 读它）与 mc-session（状态采样）加载。
+    - id: mc-progress
+      name: 'dsh-minecraft-agent/lib/plugins/mc-progress.mjs'
+      config:
+        enabled: true
+        dataDir: './data'
+        stagnationHours: 24
+        alertCooldownMs: 21600000
+
     - id: mc-mystic
       name: 'dsh-minecraft-agent/lib/plugins/mc-mystic.mjs'
 

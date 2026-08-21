@@ -410,6 +410,13 @@ export function apply(ctx: Context, config: Config) {
       const prefix = stashed.length
         ? `（补达：你上一道咒语的迟到回执——${stashed.join('｜')}）\n`
         : ''
+      // 咏唱账本（学习进度观测，2026-08-21）：成败按信使回执语义 best-effort 判定。
+      // 静默/拒绝/等级不足等 = 失败；有实质回执且无失败信号 = 成功。
+      const chantFailed = !reply || /静默|拒绝|不足|失败|无效|无法|不认识|听不懂|没听|不允许|不可|没听见/i.test(reply)
+      try {
+        const prog = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcProgress') as { recordChant?: (u: string, ok: boolean, c: string) => void } | undefined
+        prog?.recordChant?.(me, !chantFailed, chant)
+      } catch { /* 账本不可用不影响施法 */ }
       if (!reply) return prefix + '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
       return prefix + reply
     },

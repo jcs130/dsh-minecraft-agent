@@ -35,6 +35,7 @@ import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
 import { takeLastImages } from './mc-vision'
 import type { McBotEntry } from './mc-bots'
+import type { MemoryProvider } from './memory-provider'
 
 export const name = 'mc-session'
 
@@ -42,7 +43,7 @@ export const name = 'mc-session'
 // 注意：不 inject mcbot——多穿越者形态下 root mcbot 由本插件自己 provide
 //（inject 会让本插件等待 mcbot 服务就绪，自己 provide 自己 = 死锁）；
 // 单身体形态经 ctx.get('mcbot')（官方免 inject 读服务口）取 mc-bot 的单例。
-export const inject = ['agents', 'timer']
+export const inject = ['agents', 'timer', 'mcIdentity']
 
 export interface AgentEntry {
   /** 穿越者名字（= MC 用户名）。 */
@@ -109,6 +110,12 @@ export interface Config {
   autoReconnect?: boolean
   /** 多身体形态：是否开 3D viewer（默认 true）。 */
   viewerEnabled?: boolean
+  /** 自动记忆检索披露：向量库按需 top-k 注入相关记忆/世界知识（渐进披露）。默认 true。 */
+  autoRecall?: boolean
+  /** 自动检索每次注入的记忆条数（相关性最高的 top-k）。默认 3。 */
+  autoRecallTopK?: number
+  /** 自动检索刷新间隔（毫秒）。默认 60s，低频避免每轮都打向量库。 */
+  autoRecallIntervalMs?: number
 }
 
 export const Config: Schema<Config> = Schema.object({
@@ -145,6 +152,9 @@ export const Config: Schema<Config> = Schema.object({
   port: Schema.number().default(25565),
   autoReconnect: Schema.boolean().default(true),
   viewerEnabled: Schema.boolean().default(true),
+  autoRecall: Schema.boolean().default(true),
+  autoRecallTopK: Schema.number().default(3),
+  autoRecallIntervalMs: Schema.number().default(60_000),
 })
 
 const DEFAULT_PERSONA = [
@@ -295,6 +305,36 @@ async function spawnTransmigrator(
   /** 本穿越者的身体：多模式 = 装配时捕获的专属门面；单模式 = root 单例实时读。 */
   const body = (): Bot | null => facade ?? rootBot()
 
+  // ------------------------------------------------------------------
+  // 自动记忆检索披露（渐进披露 + 向量检索，2026-08-21 扛枪需求）。
+  // 不再只等穿越者主动调 mc_recall/mc_lore——每隔一段时间，根据「当前处境
+  // + 目标」自动向向量库（MemOS/Qdrant）检索相关性最高的记忆与世界知识，
+  // 作为「你此刻自然想起」注入 context。这就是「正式披露走向量库、相关性
+  // 最高的自动浮出来」，且只注入 top-k（不全量）——渐进披露的落地。
+  // ------------------------------------------------------------------
+  const memos = ((): MemoryProvider | undefined => {
+    try {
+      return (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcMemos') as MemoryProvider | undefined
+    } catch {
+      return undefined
+    }
+  })()
+  let autoMemoryText = ''
+  const refreshAutoMemory = async (): Promise<void> => {
+    if (!memos) return
+    try {
+      const b = body()
+      const p = b?.entity?.position
+      const env = p ? `我在 (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})` : '我刚降临'
+      const isNight = b?.time?.timeOfDay != null && b.time.timeOfDay > 13000 && b.time.timeOfDay < 23000
+      const query = `${env}，${isNight ? '夜晚' : '白天'}。目标「${goal}」。此刻最相关的经历与这个世界的知识。`
+      const hits = await memos.recallAll(username, query, config.autoRecallTopK ?? 3)
+      autoMemoryText = hits ? `（你此刻自然想起的相关记忆，仅供参考）\n${hits}` : ''
+    } catch {
+      autoMemoryText = ''
+    }
+  }
+
   // 人格优先级：条目覆盖 > mc-identity 档案（persona+backstory，身份之锚）
   // > 全局 config.persona > 内置 isekai 默认。
   const anchorOf = (u: string): string => {
@@ -429,6 +469,12 @@ async function spawnTransmigrator(
           name: 'mc:status',
           order: 100,
           text: perceive,
+        })
+        // 自动向量检索披露：按需注入相关性最高的记忆/世界知识（渐进披露）。
+        agentCtx.systemPrompt.context({
+          name: 'mc:recall',
+          order: 101,
+          text: () => autoMemoryText,
         })
   }
   let handle: AgentHandle | null = null
@@ -566,11 +612,21 @@ async function spawnTransmigrator(
   type AttachmentsSvc = {
     saveImage?: (input: { data: Uint8Array; mediaType: string; name?: string }) => Promise<unknown>
   }
+  let _attachmentsProbed = false
   const attachmentsSvc = (): AttachmentsSvc | undefined => {
     try {
       const c = ctx as unknown as { get?: (n: string) => unknown }
-      return c.get?.('attachments') as AttachmentsSvc | undefined
-    } catch {
+      const svc = c.get?.('attachments') as AttachmentsSvc | undefined
+      if (!_attachmentsProbed) {
+        _attachmentsProbed = true
+        log(`attachments 服务探测：ctx.get=${typeof c.get} svc=${svc ? '有' : '无'} saveImage=${typeof svc?.saveImage}`)
+      }
+      return svc
+    } catch (e) {
+      if (!_attachmentsProbed) {
+        _attachmentsProbed = true
+        log(`attachments 服务探测异常：${e instanceof Error ? e.message : String(e)}`)
+      }
       return undefined
     }
   }
@@ -583,6 +639,7 @@ async function spawnTransmigrator(
     // 附件服务缺席就不消费视觉槽（截图留在槽里等下一轮，60s 时效兜底）
     const svc = attachmentsSvc()
     const imgs = svc?.saveImage ? takeLastImages(60_000, 2, username) : []
+    if (imgs.length) log(`视觉槽取出 ${imgs.length} 张截图待回喂 (username=${username})`)
     const blocks: Array<Record<string, unknown>> = []
     for (const img of imgs) {
       const dec = decodeDataUrl(img.dataUrl)
@@ -622,6 +679,19 @@ async function spawnTransmigrator(
     try {
       const b = body()
       const p = b?.entity?.position
+      // 学习进度采样 + 停滞诊断（魔法学会/停滞观测，2026-08-21）。
+      // 层级 = MC 原生经验等级；升层即「学会新层级」，长期不升即停滞。
+      let progressSummary = ''
+      let progressAlert: string | null = null
+      try {
+        const prog = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcProgress') as
+          | { sampleLevel?: (u: string, lv: number) => void; summary?: (u: string) => string; diagnose?: (u: string) => string | null }
+          | undefined
+        const lv = (b as unknown as { experience?: { level?: number } } | null)?.experience?.level
+        if (typeof lv === 'number') prog?.sampleLevel?.(username, lv)
+        progressSummary = prog?.summary?.(username) ?? ''
+        progressAlert = prog?.diagnose?.(username) ?? null
+      } catch { /* 进度采样失败不影响状态写手 */ }
       const status = {
         updatedAt: new Date().toISOString(),
         username,
@@ -643,6 +713,10 @@ async function spawnTransmigrator(
             .map((it) => ({ name: it.name, count: it.count })),
           viewerPort,
         },
+        progress: {
+          summary: progressSummary,
+          alert: progressAlert,
+        },
       }
       writeFileSync(join(dataDir, `status-${username}.json`), JSON.stringify(status))
     } catch (e) {
@@ -651,6 +725,13 @@ async function spawnTransmigrator(
   }
   writeStatus()
   ctx.setInterval(writeStatus, 3000)
+
+  // 自动记忆检索披露（向量库按需 top-k，渐进披露）：首次立即，此后低频刷新。
+  if (config.autoRecall !== false && memos) {
+    void refreshAutoMemory()
+    ctx.setInterval(() => { void refreshAutoMemory() }, config.autoRecallIntervalMs ?? 60_000)
+    log(`autoRecall 已启用（topK=${config.autoRecallTopK ?? 3}, interval=${config.autoRecallIntervalMs ?? 60_000}ms）`)
+  }
 
   // 唤醒首 tick：把目标作为第一条 steer 消息（resume 的老会话不再重复唤醒，
   // 它已有进行中的对话上下文）。fresh create（含会话轮换）时附带前世记忆
