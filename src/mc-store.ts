@@ -59,6 +59,10 @@ export interface McStoreService {
   saveMap(username: string, snapshot: Record<string, unknown>): void
   /** 读俯视地形快照，无则 null。 */
   loadMap(username: string): Record<string, unknown> | null
+  /** 写法术书技能状态（整行 JSON，UPSERT）；与 progress 表隔离。 */
+  saveSpellbook(username: string, state: unknown): void
+  /** 读法术书技能状态，无则 null。 */
+  loadSpellbook(username: string): Record<string, unknown> | null
 }
 
 /** db 打开失败时的降级服务：全 no-op，保证依赖方（mc-tools 等）不因本插件异常而卡死。 */
@@ -72,6 +76,8 @@ const degradedService: McStoreService = {
   listStatusAgents() { return [] },
   saveMap() {},
   loadMap() { return null },
+  saveSpellbook() {},
+  loadSpellbook() { return null },
 }
 
 function openDb(dataDir: string, dbFile: string): DatabaseSync {
@@ -101,6 +107,14 @@ function openDb(dataDir: string, dbFile: string): DatabaseSync {
     username TEXT PRIMARY KEY,
     updated_at TEXT NOT NULL,
     snapshot_json TEXT NOT NULL
+  )`)
+  // 法术书（穿越者侧自主学习状态：已掌握/待解锁/女神赐予的进度账本）。
+  // 与 progress 表隔离——progress 是 mc-progress 的学习停滞账本，spellbook 是
+  // mc-spellbook 的法术技能状态，两者互不覆盖。
+  db.exec(`CREATE TABLE IF NOT EXISTS spellbook (
+    username TEXT PRIMARY KEY,
+    updated_at TEXT NOT NULL,
+    skill_json TEXT NOT NULL
   )`)
   return db
 }
@@ -199,6 +213,24 @@ export function apply(ctx: Context, config: Config = {} as Config) {
           .get(username) as { snapshot_json?: string } | undefined
         if (!row?.snapshot_json) return null
         return JSON.parse(row.snapshot_json)
+      } catch { return null }
+    },
+    saveSpellbook(username, state) {
+      if (!username || !state) return
+      try {
+        db.prepare(
+          `INSERT INTO spellbook (username, updated_at, skill_json) VALUES (?, ?, ?)
+           ON CONFLICT(username) DO UPDATE SET updated_at = excluded.updated_at, skill_json = excluded.skill_json`,
+        ).run(username, new Date().toISOString(), JSON.stringify(state))
+      } catch { /* 写失败静默 */ }
+    },
+    loadSpellbook(username) {
+      if (!username) return null
+      try {
+        const row = db.prepare('SELECT skill_json FROM spellbook WHERE username = ?')
+          .get(username) as { skill_json?: string } | undefined
+        if (!row?.skill_json) return null
+        return JSON.parse(row.skill_json) as Record<string, unknown>
       } catch { return null }
     },
   }

@@ -1491,6 +1491,22 @@ async function spawnTransmigrator(
           order: 102,
           text: () => guidanceCache,
         })
+        // 法术书知识（自主学习闭环，2026-08-22）：渐进披露——常驻只注入「指引+天赋」，
+        // 不再整块塞标准词。技能清单用 mc_skills 查，某技能咏唱词用 mc_spell_detail 查，
+        // 词表/清单全部按需取出，避免上下文一直被整本法术书背着。
+        agentCtx.systemPrompt.context({
+          name: 'mc:spellbook',
+          order: 103,
+          text: () => {
+            try {
+              const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+                | { knowledge?: (u: string, lv?: number) => string } | undefined
+              const b = body()
+              const lv = (b as unknown as { experience?: { level?: number } } | null)?.experience?.level
+              return sb?.knowledge?.(username, typeof lv === 'number' ? lv : undefined) ?? ''
+            } catch { return '' }
+          },
+        })
   }
   let handle: AgentHandle | null = null
   let resumed = false
@@ -1649,6 +1665,14 @@ async function spawnTransmigrator(
           | undefined
         const lv = (b as unknown as { experience?: { level?: number } } | null)?.experience?.level
         if (typeof lv === 'number') prog?.sampleLevel?.(username, lv)
+        // 同步法术书层级（自主学习：升层自动解锁对应层级法术）。
+        if (typeof lv === 'number') {
+          try {
+            const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+              | { syncLevel?: (u: string, lv: number) => void } | undefined
+            sb?.syncLevel?.(username, lv)
+          } catch { /* 法术书不可用不影响状态写手 */ }
+        }
         progressSummary = prog?.summary?.(username) ?? ''
         progressAlert = prog?.diagnose?.(username) ?? null
       } catch { /* 进度采样失败不影响状态写手 */ }
@@ -1832,6 +1856,72 @@ async function spawnTransmigrator(
     }))
     log('mc_set_goal 工具已注册')
   } catch (err) { log(`mc_set_goal 注册跳过：${err instanceof Error ? err.message : err}`) }
+
+  // 能力复盘（自主学习闭环，2026-08-22）：把「我掌握的能力」交给穿越者自省——
+  // 结合法术书（种子词表+学习进度）、魔力层级，生成一份「我已掌握/可咏唱/尚不能」卡片。
+  try {
+    const spellReflect = (): string => {
+      try {
+        const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+          | { reflect?: (u: string) => string } | undefined
+        return sb?.reflect?.(username) ?? '（能力复盘暂不可用）'
+      } catch { return '（能力复盘暂不可用）' }
+    }
+    ctx.tools.register(defineTool({
+      name: 'mc_reflect_skills',
+      description:
+        '复盘并总结你当前掌握/可咏唱/尚不能用的法术能力。当你觉得"我到底会什么""要不要试试新法术""该升级哪层"时调用——结合你的魔力层级、学习进度与女神赐予，给你一份"我的能力自省卡"。每次关键成长（升层级、新掌握、获女神赐予）后值得调一次，帮自己建立稳定"我知道自己会什么"的认知，避免瞎咏造词。',
+      parameters: {},
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: String(value) }] },
+      timeoutMs: 15_000,
+      execute: async () => spellReflect(),
+    }))
+    log('mc_reflect_skills 工具已注册')
+  } catch (err) { log(`mc_reflect_skills 注册跳过：${err instanceof Error ? err.message : err}`) }
+
+  // 渐进式披露·①「我有什么技能」：只列名称+等级+可用状态，不含咏唱词（词另查）。
+  try {
+    const spellList = (): string => {
+      try {
+        const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+          | { listSkills?: (u: string) => string } | undefined
+        return sb?.listSkills?.(username) ?? '（法术书暂不可用）'
+      } catch { return '（法术书暂不可用）' }
+    }
+    ctx.tools.register(defineTool({
+      name: 'mc_skills',
+      description:
+        '翻开你的魔法书，看「你现在能用什么技能」。返回一份技能列表：每个法术的名称、可用状态（已掌握/女神赐予/可咏唱）与等级门槛——不含咏唱词。想用某个技能、或想确认自己会什么时先调这个；看到感兴趣的可再调 mc_spell_detail <技能名> 查它的标准咏唱词。',
+      parameters: {},
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: String(value) }] },
+      timeoutMs: 15_000,
+      execute: async () => spellList(),
+    }))
+    log('mc_skills 工具已注册')
+  } catch (err) { log(`mc_skills 注册跳过：${err instanceof Error ? err.message : err}`) }
+
+  // 渐进式披露·②「选中某技能后的咏唱方法」：单技能详情，含标准咏唱词（只此一个）。
+  try {
+    const spellDetail = (spell: string): string => {
+      try {
+        const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+          | { spellDetail?: (u: string, q: string) => string } | undefined
+        return sb?.spellDetail?.(username, spell) ?? '（法术书暂不可用）'
+      } catch { return '（法术书暂不可用）' }
+    }
+    ctx.tools.register(defineTool({
+      name: 'mc_spell_detail',
+      description:
+        '查「某一个法术」的施法详情，返回它的标准咏唱词、等级门槛与当前可用状态。当你已经用 mc_skills 选中一个想用的技能后调用，把技能名填进来——咏唱词必须照这里查到的标准词一字不差。',
+      parameters: {
+        spell: { type: 'string', required: true, description: '要查的法术名（与 mc_skills 列表里的名称一致），如「圣愈术」「照明术」「归乡」' },
+      },
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: String(value) }] },
+      timeoutMs: 15_000,
+      execute: async (args: Record<string, unknown>) => spellDetail(String(args.spell ?? '')),
+    }))
+    log('mc_spell_detail 工具已注册')
+  } catch (err) { log(`mc_spell_detail 注册跳过：${err instanceof Error ? err.message : err}`) }
 
   // 前世记忆碎片（一次性注入，非循环）：fresh create（含会话轮换）时把 episodic
   // 尾部条目 steer 一次，让穿越者记得「上一世」在做什么；resume 的老会话自带

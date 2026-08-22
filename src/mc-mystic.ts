@@ -317,11 +317,28 @@ export function apply(ctx: Context, config: Config) {
       if (innate && store.get(bot.username) !== innate) {
         store.set(bot.username, innate)
         log(`innate memory captured from public chat: ${bot.username} -> ${innate}`)
+        // 出生天赋 = 女神钦定的法术 → 法术书登记为已掌握（自主学习闭环）。
+        try {
+          const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+            | { grant?: (u: string, n: string) => void } | undefined
+          sb?.grant?.(bot.username, innate)
+        } catch { /* 法术书不可用不影响 */ }
       }
       const lv = parseLevelUp(message)
       if (lv && store.getLevel(bot.username) !== lv) {
         store.setLevel(bot.username, lv)
         log(`level memory captured: ${bot.username} -> Lv.${lv}`)
+      }
+      // 女神明确赐予某法术（如「已赐予你「X」」/「传授你「Y」术」）→ 法术书登记。
+      const grantText = message.match(/赐予你?[「『"']([^」』"']+)[」』"']|传授你?[「『"']([^」』"']+)[」』"']|赏你?[「『"']([^」』"']+)[」』"']/)
+      if (grantText) {
+        const name = grantText[1] || grantText[2] || grantText[3]
+        if (name && !/法术|魔法|技艺|能力|恩典/.test(name)) {
+          const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+            | { grant?: (u: string, n: string) => void } | undefined
+          sb?.grant?.(bot.username, name)
+          log(`goddess grant captured -> ${bot.username} + ${name}`)
+        }
       }
     }
     bot.on('chat', (username: string, message: string) => {
@@ -394,15 +411,10 @@ export function apply(ctx: Context, config: Config) {
   ctx.tools.register(defineTool({
     name: 'mc_chant',
     description:
-      '咏唱魔法咒语来施法。用中二的口吻喊出咒语，必须包含法术关键词。每个法术有等级门槛（标注在括号内，如"2级"）——等级不足会被女神拒绝（你的出生天赋除外，它无视等级）。施法成功可获得经验，攒够自动提升魔力层级、解锁更高级法术。当前已知的法术清单：\n' +
-      '【1级】照明(火把)、跃升(大跳)、风爆(气浪，把自己炸上天)、羽落(缓降)、夜视(猫眼)、化水(清泉)\n' +
-      '【2级】归乡(回家：睡过床则回床边；尚未设重生点则回到你降临的初始城镇广场)、传送(可带距离方向，如"传送十格东")、造物(变出物资，如"造物赐我熔炉/木头/铁镐")、饱食(充饥)、迅捷(加速)、水息(鱼鳃/水下呼吸)、覆土(填壑，脚下垫土)\n' +
-      '【3级】圣愈(治愈/回血)、再生(愈合)、急迫(巧手/挖快)、避火(火抗)、唤雨(降雨)、大地塑形(挖地)\n' +
-      '【4级】铁肤(护体)、神力(力量)、驱云(放晴)\n' +
-      '【5级】隐身(无形)、雷暴(风暴)、唤马(战马，耗饱食度)\n' +
-      '【6级】退魔(驱邪，清剿周围邪祟，耗生命)、铁卫(守护者，耗生命)\n' +
-      '【7级】破晓(天亮)、陨石(天雷，耗生命)。\n' +
-      '施法消耗魔力，魔力随时间自动恢复；魔力不足会施法失败。咒语以私语直达天神——只有你和女神听见，旁人只见施法异象（粒子/音效/大字）；施法结果由信使私聊告知你（成败只有你知道，留意私语）。',
+      '咏唱魔法咒语来施法。用中二的口吻喊出咒语，必须包含标准法术关键词。\n' +
+      '【用法（渐进披露）】①先用 mc_skills 看你现在能用什么技能；②选中一个技能后，用 mc_spell_detail <技能名> 查它的「标准咏唱词」；③照查到的标准词咏唱。\n' +
+      '【铁律】咏唱词必须照 mc_spell_detail 里查到的标准词一字不差；造词（把「圣愈」编成「回春」之类）女神听不懂、会被拒。每个法术有等级门槛（见 mc_spell_detail 返回的 Lv.X）——等级不足会被女神拒绝（你的出生天赋除外，它无视等级）。一句只施一个法术、只带一个方向（如"传送十格东"），别组合。\n' +
+      '施法成功可获得经验，攒够自动提升魔力层级、解锁更高级法术；施法消耗魔力，魔力不足会施法失败。咒语以私语直达天神——只有你和女神听见，旁人只见施法异象（粒子/音效/大字）；施法结果由信使私聊告知你（成败只有你知道，留意私语）。',
     parameters: {
       chant: {
         type: 'string',
@@ -418,6 +430,18 @@ export function apply(ctx: Context, config: Config) {
       const bot = getBot()
       if (!bot.entity) return '你尚未在此界立足，无法咏唱。'
       const me = bot.username
+      // ── 自主学习·发唱前防呆（2026-08-22）：照法术书标准词校核，造词→改写/拦截 ──
+      // mc-spellbook 是服务定位器读数口；未就绪则跳过（不阻断咏唱本身）。
+      let chantNote = ''
+      let chantText = chant
+      try {
+        const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+          | { correctChant?: (u: string, c: string) => { chant?: string; block?: boolean; note?: string } | null }
+          | undefined
+        const corr = sb?.correctChant?.(me, chantText)
+        if (corr?.block) return `（魔力未消耗）${corr.note ?? ''}`
+        if (corr?.chant) { chantText = corr.chant; chantNote = corr.note ?? '' }
+      } catch { /* 法术书不可用不影响施法 */ }
       // 咒语以私语直达天神（2026-08-18 方案A：公屏不再施法——旁人见异象而听不见咒文）；
       // bot.whisper 走 /msg，女神侧 whisper 监听分流 → 快路径施法。
       const stashed = lateCourier.splice(0) // 先取出迟到回执，避免与本次结果混淆
@@ -425,7 +449,7 @@ export function apply(ctx: Context, config: Config) {
       let reply = ''
       try {
         try {
-          bot.whisper(config.godName, chant)
+          bot.whisper(config.godName, chantText)
         } catch {
           return '你的声音没能传出（连接异常）。'
         }
@@ -446,8 +470,22 @@ export function apply(ctx: Context, config: Config) {
       const chantFailed = !reply || /静默|拒绝|不足|失败|无效|无法|不认识|听不懂|没听|不允许|不可|没听见/i.test(reply)
       try {
         const prog = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcProgress') as { recordChant?: (u: string, ok: boolean, c: string) => void } | undefined
-        prog?.recordChant?.(me, !chantFailed, chant)
+        prog?.recordChant?.(me, !chantFailed, chantText)
       } catch { /* 账本不可用不影响施法 */ }
+      // ── 自主学习·反馈学习（2026-08-22）：成功→seal 掌握，失败→记录原因 ──
+      try {
+        const sb = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcSpellbook') as
+          | { noteChantResult?: (u: string, ok: boolean, c: string, r: string) => void }
+          | undefined
+        sb?.noteChantResult?.(me, !chantFailed, chantText, reply ?? '')
+      } catch { /* 法术书不可用不影响施法 */ }
+      if (chantNote) {
+        // 已改写标准词：先把防呆提示转达，再报信使回执。
+        const body = !reply
+          ? `（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）`
+          : reply
+        return chantNote + '\n' + prefix + body
+      }
       if (!reply) return prefix + '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
       return prefix + reply
     },

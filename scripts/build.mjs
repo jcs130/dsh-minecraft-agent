@@ -57,6 +57,7 @@ const PLUGIN_ENTRIES = [
   'mc-transmigrator',
   'mc-identity',
   'mc-progress',
+  'mc-spellbook',
   'mc-mystic',
   'mc-wiki',
   'mc-memos',

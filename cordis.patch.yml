@@ -72,6 +72,16 @@
         stagnationHours: 24
         alertCooldownMs: 21600000
 
+    # 自主学习法术书（2026-08-22）：种子词表（大典 name/words/level，无 id/命令）
+    # + 反馈学习（成功封印/失败记录/升层解锁/女神赐予登记）+ 发唱防呆 + 能力复盘。
+    # 注入 mcStore（persist），mc-mystic 运行时经 ctx.get('mcSpellbook') 读它做发唱前
+    # 修正与咏唱后学习；mc-session 注入「可咏唱」知识块并同步层级。
+    - id: mc-spellbook
+      name: 'dsh-minecraft-agent/lib/plugins/mc-spellbook.mjs'
+      config:
+        dataDir: './data'
+        maxPromptSpells: 40
+
     - id: mc-mystic
       name: 'dsh-minecraft-agent/lib/plugins/mc-mystic.mjs'
 
