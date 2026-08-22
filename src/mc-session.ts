@@ -1227,38 +1227,38 @@ async function spawnTransmigrator(
           })
         if (ents.length) parts.push(`附近: ${ents.join(', ')}`)
       } catch { /* 实体雷达失败不阻塞 */ }
-      // 周围同伴感知（环境感知·社交）：Agent 要清楚「身边有谁、谁在线但不在身边」，
-      // 才能决定该私语给谁、公屏会不会打扰远处的人、身边没人时说话没人回应。
-      // 纯 bot.players 只读查询（服务器 tab-list 全量下发），零工具调用零 LLM 往返。
+      // 周围同伴感知（环境感知·社交）：Agent 知道「身边有没有人、远处有没有人在线」，
+      // 但**不具名**——名字要通过实际社交才知道（对方说话、mc_look 看到、自我介绍），
+      // 未见过就报名字会让 Agent「认识」它没见过的人。只报数量+距离，纯 bot.players
+      // 只读查询（服务器 tab-list 全量下发），零工具调用零 LLM 往返。
       try {
-        const nearby: { label: string; d: number }[] = []
-        const faraway: { label: string; d: number }[] = []
-        const unknownFar: string[] = []
+        const nearby: number[] = []
+        const faraway: number[] = []
+        let unknownFarCount = 0
         for (const [uname, player] of Object.entries(
           (bot as unknown as { players?: Record<string, { username?: string; entity?: unknown }> }).players ?? {},
         )) {
           if (!player || uname === bot!.username) continue
-          const label = player.username ?? uname
           const ent = player.entity as { position?: { distanceTo: (v: unknown) => number } } | null | undefined
           if (ent?.position) {
             const d = p.distanceTo(ent.position)
-            if (d <= 16) nearby.push({ label, d })
-            else faraway.push({ label, d })
+            if (d <= 16) nearby.push(d)
+            else faraway.push(d)
           } else {
-            unknownFar.push(label)
+            unknownFarCount++
           }
         }
         const social: string[] = []
         if (nearby.length) {
-          social.push(`身边（16格内）：${nearby.sort((a, b) => a.d - b.d).map((x) => `${x.label} ${Math.round(x.d)}格`).join(', ')}`)
+          social.push(`身边（16格内）：有 ${nearby.length} 位旅人（最近 ${Math.round(Math.min(...nearby))} 格）`)
         } else {
           social.push('身边（16格内）：没有其他旅人，只有你')
         }
         if (faraway.length) {
-          social.push(`远处（在线不在身边）：${faraway.sort((a, b) => a.d - b.d).map((x) => `${x.label} ${Math.round(x.d)}格`).join(', ')}`)
+          social.push(`远处（在线不在身边）：有 ${faraway.length} 位旅人（最近 ${Math.round(Math.min(...faraway))} 格）`)
         }
-        if (unknownFar.length) {
-          social.push(`更远处（在线·方位未明）：${unknownFar.join(', ')}`)
+        if (unknownFarCount) {
+          social.push(`更远处：还有 ${unknownFarCount} 位旅人在线（方位未明）`)
         }
         parts.push(`周围同伴：\n${social.join('\n')}`)
       } catch { /* 同伴感知失败不阻塞 */ }
