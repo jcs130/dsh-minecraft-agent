@@ -28,7 +28,7 @@ export const Config: Schema<Config> = Schema.object({
   dataDir: Schema.string().default('./data'),
 })
 
-/** 相对方位（8 方位）：mc_look 雷达的基本信息——方向+距离，玩家名仍去名化。 */
+/** 相对方位（8 方位）：mc_scan 雷达的基本信息——方向+距离，玩家名仍去名化。 */
 const relDir = (dx: number, dz: number): string => {
   const ax = Math.abs(dx)
   const az = Math.abs(dz)
@@ -1154,7 +1154,7 @@ export function apply(ctx: Context, config: Config = {}) {
       let p = bot.entity!.position
       let dist = p.distanceTo(target)
       if (!reached) {
-        return `failed to reach (${x}, ${y}, ${z}); stopped at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}). 寻路卡死/超时——若被树叶或方块围住，别再反复 goto 同一处：先用 mc_look 找开阔方向，再 mc_tunnel 沿该方向挖平直通道脱困，或 mc_place 自行垫路`
+        return `failed to reach (${x}, ${y}, ${z}); stopped at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}). 寻路卡死/超时——若被树叶或方块围住，别再反复 goto 同一处：先用 mc_scan 找开阔方向，再 mc_tunnel 沿该方向挖平直通道脱困，或 mc_place 自行垫路`
       }
       if (dist > 1.5) {
         const precise = await gotoNear(bot, target, 1, 10_000)
@@ -1173,7 +1173,7 @@ export function apply(ctx: Context, config: Config = {}) {
     name: 'mc_tunnel',
     description:
       '沿指定方向挖一条水平的 2 格高通道并逐格前进（默认 8 格）——脱困专用：纯平地行走、完全不依赖跳跃，坑底/地下/被方块围住/寻路反复失败时，一次调用就取得确定进展。' +
-      '先用 mc_look 看清四周（避开水/岩浆、挑地形下坡的一侧），再选方向开挖；挖到露天或走不通会如实报告。也适合普通掘进（采石/挖走廊）。',
+      '先用 mc_scan 看清四周（避开水/岩浆、挑地形下坡的一侧），再选方向开挖；挖到露天或走不通会如实报告。也适合普通掘进（采石/挖走廊）。',
     parameters: {
       direction: { type: 'string', required: true, description: 'east(东+x) / west(西-x) / south(南+z) / north(北-z)' },
       length: { type: 'number', description: '挖几格，默认 8，上限 24' },
@@ -1207,7 +1207,7 @@ export function apply(ctx: Context, config: Config = {}) {
           openSky = true
         }
       } catch { /* best effort */ }
-      return `已沿 ${d} 挖进 ${dug} 格（y=${startY} 层），现位于 (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})${openSky ? '——头顶已露天，脱困在望：继续向前或垫方块上来' : '。若仍未脱困，mc_look 观察后换方向继续 mc_tunnel，或沿通道走到底'}` + `；挖到的掉落物已随手捡起`
+      return `已沿 ${d} 挖进 ${dug} 格（y=${startY} 层），现位于 (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})${openSky ? '——头顶已露天，脱困在望：继续向前或垫方块上来' : '。若仍未脱困，mc_scan 观察后换方向继续 mc_tunnel，或沿通道走到底'}` + `；挖到的掉落物已随手捡起`
     }),
   }))
 
@@ -1278,7 +1278,7 @@ export function apply(ctx: Context, config: Config = {}) {
   ctx.tools.register(defineTool({
     name: 'mc_dig',
     description:
-      'Dig (break) the block at the EXACT given coordinates, then pick up nearby drops. The escape primitive when stuck: dig the block above your head or beside you (use mc_look first to find the blocking coordinates). Warning: digging straight down below your own feet can drop you into caves or lava.',
+      'Dig (break) the block at the EXACT given coordinates, then pick up nearby drops. The escape primitive when stuck: dig the block above your head or beside you (use mc_scan first to find the blocking coordinates). Warning: digging straight down below your own feet can drop you into caves or lava.',
     parameters: {
       x: { type: 'number', required: true, description: 'target x coordinate' },
       y: { type: 'number', required: true, description: 'target y coordinate' },
@@ -1668,11 +1668,11 @@ export function apply(ctx: Context, config: Config = {}) {
     }),
   }))
 
-  // ── Look (A)：文字版环境雷达，重点暴露「头顶出口」等自救关键信息 ────
+  // ── Scan (A)：文字版环境雷达，重点暴露「头顶出口」等自救关键信息 ────
   ctx.tools.register(defineTool({
-    name: 'mc_look',
+    name: 'mc_scan',
     description:
-      '环顾四周的文字雷达（不含画面）：面向什么、眼前方块、头顶有没有露天出口（卡坑自救关键）、四面环境、脚下地质、附近水/岩浆等危险、附近实体。极快，零消耗。这只是粗略方向线索——想真正看清眼前挡路的是什么，用 mc_see 截真实画面。迷路、卡住、进入陌生地形时先用它快速定位。',
+      '环顾四周的文字扫描雷达（纯文字、不产生画面）：面向什么、眼前方块、头顶有没有露天出口（卡坑自救关键）、四面环境、脚下地质、附近水/岩浆等危险、附近实体。极快，零画面成本。这只是粗略方向线索——想真正看清眼前挡路的是树是山还是路，用 mc_see 睁眼截真实画面（会附实体标注）。迷路、卡住、进入陌生地形时先用它快速定位。',
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     execute: guard(async (bot) => {
@@ -1787,7 +1787,7 @@ export function apply(ctx: Context, config: Config = {}) {
   ctx.tools.register(defineTool({
     name: 'mc_see',
     description:
-      '睁开眼睛：截取你第一人称视角的真实游戏画面（800x512），画面会立即随工具结果返回、被你亲眼看见。默认只拍当前朝向一张；想环顾四周查威胁/找路时传 look=around（视觉模型单次最多看 2 张图，环顾只回传前、右两向）。耗时约 1-4 秒。',
+      '睁开眼睛：截取你第一人称视角的真实游戏画面（800x512），画面会立即随工具结果返回、被你亲眼看见。画面自动叠加实体标注框——黄框=玩家、红框=敌对生物、绿框=友善生物/NPC、橙框=掉落物，框上标签写清类型与距离（如「zombie 5格」），底部有汇总条，一眼看懂「谁在哪、多远」。默认只拍当前朝向一张；想环顾四周查威胁/找路时传 look=around（视觉模型单次最多看 2 张图，环顾只回传前、右两向）。耗时约 1-4 秒。',
     parameters: {
       look: { type: 'string', description: 'front=只拍当前朝向（默认）；around=环顾四周（回传前、右两向）' },
     },
