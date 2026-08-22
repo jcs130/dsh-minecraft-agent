@@ -87,3 +87,4 @@ smoke-viewer.cjs
 deepseek-harness/  
 .commitmsg.tmp  
 mc-server-neoforge/
+.commitmsg
