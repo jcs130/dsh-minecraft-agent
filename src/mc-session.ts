@@ -30,6 +30,7 @@ import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 // 穿越者档案库（data/transmigrators/*.persona.md）在此段覆盖部署级缺省。
 import { PERSONA_SECTION, PERSONA_ORDER } from '@deepseek-ai/dsh-system-prompt'
 import type { Bot } from 'mineflayer'
+import Vec3 from 'vec3'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, watchFile, unwatchFile } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -205,7 +206,7 @@ const DEFAULT_PERSONA = [
 const DEFAULT_RULES = [
   '这是一个方块生存世界。白天安全，夜晚有怪物，受伤会掉血，饥饿会掉饱食度。',
   '你有眼、有手、有嘴、有一条命。mc_see 是你的眼睛——截取第一人称真实画面，看清眼前到底是什么；工具（mc_ 开头）是你的手；聊天框是你的嘴——说话、咏唱、祈愿、提问、与 NPC 交谈都算行动，这个世界听得懂人话（「文字即接口」）。全部用法写在入服欢迎信息和 /help 手册里，自行查阅、自行探索。',
-  '用眼睛看世界：文字雷达（mc_scan、mc_status 的方向描述）只是粗略线索，真实画面（mc_see）才能让你看清眼前挡路的是树、是山、是水还是路。探索新地形、赶路找路、面对陌生环境、要做重要决定之前，先睁眼看看再行动，别只靠文字猜。',
+  '用眼睛看世界：文字雷达（mc_scan、mc_status 的方向描述）只是粗略线索；想看「四周地形格局」用 mc_map（俯视 ASCII 图，便宜，看哪边是树林/水塘/石山/路口），想看清眼前具体挡路的是树、是山、是水还是路用 mc_see（真实画面）。探索新地形、赶路找路、面对陌生环境、要做重要决定之前，先看地图看清格局再行动，别只靠文字猜。',
   '没有标准答案：怎么活得更好由你决定，鼓励你尝试任何方式——包括没人教过你的。',
   '一次专注做一件事，做完看世界的反馈，再决定下一步。',
   '你在成长：白天多经历、多试错，夜里睡着后你会自发复盘今天的经历，把教训沉淀成生存智慧。经历越丰富，你越长本事。',
@@ -1256,6 +1257,34 @@ async function spawnTransmigrator(
         const under = bot!.blockAt(p.offset(0, -1, 0))
         if (under) parts.push(`脚下: ${under.name}`)
       } catch { /* blockAt 失败跳过 */ }
+      // 附近迷你地形（5×5，北↑，你在中心 ●）：拍一圈即时空间感，零工具调用零 LLM。
+      // 符号同 mc_map（.=可走 #=石壁 T=树 ≈=水 M=岩浆 ·=悬空），只进 prompt 一行。
+      // 想看更大范围/更完整俯视图，用 mc_map 工具调大半径。
+      try {
+        const bx = Math.round(p.x)
+        const bz = Math.round(p.z)
+        const fy = Math.floor(p.y)
+        const mini = (x: number, z: number): string => {
+          const above = bot!.blockAt(new Vec3(x, fy + 1, z))
+          const g = bot!.blockAt(new Vec3(x, fy, z))
+          const below = bot!.blockAt(new Vec3(x, fy - 1, z))
+          const na = above?.name ?? ''
+          const ng = g?.name ?? ''
+          const nb = below?.name ?? ''
+          if (/water|lava/.test(na + ng)) return /lava/.test(na + ng) ? 'M' : '≈'
+          if (above && above.boundingBox !== 'empty') return /log|leaves|mangrove|bamboo/.test(na) ? 'T' : '#'
+          if (g && g.boundingBox !== 'empty') return /log|leaves|mangrove|bamboo/.test(ng) ? 'T' : '.'
+          if (below && below.boundingBox !== 'empty') return /water|lava/.test(nb) ? (/lava/.test(nb) ? 'M' : '≈') : '.'
+          return '·'
+        }
+        let mapRow = ''
+        for (let dz = -2; dz <= 2; dz++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            mapRow += dx === 0 && dz === 0 ? '●' : mini(bx + dx, bz + dz)
+          }
+        }
+        parts.push(`周围地形(北↑,5×5,你●): ${mapRow}`)
+      } catch { /* 迷你地形失败不阻塞 */ }
       const inv = bot!.inventory.items()
       if (inv.length) parts.push(`背包: ${inv.map((i) => `${i.name} x${i.count}`).join(', ')}`)
       const isNight = bot!.time?.timeOfDay != null && bot!.time.timeOfDay > 13000 && bot!.time.timeOfDay < 23000

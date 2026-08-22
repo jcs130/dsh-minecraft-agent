@@ -1790,6 +1790,82 @@ export function apply(ctx: Context, config: Config = {}) {
     }),
   }))
 
+  // ── Map (C)：俯视地形图 —— mineflayer 自带方块知识（blockAt / findBlock）────
+  // 用户 2026-08-22 需求：把「周围地形」真正喂给 LLM，而非只有 4 方位文字线索。
+  // 纯 mineflayer 只读查询、零画面成本：扫一个以 bot 为中心的正方形网格，把每格
+  // 「想站上去会踩到/撞到啥」归类成符号，画一张北在上方的 ASCII 俯视图。比 mc_see
+  // 便宜（不用相机/视觉模型），比 mc_scan 空间感强（能看出路口/山谷/水塘/树林格局）。
+  ctx.tools.register(defineTool({
+    name: 'mc_map',
+    description:
+      '俯视地形图（纯文字 ASCII，北在上方）：扫描你周围一格正方形区域的地表，画成符号地图并标注附近水/岩浆/悬崖。让你看清「四面八方是个什么地形格局」——哪边是树林、哪边是水塘、哪边是石山/路口、哪边能走。比 mc_see 便宜（不拍画面）、比 mc_scan 更有空间感（看懂整体走向）。探索新地形、找方向、找水源/木材、判断能否通行时用它；需要眼前具体方块细节再用 mc_see。',
+    parameters: {
+      radius: { type: 'number', description: '扫描半径（格），默认 6，上限 12' },
+    },
+    output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+    execute: guard(async (bot, args) => {
+      const R = Math.max(2, Math.min(12, Math.round(Number(args.radius) || 6)))
+      const pos = bot.entity!.position.floored()
+      const bx = pos.x
+      const bz = pos.z
+      const feetY = Math.floor(bot.entity!.position.y)
+
+      const nameOf = (b: Block | null): string => (b ? b.name : '')
+      // 某格「地表分类」：以 bot 脚层为参考平面，判断站上去会踩到/撞到啥
+      const classify = (x: number, z: number): { ch: string; surface: string } => {
+        const above = bot.blockAt(new Vec3(x, feetY + 1, z))
+        const ground = bot.blockAt(new Vec3(x, feetY, z))
+        const below = bot.blockAt(new Vec3(x, feetY - 1, z))
+        const na = nameOf(above)
+        const ng = nameOf(ground)
+        const nb = nameOf(below)
+        if (/water|lava/.test(na + ng)) return { ch: /lava/.test(na + ng) ? 'M' : '≈', surface: '液体' }
+        if (above && above.boundingBox !== 'empty') return /log|leaves|mangrove|bamboo/.test(na) ? { ch: 'T', surface: '树/植被' } : { ch: '#', surface: na || '实心方块' }
+        if (ground && ground.boundingBox !== 'empty') return /log|leaves|mangrove|bamboo/.test(ng) ? { ch: 'T', surface: '树/植被' } : { ch: '.', surface: ng || '地表' }
+        if (below && below.boundingBox !== 'empty') return /water|lava/.test(nb) ? { ch: /lava/.test(nb) ? 'M' : '≈', surface: '液体' } : { ch: '.', surface: nb || '地表' }
+        return { ch: '·', surface: '悬崖/悬空' }
+      }
+
+      const legend: Record<string, string> = {
+        '●': '你', '.': '平地·可走', '#': '石壁/实心', 'T': '树/植被', '≈': '水', 'M': '岩浆', '·': '悬崖/悬空',
+      }
+      const grid: string[] = []
+      for (let dz = -R; dz <= R; dz++) {
+        let row = ''
+        for (let dx = -R; dx <= R; dx++) {
+          if (dx === 0 && dz === 0) { row += '●'; continue }
+          row += classify(bx + dx, bz + dz).ch
+        }
+        grid.push(row)
+      }
+      // 危险液体（复用 findBlock，给绝对坐标）
+      const hazards: string[] = []
+      for (const nm of ['water', 'lava']) {
+        try {
+          const hb = bot.findBlock({ matching: (b: any) => !!b && b.name === nm, maxDistance: R + 4 })
+          if (hb) {
+            const d = Math.round(bot.entity!.position.distanceTo(hb.position))
+            hazards.push(`${nm === 'lava' ? '岩浆' : '水'} ${d}格 (${hb.position.x},${hb.position.y},${hb.position.z})`)
+          }
+        } catch { /* findBlock 失败不阻塞 */ }
+      }
+      const yaw = bot.entity!.yaw
+      const dxf = -Math.sin(yaw)
+      const dzf = -Math.cos(yaw)
+      const facing = Math.abs(dxf) > Math.abs(dzf) ? (dxf > 0 ? '东(+X)' : '西(-X)') : (dzf > 0 ? '南(+Z)' : '北(-Z)')
+      const groundHere = bot.blockAt(pos.offset(0, -1, 0))
+
+      const lines: string[] = []
+      lines.push(`俯视地形图（${2 * R + 1}×${2 * R + 1}，北↑，你在中心●，每格=1 格）`)
+      lines.push('        北↑')
+      for (const row of grid) lines.push(`        ${row}`)
+      lines.push('        南↓')
+      lines.push(`图例：${['●', '.', '#', 'T', '≈', 'M', '·'].map((k) => `${k}=${legend[k]}`).join('  ')}`)
+      lines.push(`脚下=${groundHere?.name ?? '未知'}；朝向=${facing}${hazards.length ? `；近处危险：${hazards.join('；')}` : ''}`)
+      return lines.join('\n')
+    }),
+  }))
+
   // ── See (B)：真实第一人称截图 → 工具结果直接返回 image block ──────────
   // （2026-08-21 迁 dsh 原生视觉）：旧「写槽 + Timer 心跳回喂」的自研桥随
   // mc-loop / mc-session 的 Timer steer 一并删除。现在 mc_see 截图后立即经
