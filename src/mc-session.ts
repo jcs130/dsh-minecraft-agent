@@ -835,6 +835,7 @@ async function spawnTransmigrator(
     if (!entities) return { n: 0, nearest: 0 }
     let n = 0
     let nearest = Number.POSITIVE_INFINITY
+    const eye = { x: pos.x, y: pos.y + 1.62, z: pos.z }
     for (const e of Object.values(entities)) {
       const ent = e as { name?: string; displayName?: string; position?: { x: number; y: number; z: number } }
       const isVillager = ent.name === 'villager' || (ent.displayName ?? '').toLowerCase().includes('villager')
@@ -844,6 +845,7 @@ async function spawnTransmigrator(
       const dz = pos.z - ent.position.z
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
       if (dist > 28) continue
+      if (!hasLineOfSight(bot, eye, { x: ent.position.x, y: ent.position.y + 0.9, z: ent.position.z })) continue
       n++
       if (dist < nearest) nearest = dist
     }
@@ -1304,8 +1306,14 @@ async function spawnTransmigrator(
       try {
         const ents = Object.values((bot as unknown as { entities?: Record<string, unknown> }).entities ?? {})
           .filter((e) => {
-            const ent = e as { name?: string; position?: { distanceTo: (v: unknown) => number } }
-            return !!ent && ent !== bot!.entity && !!ent.name && !!ent.position && p.distanceTo(ent.position) <= 16
+            const ent = e as { name?: string; position?: { x: number; y: number; z: number; distanceTo: (v: unknown) => number } }
+            if (!!ent && ent !== bot!.entity && !!ent.name && !!ent.position && p.distanceTo(ent.position) <= 16) {
+              // 视线遮挡剔除：只报真实看得见的实体（防透视观感）
+              const eye = { x: p.x, y: p.y + 1.62, z: p.z }
+              const c = { x: ent.position.x, y: ent.position.y + 0.9, z: ent.position.z }
+              return hasLineOfSight(bot!, eye, c)
+            }
+            return false
           })
           .sort((a, b) => {
             const ea = a as { position: { distanceTo: (v: unknown) => number } }
@@ -1738,6 +1746,46 @@ async function spawnTransmigrator(
     return '?'
   }
 
+  /** 视线遮挡剔除（2026-08-22）：与 mc-camera 同款 Amanatides-Woo DDA，把雷达
+   *  收敛到「只报真实看得见的实体」，避免 bot.entities 报出墙后实体像透视/ESP。 */
+  function solidAt(bot: Bot, x: number, y: number, z: number): boolean {
+    const b = bot.blockAt(new Vec3(x, y, z))
+    if (!b || b.boundingBox === 'empty') return false
+    // 原版客户端可透视的方块不遮挡视线（玻璃/树叶/水/冰/蛛网）
+    const n = b.name ?? ''
+    if (n.includes('glass') || n.includes('leaves') || n.includes('water') || n.includes('ice') || n.includes('cobweb') || n === 'air') return false
+    return true
+  }
+  function hasLineOfSight(bot: Bot, eye: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }): boolean {
+    const tx = Math.floor(target.x), ty = Math.floor(target.y), tz = Math.floor(target.z)
+    let x = Math.floor(eye.x), y = Math.floor(eye.y), z = Math.floor(eye.z)
+    if (x === tx && y === ty && z === tz) return true
+    const dx = target.x - eye.x, dy = target.y - eye.y, dz = target.z - eye.z
+    const stepX = dx > 0 ? 1 : -1, stepY = dy > 0 ? 1 : -1, stepZ = dz > 0 ? 1 : -1
+    const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity
+    const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity
+    const tDeltaZ = dz !== 0 ? Math.abs(1 / dz) : Infinity
+    let tMaxX = dx !== 0 ? (dx > 0 ? (x + 1 - eye.x) : (eye.x - x)) * tDeltaX : Infinity
+    let tMaxY = dy !== 0 ? (dy > 0 ? (y + 1 - eye.y) : (eye.y - y)) * tDeltaY : Infinity
+    let tMaxZ = dz !== 0 ? (dz > 0 ? (z + 1 - eye.z) : (eye.z - z)) * tDeltaZ : Infinity
+    let guard = 0
+    while (guard++ < 128) {
+      if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+        if (tMaxX > 1) break
+        x += stepX; tMaxX += tDeltaX
+      } else if (tMaxY < tMaxZ) {
+        if (tMaxY > 1) break
+        y += stepY; tMaxY += tDeltaY
+      } else {
+        if (tMaxZ > 1) break
+        z += stepZ; tMaxZ += tDeltaZ
+      }
+      if (x === tx && y === ty && z === tz) return true
+      if (solidAt(bot, x, y, z)) return false
+    }
+    return true
+  }
+
   function writeMapSnapshot(): void {
     try {
       const bot = body()
@@ -1764,11 +1812,15 @@ async function spawnTransmigrator(
         }
       }
       const ents: Array<{ name: string; dx: number; dz: number }> = []
+      const eye = { x: p.x, y: p.y + 1.62, z: p.z }
       for (const e of Object.values(bot.entities)) {
         if (!e || e === bot.entity || !e.position) continue
         const dx = e.position.x - p.x
         const dz = e.position.z - p.z
         if (dx * dx + dz * dz <= 16 * 16) {
+          // 视线遮挡剔除：只报真实看得见的实体（防透视观感）
+          const center = { x: e.position.x, y: e.position.y + ((e as any).height ?? 1.8) / 2, z: e.position.z }
+          if (!hasLineOfSight(bot, eye, center)) continue
           ents.push({ name: (e as { username?: string }).username ? `${(e as { username?: string }).username}` : (e.name ?? '?'), dx: Math.round(dx), dz: Math.round(dz) })
         }
       }

@@ -499,6 +499,52 @@ im.convert('RGB').save(outp, quality=90)
 `
 
 /**
+ * 视线遮挡剔除（2026-08-22）：minemflayer 的 bot.entities 会暴露墙后实体
+ * 的位置（追踪范围内不管隔墙），真实客户端不会渲染被不透明方块遮挡的实体 ——
+ * 若标注/雷达照单全收会像「透视/ESP」作弊。本函数用 Amanatides-Woo 体素 DDA
+ * 从眼睛到实体中心逐格采样，中途遇到实心方块即判定被遮挡（false）。
+ * 用于把标注/雷达收敛到「只标真正看得见的实体」，与原版客户端观感一致。
+ */
+function solidAt(bot: Bot, x: number, y: number, z: number): boolean {
+  const b = bot.blockAt(new Vec3(x, y, z))
+  if (!b || b.boundingBox === 'empty') return false
+  // 原版客户端可透视的方块不遮挡视线（玻璃/树叶/水/冰/蛛网）——否则森林/水边会误判失明
+  const n = b.name ?? ''
+  if (n.includes('glass') || n.includes('leaves') || n.includes('water') || n.includes('ice') || n.includes('cobweb') || n === 'air') return false
+  return true
+}
+
+function hasLineOfSight(bot: Bot, eye: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }): boolean {
+  const tx = Math.floor(target.x), ty = Math.floor(target.y), tz = Math.floor(target.z)
+  let x = Math.floor(eye.x), y = Math.floor(eye.y), z = Math.floor(eye.z)
+  if (x === tx && y === ty && z === tz) return true
+  const dx = target.x - eye.x, dy = target.y - eye.y, dz = target.z - eye.z
+  const stepX = dx > 0 ? 1 : -1, stepY = dy > 0 ? 1 : -1, stepZ = dz > 0 ? 1 : -1
+  const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity
+  const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity
+  const tDeltaZ = dz !== 0 ? Math.abs(1 / dz) : Infinity
+  let tMaxX = dx !== 0 ? (dx > 0 ? (x + 1 - eye.x) : (eye.x - x)) * tDeltaX : Infinity
+  let tMaxY = dy !== 0 ? (dy > 0 ? (y + 1 - eye.y) : (eye.y - y)) * tDeltaY : Infinity
+  let tMaxZ = dz !== 0 ? (dz > 0 ? (z + 1 - eye.z) : (eye.z - z)) * tDeltaZ : Infinity
+  let guard = 0
+  while (guard++ < 128) {
+    if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+      if (tMaxX > 1) break
+      x += stepX; tMaxX += tDeltaX
+    } else if (tMaxY < tMaxZ) {
+      if (tMaxY > 1) break
+      y += stepY; tMaxY += tDeltaY
+    } else {
+      if (tMaxZ > 1) break
+      z += stepZ; tMaxZ += tDeltaZ
+    }
+    if (x === tx && y === ty && z === tz) return true
+    if (solidAt(bot, x, y, z)) return false
+  }
+  return true
+}
+
+/**
  * 同步标注一张第一人称截图：投影附近实体 → PIL 画框+标签+HUD。
  * 画面内没有可标注实体时原样返回（省一次 python 调用）。
  */
@@ -509,10 +555,13 @@ function annotateShotSync(jpeg: Buffer, bot: Bot, yaw: number, pitch: number): B
   const myPos = bot.entity.position
   const anns: Array<{ x: number; y: number; w: number; h: number; label: string; color: [number, number, number] }> = []
   const dirs: string[] = []
-  for (const [, e] of bot.entities) {
+  for (const e of Object.values(bot.entities)) {
     if (!e || !e.position) continue
     const dist = myPos.distanceTo(e.position)
     if (dist > ANNOTATE_RANGE) continue
+    // 视线遮挡剔除：被实心方块挡住、真实客户端看不到的实体不标注（防透视观感）
+    const center = { x: e.position.x, y: e.position.y + (e.height ?? 1.8) / 2, z: e.position.z }
+    if (!hasLineOfSight(bot, eye, center)) continue
     const kind = kindInfo(e)
     const halfW = (e.width ?? 0.5) / 2
     const halfH = (e.height ?? 1.8) / 2

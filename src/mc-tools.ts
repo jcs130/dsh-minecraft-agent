@@ -40,6 +40,46 @@ const relDir = (dx: number, dz: number): string => {
   return ew + ns
 }
 
+/** 视线遮挡剔除（2026-08-22）：与 mc-camera / mc-session 同款 Amanatides-Woo DDA，
+ *  把 mc_scan 雷达收敛到「只报真实看得见的实体」，避免漏墙后实体像透视/ESP。 */
+function solidAt(bot: Bot, x: number, y: number, z: number): boolean {
+  const b = bot.blockAt(new Vec3(x, y, z))
+  if (!b || b.boundingBox === 'empty') return false
+  // 原版客户端可透视的方块不遮挡视线（玻璃/树叶/水/冰/蛛网）
+  const n = b.name ?? ''
+  if (n.includes('glass') || n.includes('leaves') || n.includes('water') || n.includes('ice') || n.includes('cobweb') || n === 'air') return false
+  return true
+}
+function hasLineOfSight(bot: Bot, eye: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }): boolean {
+  const tx = Math.floor(target.x), ty = Math.floor(target.y), tz = Math.floor(target.z)
+  let x = Math.floor(eye.x), y = Math.floor(eye.y), z = Math.floor(eye.z)
+  if (x === tx && y === ty && z === tz) return true
+  const dx = target.x - eye.x, dy = target.y - eye.y, dz = target.z - eye.z
+  const stepX = dx > 0 ? 1 : -1, stepY = dy > 0 ? 1 : -1, stepZ = dz > 0 ? 1 : -1
+  const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity
+  const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity
+  const tDeltaZ = dz !== 0 ? Math.abs(1 / dz) : Infinity
+  let tMaxX = dx !== 0 ? (dx > 0 ? (x + 1 - eye.x) : (eye.x - x)) * tDeltaX : Infinity
+  let tMaxY = dy !== 0 ? (dy > 0 ? (y + 1 - eye.y) : (eye.y - y)) * tDeltaY : Infinity
+  let tMaxZ = dz !== 0 ? (dz > 0 ? (z + 1 - eye.z) : (eye.z - z)) * tDeltaZ : Infinity
+  let guard = 0
+  while (guard++ < 128) {
+    if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+      if (tMaxX > 1) break
+      x += stepX; tMaxX += tDeltaX
+    } else if (tMaxY < tMaxZ) {
+      if (tMaxY > 1) break
+      y += stepY; tMaxY += tDeltaY
+    } else {
+      if (tMaxZ > 1) break
+      z += stepZ; tMaxZ += tDeltaZ
+    }
+    if (x === tx && y === ty && z === tz) return true
+    if (solidAt(bot, x, y, z)) return false
+  }
+  return true
+}
+
 // 进程级插件 ctx（apply 时捕获）。official one-bot-per-process 形态下
 // root 的 mcbot 单例就是本进程唯一穿越者的身体；多 agent 形态下
 // guard 优先走 exec.agent.ctx.mcbot（per-agent isolate 身体），这里只做 fallback。
@@ -1751,8 +1791,14 @@ export function apply(ctx: Context, config: Config = {}) {
 
       // 实体雷达（16 格）
       const entities = Object.values(bot.entities)
-        .filter((e: any) => e && e !== bot.entity && e.name && e.position
-          && bot.entity!.position.distanceTo(e.position) <= 16)
+        .filter((e: any) => {
+          if (!e || e === bot.entity || !e.name || !e.position
+            || bot.entity!.position.distanceTo(e.position) > 16) return false
+          // 视线遮挡剔除：只报真实看得见的实体（防透视观感）
+          const eye = { x: bot.entity!.position.x, y: bot.entity!.position.y + 1.62, z: bot.entity!.position.z }
+          const c = { x: e.position.x, y: e.position.y + 0.9, z: e.position.z }
+          return hasLineOfSight(bot, eye, c)
+        })
         .sort((a: any, b: any) =>
           bot.entity!.position.distanceTo(a.position) - bot.entity!.position.distanceTo(b.position))
         .slice(0, 6)
