@@ -42,43 +42,25 @@ dsh plugin --profile mc add dsh-minecraft-agent
 
 ## 启动一个穿越者
 
-每个 AI 玩家一个进程。装好依赖后直接跑 CLI：
+安装后，组合包 `cordis.patch.yml` 会把穿越者侧插件注入 dsh 主进程。启动
+`dsh --profile mc "<任务>"` 即得一个 Minecraft 穿越者 agent（默认用户名
+`HarnessBot`）。
 
-```sh
-# 面板 :3200，3D 视角 :3001
-MC_USERNAME=Asuna \
-MC_HOST=<你的服务器IP> \
-MC_PANEL_PORT=3200 \
-MC_VIEWER_PORT=3001 \
-MC_LLM_BASE_URL=http://<模型端点>/v1 \
-MC_LLM_MODEL=qwen3.8 \
-MC_LLM_API_KEY=sk-xxx \
-npx dsh-minecraft-agent
+在 profile 的 `cordis.patch.yml` 里覆盖 `mc-session` 的配置即可定制（名字 /
+人设 / 目标 / 模型 / 心跳间隔 / 服务器地址）：
+
+```yaml
+- insert:
+    - id: mc-session
+      name: 'dsh-minecraft-agent/lib/plugins/mc-session.mjs'
+      config:
+        username: 'Kirito'
+        goal: '砍树、挖矿、活下去，别死。'
 ```
 
-或用 flag 等价形式：`npx dsh-minecraft-agent --username Asuna --host <ip> --panel-port 3200`。
-
-打开 `http://127.0.0.1:3200` 看观察面板（状态 / 3D 游戏视角三模式 / 编年史 / 击杀 / wiki / 缺陷流）。
-
-## 关键环境变量
-
-| 变量 | 默认 | 说明 |
-|---|---|---|
-| `MC_USERNAME` | （必填） | MC 用户名，一个名字一个穿越者 |
-| `MC_HOST` / `MC_PORT` | localhost / 25565 | 服务器地址 |
-| `MC_PANEL_PORT` | 3200 | 观察面板端口 |
-| `MC_VIEWER_PORT` | 3001 | prismarine-viewer 3D 视角端口 |
-| `MC_LLM_BASE_URL` | http://localhost:8890/v1 | OpenAI 兼容端点 |
-| `MC_LLM_MODEL` | qwen3.8 | 模型名 |
-| `MC_REASONING_EFFORT` | none | 思考档位 none/low/medium |
-| `MC_MEMOS_URL` | http://127.0.0.1:8002 | MemOS 长期记忆（可选，挂了自动降级） |
-| `MC_EVOLVE` / `MC_ADAPT` / `MC_DIARY` | 1 | 夜间进化/自适应/日记开关 |
-
-## 为什么不需要 Docker？
-
-Docker 只是作者侧的一种部署形态。插件本体是纯 Node 包：
-mineflayer/prismarine 全是 JS 实现，`better-sqlite3` 由 pnpm 自动拉预编译产物。
-`dsh plugin add` 装完即跑，跟装任何 npm 包一样。
+控制面板（MC 面板）以会话视图 tab 内嵌在 dsh web 里（与「对话」「轨迹」同行），
+显示实时状态 / 3D 游戏视角（第三人称 / 第一人称 / 俯视地图）/ 编年史 / 击杀 /
+wiki / 缺陷流，并可在页面直接改服务器连接地址。
 
 ## 卸载
 

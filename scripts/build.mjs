@@ -1,11 +1,9 @@
 // prepare 脚本（pnpm 在 git 安装后自动运行；本地开发也可直接 node scripts/build.mjs）。
 //
-// 两种产物形态（docs/user/develop/basic/publish.md 官方规则）：
-//  1. lib/bootstrap.mjs —— 独立进程入口：每个 AI 玩家（穿越者）一个进程，
-//     MC_USERNAME=X node lib/bootstrap.mjs 直接拉起，不依赖 dsh 主进程。
-//  2. lib/plugins/<name>.mjs —— dsh 主进程内嵌插件：组合包 cordis.patch.yml
-//     按包名引用（dsh-minecraft-agent/lib/plugins/mc-bot.mjs），dsh --profile
-//     启动时注入 dsh 会话，穿越者工具成为 dsh agent 的身体。
+// 产物形态（docs/user/develop/basic/publish.md 官方规则）：
+//  lib/plugins/<name>.mjs —— dsh 主进程内嵌插件：组合包 cordis.patch.yml
+//    按包名引用（dsh-minecraft-agent/lib/plugins/mc-bot.mjs），dsh --profile
+//    启动时注入 dsh 会话，穿越者工具成为 dsh agent 的身体。
 //
 // 自包含原则（publish 文档要求）：不假设旁边有 monorepo checkout，只依赖本包内文件
 // 与 package.json 声明的 npm 依赖（external）。每个入口独立 bundle（共享模块重复
@@ -52,6 +50,7 @@ const externals = [
 // 穿越者侧插件（世界侧 mc-god/mc-rcon/mc-magic/mc-ritual/mc-social/mc-logwatch/
 // mc-worlddb 属服务器端，不在本组合包——见 docs 双仓边界）。
 const PLUGIN_ENTRIES = [
+  'mc-store',
   'mc-bot',
   'mc-tools',
   'mc-memory',
@@ -60,41 +59,13 @@ const PLUGIN_ENTRIES = [
   'mc-progress',
   'mc-mystic',
   'mc-wiki',
-  'mc-village',
   'mc-memos',
-  'mc-evolve',
-  'mc-adapt',
-  'mc-loop',
   'mc-panel',
   'llm-qwen-local',
   'mc-session',
 ]
 
-// 1) 独立进程入口（生产用法：进程级 mc-loop 自驱形态）
-await build({
-  entryPoints: ['bootstrap-mc.mts'],
-  bundle: true,
-  format: 'esm',
-  platform: 'node',
-  target: 'node22',
-  outfile: 'lib/bootstrap.mjs',
-  external: externals,
-  logLevel: 'info',
-})
-
-// 1b) 独立进程入口（新形态：dsh 原生 session agent）
-await build({
-  entryPoints: ['bootstrap-session.mts'],
-  bundle: true,
-  format: 'esm',
-  platform: 'node',
-  target: 'node22',
-  outfile: 'lib/bootstrap-session.mjs',
-  external: externals,
-  logLevel: 'info',
-})
-
-// 2) dsh 内嵌插件入口（官方 dsh.plugin 安装形态）
+// 1) dsh 内嵌插件入口（官方 dsh.plugin 安装形态）
 for (const name of PLUGIN_ENTRIES) {
   await build({
     entryPoints: [`src/${name}.ts`],
@@ -156,10 +127,10 @@ await build({
   },
 })
 
-console.log('[build] lib/bootstrap.mjs + lib/bootstrap-session.mjs + lib/client.js + %d plugin entries ready', PLUGIN_ENTRIES.length)
+console.log('[build] lib/client.js + %d plugin entries ready', PLUGIN_ENTRIES.length)
 
 // node half（空壳 apply）：`"."` main 指向此文件，给 Loader 一个 host 侧 row，
 // client 半经 exports["./client"]（lib/client.js）走。对齐官方 browser-only 插件
-//（如 dsh-client-ui-brand-official）形态；lib/bootstrap.mjs 仍由 bin/cli.mjs 相对路径引用。
+//（如 dsh-client-ui-brand-official）形态。
 writeFileSync('lib/index.js', '// node half (empty apply) — host-side row for the client-only plugin.\n// The browser half ships through exports["./client"] (lib/client.js).\nfunction apply() {}\nexport { apply };\n')
 console.log('[build] lib/index.js (node half) written')

@@ -667,12 +667,22 @@ export function apply(ctx: Context, config: QwenLocalPluginConfig = {}): void {
   const defaultMaxTokens = config.defaultMaxTokens ?? DEFAULT_MAX_TOKENS
   const debug = config.debug ?? false
 
-  // Bind lazily: the attachment service is only needed when an image block is
-  // actually resolved during a stream, mirroring DeepSeek's lazy credential
-  // seam. Accessing `ctx.attachments` here would force the dependency at apply
-  // time and fail when dsh-attachment is loaded later in the same profile.
-  const readImage = (ref: ImageAttachmentRef, signal?: AbortSignal) =>
-    ctx.attachments.readImage(ref, signal)
+  // Bind lazily via ctx.get(): the `ctx.attachments` property accessor requires
+  // 'attachments' in the inject array (cordis throws "cannot get property ...
+  // without inject" even for lazy access). dsh-llm-deepseek resolves it through
+  // the explicit-lookup seam `ctx.get("attachments")` instead — mirror that.
+  const readImage = (ref: ImageAttachmentRef, signal?: AbortSignal) => {
+    const attachments = ctx.get('attachments') as
+      | { readImage: (r: ImageAttachmentRef, s?: AbortSignal) => Promise<StoredImageAttachment> }
+      | undefined
+    if (!attachments) {
+      throw new LlmError(
+        'Qwen local image conversion requires the durable attachment service.',
+        'UNSUPPORTED_CONTENT',
+      )
+    }
+    return attachments.readImage(ref, signal)
+  }
 
   const adapter = new QwenLocalAdapter({
     baseURL,

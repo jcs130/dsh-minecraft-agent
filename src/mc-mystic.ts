@@ -115,7 +115,7 @@ function sumItemCount(items: Array<{ name: string; count: number }>, id: string)
  *   - mc_chant        私语念咒语（/msg 女神）→ 等信使私聊回执（快路径，程序化施法；
  *                     2026-08-18 方案A：咒语走私语，旁人只见异象听不见咒文）
  *   - mc_pray         /msg 私聊祈愿（带「祈愿：」前缀）→ 等神谕私聊回复（慢路径，LLM 裁决）
- *   - mc_choose_innate 公屏喊「我选 X」 → 等女神确认（降临仪式）
+ *   - mc_choose_innate 私语宣布「我选 X」（/msg 女神）→ 等女神确认（降临仪式，2026-08-22 私语化）
  *
  * 本插件不 import rcon.ts、不读魔法原子表、不执行任何服务器命令——
  * 穿越者与真人玩家走完全相同的通道（机制平权）。
@@ -271,10 +271,31 @@ export function apply(ctx: Context, config: Config) {
     },
   } satisfies MysticService)
 
-  /** 从女神台词里解析「出生天赋「X」」模式。 */
+  /** 已知天赋/法术名清单（与 mc_chant 描述对齐；「术」后缀归一化用）。 */
+  const INNATE_NAMES = [
+    '归乡', '圣愈术', '圣愈', '饱食赐福', '饱食', '空间传送', '传送',
+    '鉴定', '燃血术', '炼食术', '造物术', '造物', '大地塑形',
+    '照明', '跃升', '风爆', '羽落', '夜视', '化水',
+    '迅捷', '水息', '覆土', '急迫', '避火', '唤雨',
+    '铁肤', '神力', '驱云', '隐身', '雷暴', '唤马', '退魔', '铁卫',
+    '破晓', '陨石',
+  ]
+
+  /**
+   * 从女神台词里解析「出生天赋」。严格模式只认「出生天赋「X」」；
+   * 2026-08-22 放宽：女神确认格式多样（「天赋已确认：归乡」「归乡天赋已生效」
+   * 「已选天赋：归乡」…），只要台词处于天赋/确认/生效语境且含已知法术名即命中，
+   * 避免本地天赋记忆一直空 → 无限私聊问女神。
+   */
   function parseInnate(message: string): string | null {
-    const m = message.match(/出生天赋[是为]?\s*「(.+?)」/)
-    return m ? m[1] : null
+    let m = message.match(/出生天赋[是为]?\s*「(.+?)」/)
+    if (m) return m[1]
+    const inInnateContext = /天赋|确认|已选|已生效|降临|选定的?/.test(message)
+    if (!inInnateContext) return null
+    for (const name of INNATE_NAMES) {
+      if (message.includes(name)) return name.replace(/术$/, '')
+    }
+    return null
   }
 
   /** 从女神台词里解析升级宣读（兼容旧「层级提升至 N 级」与新「魔力层级 M → N」）。 */
@@ -315,9 +336,14 @@ export function apply(ctx: Context, config: Config) {
   }
 
   // ── 失忆找回：本地无天赋记忆时，定期私聊天神询问 ─────────────────────
+  // 2026-08-22 限次退避：连问 3 次无果即静默——天赋确认是异步的，
+  // 无限追问只会污染聊天上下文、诱导 LLM 决策枯等（Edward 5.5h 卡死根因）。
+  // 之后若从被动监听（公屏/私语）听见确认，store 写入自然恢复。
   let disposed = false
   let stopEnsure: (() => void) | null = null
   let lastQuery = 0
+  const MAX_INNATE_ASKS = 3
+  let innateAskCount = 0
   function scheduleEnsure() {
     if (disposed) return
     stopEnsure = ctx.setTimeout(() => {
@@ -325,13 +351,18 @@ export function apply(ctx: Context, config: Config) {
       if (bot) {
         ensurePassive(bot)
         const me = bot.username
-        if (bot.entity && me && !store.get(me) && Date.now() - lastQuery > 60_000) {
-          lastQuery = Date.now()
-          try {
-            bot.whisper(config.godName, '女神，我的出生天赋是什么？')
-            log(`asked the goddess for innate memory (${me})`)
-          } catch {
-            /* bot not ready */
+        if (bot.entity && me && !store.get(me)) {
+          if (Date.now() - lastQuery > 60_000 && innateAskCount < MAX_INNATE_ASKS) {
+            innateAskCount++
+            lastQuery = Date.now()
+            try {
+              bot.whisper(config.godName, '女神，我的出生天赋是什么？')
+              log(`asked the goddess for innate memory (${me}) ${innateAskCount}/${MAX_INNATE_ASKS}`)
+            } catch {
+              /* bot not ready */
+            }
+          } else if (innateAskCount >= MAX_INNATE_ASKS) {
+            log(`innate memory unknown after ${MAX_INNATE_ASKS} asks (${me}) — silent wait, no more goddess pings`)
           }
         }
       }
@@ -547,13 +578,17 @@ function looksLikeWorldQuestion(wish: string): boolean {
       },
     }))
 
-  // ── mc_choose_innate：降临仪式选天赋（公屏宣布）─────────────────────
+  // ── mc_choose_innate：降临仪式选天赋（私语宣布，2026-08-22 改）────────────
+  // 2026-08-22 私语化：此前公屏喊「我选 X」（与真人同通道），但咏唱/祈愿早已私语，
+  // 公屏仪式太乱（7 人在线时刷屏感明显）。改为 bot.whisper 私语直达女神——
+  // 选择只有女神听见，公屏清净。等确认兼容收 chat+whisper（B 仓 ritual 未改前
+  // 女神仍公屏确认，过渡期不丢确认；B 仓改后私聊确认同样能收到）。
   ctx.tools.register(defineTool({
     name: 'mc_choose_innate',
     description:
       '降临仪式：你刚穿越至此界，女神赐你自选一项「出生天赋」（初始技能）。' +
       '女神会在公屏宣读候选法术清单（格式如「1. 归乡 —— 回家」），' +
-      '调用本工具公屏宣布你的选择。参数 skill 填要选的法术名或编号（如「归乡」或「选1」），' +
+      '调用本工具私语宣布你的选择（只有女神听见，不扰公屏）。参数 skill 填要选的法术名或编号（如「归乡」或「选1」），' +
       '选一个最契合你人设/处境的（求生者选归乡/圣愈/饱食，好战者选传送/陨石等）。',
     parameters: {
       skill: {
@@ -571,19 +606,25 @@ function looksLikeWorldQuestion(wish: string): boolean {
       if (store.get(me)) return '你早已选定出生天赋，无需再次降临。'
       const skill = String(args.skill ?? '').trim()
       if (!skill) return '你没有说出要选什么。'
-      // 公屏宣布（与真人玩家喊「我选X」完全同通道，女神侧同一解析器）。
+      // 私语宣布（与 mc_chant/mc_pray 同通道；女神侧 whisper 分流解析）。
       try {
-        bot.chat(`我选 ${skill}`)
+        bot.whisper(config.godName, `我选 ${skill}`)
       } catch {
         return '你的声音没能传出（连接异常）。'
       }
       const reply = await waitForReply(
         bot,
-        (from, msg, via) => via === 'chat' && from === config.godName && msg.includes(me) && !!parseInnate(msg),
+        (from, msg, via) =>
+          (via === 'whisper' || via === 'chat') &&
+          from === config.godName &&
+          msg.includes(me) &&
+          !!parseInnate(msg),
         config.chantTimeoutMs,
       )
       if (!reply) {
-        return '女神没有回应你的选择——也许降临仪式尚未开始（等女神宣读候选清单），或你的说法她没听懂（用法术名如「归乡」或编号如「选1」）。'
+        // 2026-08-22 语义修正：不诱导枯等。选择已私语宣布，女神确认是异步的——
+        // 天赋生效与否都不影响自立生存，先去探索/采集/结交，确认时女神会点名告知。
+        return '你已向女神私语宣布了选择「' + skill + '」。女神确认是异步的——不必原地枯等确认，先去活你的日子（探索、采集、结交旅伴都行）；天赋生效时女神会告诉你，你也会自动记住。'
       }
       return reply
     },
@@ -662,7 +703,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
       '适合：跨距离留言、给不在线的同伴捎话、正式的感谢与邀约。',
     parameters: {
       action: { type: 'string', required: true, description: 'send / read / list / clear' },
-      to: { type: 'string', description: 'send 时必填：收信人游戏ID（如 Kirito / Naruto / MengMeng）' },
+      to: { type: 'string', description: 'send 时必填：收信人游戏ID（对方亲口告诉你、或你亲眼见过并记住的名字）' },
       body: { type: 'string', description: 'send 时必填：信的正文，200字内' },
     },
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },

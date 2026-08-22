@@ -1207,7 +1207,18 @@ async function spawnTransmigrator(
       if (inv.length) parts.push(`背包: ${inv.map((i) => `${i.name} x${i.count}`).join(', ')}`)
       const isNight = bot!.time?.timeOfDay != null && bot!.time.timeOfDay > 13000 && bot!.time.timeOfDay < 23000
       parts.push(`时间: ${isNight ? '夜晚（危险）' : '白天'}`)
-      // 实体雷达（16 格，最多 6 个，玩家显用户名）
+      // 相对方位（8 方位）：环境感知的基本信息——方向+距离，名字仍去名化。
+      const relDir = (dx: number, dz: number): string => {
+        const ax = Math.abs(dx)
+        const az = Math.abs(dz)
+        if (ax === 0 && az === 0) return '脚下'
+        const ew = dx >= 0 ? '东' : '西'
+        const ns = dz >= 0 ? '南' : '北'
+        if (ax >= az * 2) return ew
+        if (az >= ax * 2) return ns
+        return ew + ns
+      }
+      // 实体雷达（16 格，最多 6 个，玩家去名化）
       try {
         const ents = Object.values((bot as unknown as { entities?: Record<string, unknown> }).entities ?? {})
           .filter((e) => {
@@ -1222,8 +1233,11 @@ async function spawnTransmigrator(
           .slice(0, 6)
           .map((e) => {
             const ent = e as { username?: string; displayName?: string; name: string; position: { distanceTo: (v: unknown) => number } }
-            const label = ent.username ? `${ent.username}` : (ent.displayName ?? ent.name)
-            return `${label} ${Math.round(p.distanceTo(ent.position))}格`
+            // 去名化铁律：玩家不具名（名字须经实际社交获得——对方说话/自我介绍），只标「玩家」
+            const label = ent.username ? '玩家' : (ent.displayName ?? ent.name)
+            const d = Math.round(p.distanceTo(ent.position))
+            const dir = relDir(ent.position.x - p.x, ent.position.z - p.z)
+            return `${label} ${dir}${d}格`
           })
         if (ents.length) parts.push(`附近: ${ents.join(', ')}`)
       } catch { /* 实体雷达失败不阻塞 */ }
@@ -1232,8 +1246,8 @@ async function spawnTransmigrator(
       // 未见过就报名字会让 Agent「认识」它没见过的人。只报数量+距离，纯 bot.players
       // 只读查询（服务器 tab-list 全量下发），零工具调用零 LLM 往返。
       try {
-        const nearby: number[] = []
-        const faraway: number[] = []
+        const nearby: { d: number; dir: string }[] = []
+        const faraway: { d: number; dir: string }[] = []
         let unknownFarCount = 0
         for (const [uname, player] of Object.entries(
           (bot as unknown as { players?: Record<string, { username?: string; entity?: unknown }> }).players ?? {},
@@ -1242,20 +1256,27 @@ async function spawnTransmigrator(
           const ent = player.entity as { position?: { distanceTo: (v: unknown) => number } } | null | undefined
           if (ent?.position) {
             const d = p.distanceTo(ent.position)
-            if (d <= 16) nearby.push(d)
-            else faraway.push(d)
+            const dir = relDir(ent.position.x - p.x, ent.position.z - p.z)
+            if (d <= 16) nearby.push({ d, dir })
+            else faraway.push({ d, dir })
           } else {
             unknownFarCount++
           }
         }
+        const dirDesc = (arr: { d: number; dir: string }[]): string =>
+          arr
+            .sort((a, b) => a.d - b.d)
+            .slice(0, 3)
+            .map((n) => `${n.dir}${Math.round(n.d)}格`)
+            .join('、')
         const social: string[] = []
         if (nearby.length) {
-          social.push(`身边（16格内）：有 ${nearby.length} 位旅人（最近 ${Math.round(Math.min(...nearby))} 格）`)
+          social.push(`身边（16格内）：有 ${nearby.length} 位旅人（${dirDesc(nearby)}）`)
         } else {
           social.push('身边（16格内）：没有其他旅人，只有你')
         }
         if (faraway.length) {
-          social.push(`远处（在线不在身边）：有 ${faraway.length} 位旅人（最近 ${Math.round(Math.min(...faraway))} 格）`)
+          social.push(`远处（在线不在身边）：有 ${faraway.length} 位旅人（${dirDesc(faraway)}）`)
         }
         if (unknownFarCount) {
           social.push(`更远处：还有 ${unknownFarCount} 位旅人在线（方位未明）`)

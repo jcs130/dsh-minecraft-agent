@@ -28,11 +28,11 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { resolve } from 'node:path'
+import type { McStoreService } from './mc-store'
 
 export const name = 'mc-progress'
-export const inject: string[] = []
+export const inject = ['mcStore']
 
 export interface Config {
   enabled: boolean
@@ -132,25 +132,23 @@ export function apply(ctx: Context, config: Config) {
   if (!config.enabled) return
   const log = (msg: string) => console.log(`[mc-progress] ${msg}`)
   const dataDir = resolve(config.dataDir)
+  // 统一数据层（2026-08-21）：账本迁 SQLite（mc-store），原 progress-*.json 保留作回滚锚。
+  const store = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcStore') as McStoreService | undefined
 
   // 内存缓存：recordChant/sampleLevel/diagnose 高频，不每次读盘。
   const cache = new Map<string, ProgressState>()
-
-  const pathOf = (username: string) => join(dataDir, `progress-${username}.json`)
 
   function load(username: string): ProgressState {
     let s = cache.get(username)
     if (s) return s
     s = emptyState(username)
     try {
-      if (existsSync(pathOf(username))) {
-        const raw = JSON.parse(readFileSync(pathOf(username), 'utf-8'))
-        if (raw && typeof raw === 'object' && raw.version === 1) {
-          s = { ...emptyState(username), ...(raw as ProgressState) }
-        }
+      const raw = store?.loadProgress(username)
+      if (raw && typeof raw === 'object' && raw.version === 1) {
+        s = { ...emptyState(username), ...(raw as ProgressState) }
       }
     } catch {
-      /* 损坏文件 → 从零开始 */
+      /* 损坏记录 → 从零开始 */
     }
     cache.set(username, s)
     return s
@@ -158,10 +156,7 @@ export function apply(ctx: Context, config: Config) {
 
   function persist(s: ProgressState): void {
     try {
-      mkdirSync(dataDir, { recursive: true })
-      const tmp = pathOf(s.username) + '.tmp'
-      writeFileSync(tmp, JSON.stringify(s, null, 2), 'utf-8')
-      renameSync(tmp, pathOf(s.username))
+      store?.saveProgress(s.username, s)
     } catch (e) {
       log(`persist failed: ${e instanceof Error ? e.message : String(e)}`)
     }

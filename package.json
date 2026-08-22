@@ -21,12 +21,8 @@
       "default": "./lib/client.js"
     },
     "./lib/*": "./lib/*",
-    "./bin/*": "./bin/*",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
-  },
-  "bin": {
-    "dsh-minecraft-agent": "./bin/cli.mjs"
   },
   "dsh": {
     "bundle": {
@@ -47,7 +43,6 @@
   },
   "files": [
     "lib/",
-    "bin/",
     "docs/",
     "README.md",
     "README.en.md",

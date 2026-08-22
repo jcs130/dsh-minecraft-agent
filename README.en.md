@@ -10,7 +10,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin sys
 > **The key differentiators**
 > - **Zero API cost** — agents are driven by a local LLM (llama.cpp / Ollama, any OpenAI-compatible endpoint), not a cloud API.
 > - **Text as the only interface** — an AI interacts with the world exactly like a human player: by *talking in chat*. No server privileges, no command access.
-> - **One process per AI player** — a two-process architecture separates the *world* (server side, one privileged process — a companion open-source repo) from *transmigrators* (client side, one unprivileged process each, this repo).
+> - **One agent per AI player** — a two-sided architecture separates the *world* (server side, the single privileged side — a companion open-source repo) from *transmigrators* (client side, one unprivileged dsh session agent each, this repo).
 
 ## Why this over Mindcraft?
 
@@ -20,7 +20,7 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin sys
 |---|---|---|
 | Runtime | Monolithic | DeepSeek Harness plugins |
 | Model | Cloud or local | **Local-first** (any OpenAI-compatible endpoint) |
-| Architecture | Custom agent loop | **World process + one process per AI player** |
+| Architecture | Custom agent loop | **World side + one dsh session agent per AI player** |
 | Magic / world rules | — | Chat-driven spells, prayers, rituals |
 | Extensibility | Patch JS | Write a plugin |
 
@@ -32,8 +32,8 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin sys
                 └───────▲─────────────────────▲───────────────┘
                         │ RCON (world side)   │  chat / whispers
     ┌───────────────────┴──────────┐   ┌──────┴──────────────────────┐
-    │  WORLD PROCESS               │   │  TRANSMIGRATOR PROCESS ×N   │
-    │  (companion open-source repo) │   │  bootstrap-mc.mts (here)    │
+    │  WORLD SIDE                 │   │  TRANSMIGRATOR ×N           │
+    │  (companion open-source repo) │   │  mc-session (session agent) │
     │  bootstrap-world.mts         │   │                             │
     │  mc-rcon / mc-magic /        │◄──┼── chat only ──              │
     │  mc-god / mc-ritual /        │   │  mc-bot      mineflayer     │
@@ -42,25 +42,27 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin sys
                                        │  mc-transmigrator (persona) │
                                        │  mc-mystic   chant/pray     │
                                        │  mc-wiki     survival wiki  │
-                                       │  mc-loop     autonomous loop│
                                        │  mc-vision / mc-camera      │
                                        └─────────────────────────────┘
 ```
 
-### Transmigrator process (`bootstrap-mc.mts`) — this repo
+### Transmigrator (this repo, dsh plugins)
 
-Runs **one per AI player** (`start-bot.bat <username> <viewerPort>`). Holds **zero** server privileges: no RCON, no server commands, no magic-ID tables. Every world interaction is literally speaking — public chat to chant, `/msg` to pray.
+Each AI player = one **dsh session agent** (created programmatically by the `mc-session` plugin). Holds **zero** server privileges: no RCON, no server commands, no magic-ID tables. Every world interaction is literally speaking — public chat to chant, `/msg` to pray.
 
 | Plugin | Role |
 |---|---|
+| `mc-session` | The transmigrator body: creates a session agent + persona shadow + status writer + dsh goal-loop hookup (`ctx.goals` drives autonomous decisions) + automatic memory-retrieval disclosure. |
 | `mc-bot` | mineflayer connection, auto-reconnect, dual prismarine-viewer (first-person + follow cam). |
 | `mc-tools` | The agent tool layer: `mc_status`, `mc_goto`, `mc_collect`, `mc_place`, `mc_attack`, `mc_pickup`, `mc_craft`, `mc_equip`, chest storage (`mc_view/put/take_chest`), `mc_trade`, and vision tools (`mc_look` text radar, `mc_see` first-person screenshot). All hardened with try-catch + bot-alive guards. |
 | `mc-memory` | Durable per-bot memory across restarts: base position, resource points, public chest. |
 | `mc-transmigrator` | The persona library: each transmigrator is a first-class profile (backstory + persona + innate skills + a "worldview filter" that maps magic to their home-fiction terms). Ships with two example personas: **Kirito** and **Naruto**. |
+| `mc-identity` | Identity anchor: persona + past-life memory pinned in the system prompt so a transmigrator never forgets who it is. |
 | `mc-mystic` | The thin, chat-only interface to the world: `mc_chant` (cast), `mc_pray` (pray), `mc_choose_innate` (ritual answer). |
 | `mc-wiki` | A survival knowledge base tool (`mc_wiki`) the agent can consult — mob weaknesses, food safety, tool tiers — so an LLM's Minecraft hallucinations get grounded. |
-| `mc-loop` | The autonomous perceive → decide → act → observe loop. Multimodal: when the bot invokes `mc_see`, the first-person screenshot is embedded into the next LLM decision. Sleep-time compute: overnight reflection distills the day into knowledge cards. |
+| `mc-memos` | MemOS long-term memory bridge: vector retrieval of world knowledge and personal experience (progressive disclosure). |
 | `mc-vision` / `mc-camera` | Offscreen first-person renderer (`node-canvas-webgl`), waits for the world mesh before capturing, JPEG output. |
+| `mc-panel` | Control panel: the MC panel is embedded in dsh web as a conversation-view tab (live status / 3D view / chronicle / flaw stream, server address editable on page). |
 
 ### World process — companion open-source repo ([minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend))
 
@@ -83,18 +85,22 @@ This is what makes "bring your own agent" possible: the server-side contract is 
 
 ## Quick start
 
-1. Clone this repo next to your DeepSeek Harness checkout (`..\node_modules` is expected — see `start-*.bat`), then run `setup-vendor-links.bat` once to restore the `@deepseek-ai` junctions.
-2. Start the **world process** on the MC server machine (from the companion world-side repo).
-3. Start one **transmigrator** per AI player:
+Install the bundle (see [README-INSTALL.md](README-INSTALL.md)):
 
 ```bash
-start-bot.bat Kirito 3001
-start-bot.bat Naruto 3002
+dsh plugin --profile mc add github:jcs130/dsh-minecraft-agent
 ```
 
-4. Open the observation deck (world-side repo): `http://localhost:9090`.
+Start the **world side** on the MC server machine (from the companion world-side repo), then launch dsh:
 
-Environment knobs: `MC_HOST`, `MC_PORT`, `MC_USERNAME`, `MC_VIEWER_PORT`. Runtime state (memory, status snapshots, logs) lives under `data/` and is git-ignored.
+```bash
+dsh --profile mc "Enter the block world, chop trees, mine, and stay alive."
+```
+
+`cordis.patch.yml` injects the transmigrator plugins and spins up a default `HarnessBot`. Override the
+`mc-session` config in your profile's `cordis.patch.yml` to customize name / persona / goal / model / server address.
+
+Open dsh web and enter the "Minecraft Agent" workspace to see the MC panel (live status / 3D view / chronicle / flaw stream).
 
 ## Local model setup (free)
 

@@ -10,12 +10,13 @@ import Vec3 from 'vec3'
 import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
 import { join, resolve } from 'node:path'
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import type { McStoreService } from './mc-store'
 import { captureFirstPerson, captureLookaround } from './mc-camera'
-import { setLastImage, setLastImages } from './mc-vision'
+import { botFor } from './mc-bots'
 
 export const name = 'mc-tools'
-export const inject = ['tools', 'mcbot']
+export const inject = ['tools', 'mcbot', 'mcStore']
 
 export interface Config {
   /** 运行时数据目录（episodic 记忆 / 截图）。默认 ./data 按 cwd 解析；
@@ -27,10 +28,24 @@ export const Config: Schema<Config> = Schema.object({
   dataDir: Schema.string().default('./data'),
 })
 
+/** 相对方位（8 方位）：mc_look 雷达的基本信息——方向+距离，玩家名仍去名化。 */
+const relDir = (dx: number, dz: number): string => {
+  const ax = Math.abs(dx)
+  const az = Math.abs(dz)
+  if (ax === 0 && az === 0) return '脚下'
+  const ew = dx >= 0 ? '东' : '西'
+  const ns = dz >= 0 ? '南' : '北'
+  if (ax >= az * 2) return ew
+  if (az >= ax * 2) return ns
+  return ew + ns
+}
+
 // 进程级插件 ctx（apply 时捕获）。official one-bot-per-process 形态下
 // root 的 mcbot 单例就是本进程唯一穿越者的身体；多 agent 形态下
 // guard 优先走 exec.agent.ctx.mcbot（per-agent isolate 身体），这里只做 fallback。
 let pluginCtx: Context | undefined
+// 统一数据层（mc-store）读写口：apply 时经 cordis 服务注入；?. 容错防 profile 缺载。
+let mcStore: McStoreService | undefined
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
@@ -39,8 +54,10 @@ function text(value: unknown) {
 }
 
 type Args = Record<string, unknown>
-type ToolExecutor = (args: Args, exec?: any) => Promise<string>
-type ToolBody = (bot: Bot, args: Args) => Promise<string>
+// 2026-08-21：工具返回放宽为 unknown——mc_see 返回 { message, images } 对象
+// （官方 read_image 工具同款「execute 返回 canonical 对象 + render 转 image block」模式）。
+type ToolExecutor = (args: Args, exec?: any) => Promise<unknown>
+type ToolBody = (bot: Bot, args: Args) => Promise<unknown>
 
 /**
  * 解析"这一步该用哪具身体"：优先 agent scope 的 per-agent mcbot
@@ -49,13 +66,18 @@ type ToolBody = (bot: Bot, args: Args) => Promise<string>
  * session agent 正是这种情况）则回落进程单例。
  */
 function resolveBot(exec: any): Bot | undefined {
+  // 多 agent 形态：按 exec.agent.id 查 mcbots 注册表（botFor 内部已含
+  // sessionId 精确匹配 → 用户名匹配 → agent.ctx.mcbot → root mcbot 三级回落）。
+  if (pluginCtx) {
+    const b = botFor(pluginCtx, exec)
+    if (b) return b
+  }
+  // 无 pluginCtx 时的兜底（理论不可达）：读 agent scope 单例。
   try {
     const b = exec?.agent?.ctx?.mcbot
     if (b) return b as Bot
   } catch { /* agent ctx 无 mcbot inject —— 走进程单例 fallback */ }
-  try {
-    return pluginCtx?.mcbot as Bot | undefined
-  } catch { return undefined }
+  return undefined
 }
 
 /**
@@ -66,7 +88,7 @@ function resolveBot(exec: any): Bot | undefined {
  * 位置前缀让记忆碎片自带空间上下文。写失败静默（记忆是增强不是依赖）。
  */
 let EPISODIC_DIR = resolve(process.cwd(), 'data')
-function recordEpisodic(bot: Bot, args: Args, outcome: string, failed = false): void {
+function recordEpisodic(bot: Bot, args: Args, outcome: unknown, failed = false): void {
   const u = bot.username
   if (!u) return
   const p = bot.entity?.position
@@ -76,8 +98,15 @@ function recordEpisodic(bot: Bot, args: Args, outcome: string, failed = false): 
     const s = JSON.stringify(args)
     if (s && s !== '{}') argsStr = ` ${s.slice(0, 120)}`
   } catch { /* 循环参数等序列化失败：省略 */ }
-  const text2 = `${failed ? '✗ ' : ''}${pos}->${argsStr} = ${String(outcome).slice(0, 220)}`
-  appendFileSync(join(EPISODIC_DIR, `episodic-${u}.jsonl`), JSON.stringify({ ts: new Date().toISOString(), text: text2 }) + '\n', 'utf8')
+  // 工具可能返回对象（如 mc_see 的 { message, images }）：提取 message 字段记录，别记成 [object Object]。
+  const outcomeStr = typeof outcome === 'string'
+    ? outcome
+    : (outcome && typeof outcome === 'object' && 'message' in outcome)
+      ? String((outcome as { message: unknown }).message)
+      : String(outcome)
+  const text2 = `${failed ? '✗ ' : ''}${pos}->${argsStr} = ${outcomeStr.slice(0, 220)}`
+  // 2026-08-21 数据层改造：episodic 迁 SQLite（mc-store），旧 jsonl 保留作回滚锚不再写。
+  mcStore?.appendEpisodic(u, text2)
 }
 
 /**
@@ -165,7 +194,20 @@ async function resyncPulse(bot: Bot): Promise<void> {
     bot.setControlState('jump', true)
     await sleep(400)
     bot.setControlState('jump', false)
-    await sleep(500)
+    await sleep(300)
+    // 水平脱困（2026-08-21 沼泽卡死修复）：WEDGE 冻结常因 bot 被树叶/树根
+    // 水平卡死，jump 只治垂直 desync 救不了。四向脉冲（前/后/左/右各顶一下，
+    // 均含跳跃，strafe 无需转向）打破卡点，服务器回发位置校正后碰撞重算，
+    // 任一方向有隙即脱困。
+    const dirs = ['forward', 'back', 'left', 'right'] as const
+    for (const dir of dirs) {
+      bot.setControlState('jump', true)
+      bot.setControlState(dir, true)
+      await sleep(500)
+      bot.setControlState(dir, false)
+      bot.setControlState('jump', false)
+      await sleep(200)
+    }
   } catch { /* ignore */ }
 }
 
@@ -232,8 +274,15 @@ async function gotoNear(bot: Bot, pos: Vec3, reach: number, timeoutMs = 20_000):
       // 可能 resolve 但实体实际不在目标附近——用真实距离兜底校验
       const dist = bot.entity ? bot.entity.position.distanceTo(pos) : Infinity
       if (dist > reach + 1.5) {
-        console.error(`[mc-tools] gotoNear FALSE-POSITIVE: resolved but real dist=${dist.toFixed(2)} > reach+1.5 — treat as wedged`)
-        return { reached: false, wedged: true }
+        // 假成功分类（2026-08-21 沼泽卡死修复）：jump 脉冲只治垂直 desync
+        // （DEFECT-20260818-043636 家族）。若差距主要是水平方向（目标不可达/
+        // 需跳爬），jump+重试纯属浪费 10s——直接判失败让 mc_goto 引导换
+        // mc_tunnel / mc_place 脱困。
+        const dy = bot.entity ? Math.abs(bot.entity.position.y - pos.y) : 0
+        const horizontalGap = dist - dy
+        const verticalDesync = horizontalGap <= reach // 水平已到、差在垂直才值得重试
+        console.error(`[mc-tools] gotoNear FALSE-POSITIVE: resolved but real dist=${dist.toFixed(2)} > reach+1.5 (dy=${dy.toFixed(1)}, hGap=${horizontalGap.toFixed(1)}) — ${verticalDesync ? 'vertical desync → retry' : 'horizontal gap → give up'}`)
+        return { reached: false, wedged: verticalDesync }
       }
       return { reached: true, wedged: false }
     } catch (err) {
@@ -1050,6 +1099,9 @@ async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string>
 export function apply(ctx: Context, config: Config = {}) {
   const log = (msg: string) => console.log(`[mc-tools] ${msg}`)
   pluginCtx = ctx
+  // 统一数据层：经 cordis 服务拿同一份 SQLite 读写口（inject 已声明 'mcStore'，
+  // 正常必有；?. 容错防 profile 缺载时 episodic 静默降级为 no-op）。
+  mcStore = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcStore') as McStoreService | undefined
   // dataDir 统一（2026-08-20 裂盘修复）：episodic 记忆与截图此前硬编码
   // process.cwd()/data，dsh web 以工作区根为 cwd 启动 → 写进工作区根 data，
   // 而 mc-session/mc-panel 读写 profile data → 记忆链路读写不同源。
@@ -1094,15 +1146,25 @@ export function apply(ctx: Context, config: Config = {}) {
       const { x, y, z } = args as { x: number; y: number; z: number }
       const target = new Vec3(x, y, z)
       log(`goto (${x}, ${y}, ${z})`)
-      const reached = await gotoNear(bot, target, 3, 30_000)
-      const p = bot.entity!.position
-      const dist = p.distanceTo(target)
+      // 两步走（2026-08-21 寻路优化）：先 reach=3 快速接近（宽容、省时），
+      // 若没站到目标格（dist>1.5，典型是目标需跳 1 格），再用 reach=1 精确
+      // 到达一次——GoalNear(reach=1) 强制 pathfinder 规划跳跃把 bot 送上目标格，
+      // 根除「reached but not standing at it」的反复横跳循环。
+      const reached = await gotoNear(bot, target, 3, 20_000)
+      let p = bot.entity!.position
+      let dist = p.distanceTo(target)
       if (!reached) {
-        return `failed to reach (${x}, ${y}, ${z}); stopped at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})`
+        return `failed to reach (${x}, ${y}, ${z}); stopped at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}). 寻路卡死/超时——若被树叶或方块围住，别再反复 goto 同一处：先用 mc_look 找开阔方向，再 mc_tunnel 沿该方向挖平直通道脱困，或 mc_place 自行垫路`
       }
-      let msg = `reached (${x}, ${y}, ${z}) — now at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}), ${dist.toFixed(1)} blocks away`
-      if (dist > 1.5) msg += ' (within pathfinder reach but not standing at it; 目标需要跳跃才能到达时寻路常失效——用 mc_tunnel 挖平直通道接近，或 mc_place 自行垫路)'
-      return msg
+      if (dist > 1.5) {
+        const precise = await gotoNear(bot, target, 1, 10_000)
+        p = bot.entity!.position
+        dist = p.distanceTo(target)
+        if (dist > 1.5) {
+          return `approached (${x}, ${y}, ${z}) but couldn't stand on it — now at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}), ${dist.toFixed(1)} blocks away (目标需要跳跃/攀爬或不可站立；用 mc_tunnel 挖平直通道接近，或 mc_place 自行垫路)`
+        }
+      }
+      return `reached (${x}, ${y}, ${z}) — now at (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}), ${dist.toFixed(1)} blocks away`
     }),
   }))
 
@@ -1610,7 +1672,7 @@ export function apply(ctx: Context, config: Config = {}) {
   ctx.tools.register(defineTool({
     name: 'mc_look',
     description:
-      '环顾四周：面向什么、眼前方块、头顶有没有露天出口（卡坑自救关键）、四面环境、脚下地质、附近水/岩浆等危险、附近实体。纯文字雷达，极快，零消耗。迷路、卡住、进入陌生地形时先用它。',
+      '环顾四周的文字雷达（不含画面）：面向什么、眼前方块、头顶有没有露天出口（卡坑自救关键）、四面环境、脚下地质、附近水/岩浆等危险、附近实体。极快，零消耗。这只是粗略方向线索——想真正看清眼前挡路的是什么，用 mc_see 截真实画面。迷路、卡住、进入陌生地形时先用它快速定位。',
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     execute: guard(async (bot) => {
@@ -1684,9 +1746,10 @@ export function apply(ctx: Context, config: Config = {}) {
         .slice(0, 6)
         .map((e: any) => {
           const d = Math.round(bot.entity!.position.distanceTo(e.position))
-          // 玩家实体优先显示用户名，否则雷达里同伴永远是匿名 "player"（上游 de8074d）
-          const label = e.username ? `${e.username}(player)` : (e.displayName ?? e.name)
-          return `${label}(${d}格)`
+          // 去名化铁律：玩家不具名（名字须经实际社交获得），只标「玩家」；NPC/生物保留类型名
+          const label = e.username ? '玩家' : (e.displayName ?? e.name)
+          const dir = relDir(e.position.x - bot.entity!.position.x, e.position.z - bot.entity!.position.z)
+          return `${label}(${dir}${d}格)`
         })
 
       // 脚下地质
@@ -1715,38 +1778,82 @@ export function apply(ctx: Context, config: Config = {}) {
     }),
   }))
 
-  // ── See (B)：真实第一人称截图 → 嵌入下一轮多模态观察 ──────────────────
+  // ── See (B)：真实第一人称截图 → 工具结果直接返回 image block ──────────
+  // （2026-08-21 迁 dsh 原生视觉）：旧「写槽 + Timer 心跳回喂」的自研桥随
+  // mc-loop / mc-session 的 Timer steer 一并删除。现在 mc_see 截图后立即经
+  // 官方附件服务（attachments.saveImage）持久化成 image block 作为工具结果
+  // 返回——模型调用后下一次推理直接看见，正是 dsh 工具原生能力（对齐官方
+  // read_image 工具模式：execute 返回 canonical 对象 + render 转 image block）。
   ctx.tools.register(defineTool({
     name: 'mc_see',
     description:
-      '睁开眼睛：截取你第一人称视角的真实游戏画面（800x512），画面会附在下一轮观察里供你亲眼查看。默认只拍当前朝向一张；想环顾四周查威胁/找路时传 look=around，会原地按 前→右→后→左 拍四张拼成360°全景（token 消耗约4倍，别每轮都用）。耗时约 1-4 秒。',
+      '睁开眼睛：截取你第一人称视角的真实游戏画面（800x512），画面会立即随工具结果返回、被你亲眼看见。默认只拍当前朝向一张；想环顾四周查威胁/找路时传 look=around（视觉模型单次最多看 2 张图，环顾只回传前、右两向）。耗时约 1-4 秒。',
     parameters: {
-      look: { type: 'string', description: 'front=只拍当前朝向（默认）；around=环顾四周四连拍' },
+      look: { type: 'string', description: 'front=只拍当前朝向（默认）；around=环顾四周（回传前、右两向）' },
     },
-    output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          message: { type: 'string', required: true },
+          images: { type: 'array', required: true },
+        },
+      },
+      render: (_args, value) => {
+        const blocks: Array<Record<string, unknown>> = [{ type: 'text', text: String((value as { message?: unknown }).message ?? '') }]
+        for (const img of ((value as { images?: unknown[] }).images ?? [])) {
+          blocks.push({ type: 'image', attachment: img })
+        }
+        return blocks as never
+      },
+    },
     timeoutMs: 30_000,
     execute: guard(async (bot, args) => {
+      const attachments = (ctx as unknown as { get?: (n: string) => unknown }).get?.('attachments') as
+        | { saveImage?: (input: { data: Uint8Array; mediaType: string; name?: string }) => Promise<unknown> }
+        | undefined
       const mode = String(args.look ?? 'front')
+      let shots: Array<{ dataUrl: string }> = []
+      let message = ''
       if (mode === 'around') {
         try {
-          const shots = await captureLookaround(bot, SHOTS_ROOT)
-          setLastImages(shots.map((s) => ({
-            dataUrl: 'data:image/jpeg;base64,' + s.buffer.toString('base64'),
-            file: s.file,
-            label: s.label,
-          })), bot.username)
-          return '已环顾四周：前/右/后/左 四张画面将在你的下一次观察中按顺序附上——请结合四面画面决策。'
+          const all = await captureLookaround(bot, SHOTS_ROOT)
+          // Qwen-VL 单次请求最多 2 张图：环顾四连拍只回传前、右两向。
+          shots = all.slice(0, 2).map((s) => ({ dataUrl: 'data:image/jpeg;base64,' + s.buffer.toString('base64') }))
+          message = '已环顾四周（前→右→后→左四连拍），因视觉模型单次最多看 2 张，先给你前、右两向画面；其余两向可再调 mc_see 补看。'
         } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
+          const emsg = err instanceof Error ? err.message : String(err)
           // 环视失败退回单张，别让 agent 白等一轮
-          const { dataUrl, file } = await seeFirstPerson(bot)
-          setLastImage(dataUrl, file, bot.username)
-          return `环视失败（${msg}），已退回拍摄当前朝向单张画面。`
+          const one = await seeFirstPerson(bot)
+          shots = [{ dataUrl: one.dataUrl }]
+          message = `环视失败（${emsg}），已退回拍摄当前朝向单张画面。`
+        }
+      } else {
+        const one = await seeFirstPerson(bot)
+        shots = [{ dataUrl: one.dataUrl }]
+        message = '已拍摄第一人称画面（见下方图像）。'
+      }
+      if (!attachments?.saveImage) {
+        // 附件服务缺席（罕见）：图回不了，退化为纯文字提示，别让 agent 卡住。
+        return { message: `${message}\n（⚠️ 视觉回传不可用：附件服务未挂载，本轮只能靠文字判断处境）`, images: [] }
+      }
+      const images: unknown[] = []
+      for (let i = 0; i < shots.length; i++) {
+        const m = /^data:image\/(?:jpeg|png);base64,([\s\S]*)$/.exec(shots[i].dataUrl)
+        if (!m) continue
+        try {
+          const ref = await attachments.saveImage!({
+            data: new Uint8Array(Buffer.from(m[1], 'base64')),
+            mediaType: 'image/jpeg',
+            name: `mc-see-${bot.username}-${Date.now()}-${i}.jpg`,
+          })
+          images.push(ref)
+        } catch (e) {
+          console.warn(`[mc-tools] mc_see saveImage 失败（跳过该张）：${e instanceof Error ? e.message : String(e)}`)
         }
       }
-      const { dataUrl, file } = await seeFirstPerson(bot)
-      setLastImage(dataUrl, file, bot.username)
-      return '已拍摄第一人称画面，闭上眼后画面会立刻附在你的下一次观察中——请结合画面内容决定下一步。'
+      return { message, images }
     }),
   }))
 }

@@ -1,14 +1,24 @@
 # 组合包配置层（dsh.bundle.patch，官方安装形态的激活开关）。
 #
 # `dsh plugin --profile <name> add <tarball|npm|github>` 安装本包后，本层把
-# 穿越者侧 13 个插件注入 dsh 主进程：dsh --profile <name> "<任务>" 启动即得
-# 一个 Minecraft 穿越者 agent（工具/记忆/咏唱/村庄/进化全量挂载）。
+# 穿越者侧插件注入 dsh 主进程：dsh --profile <name> "<任务>" 启动即得
+# 一个 Minecraft 穿越者 agent（工具/记忆/咏唱全量挂载；村庄感知、三层自我
+# 进化、渐进披露卡、夜间进化已并入 mc-session 的生命循环，不再独立插件）。
 # 世界侧插件（mc-god/mc-rcon/magic/ritual/social/logwatch/worlddb）属服务器
 # 端项目，不在本包——见 README 双仓边界说明。
 #
 # 用户可在自己 profile 的 cordis.patch.yml 里按 id 覆盖任意行（后层胜出，
 # 但需重述整行 config）。
 - insert:
+    # 统一数据层（2026-08-21）：node:sqlite 单库 data/client.db，先迁 episodic +
+    # progress。必须先于 mc-tools/mc-progress/mc-session/mc-panel 加载（它们
+    # inject 依赖 'mcStore'，经 ctx.get 拿读写口）。
+    - id: mc-store
+      name: 'dsh-minecraft-agent/lib/plugins/mc-store.mjs'
+      config:
+        dataDir: './data'
+        dbFile: 'client.db'
+
     # 本地 Qwen3.8 vLLM 的薄 OpenAI 适配器：把 `qwen-local` provider 注册进
     # dsh 的 LLM runtime（:8890，含 VL image 块 + Qwen3.8 推理档位）。必须先于
     # 任何会发起 LLM 调用的插件加载。
@@ -68,9 +78,6 @@
     - id: mc-wiki
       name: 'dsh-minecraft-agent/lib/plugins/mc-wiki.mjs'
 
-    - id: mc-village
-      name: 'dsh-minecraft-agent/lib/plugins/mc-village.mjs'
-
     - id: mc-memos
       name: 'dsh-minecraft-agent/lib/plugins/mc-memos.mjs'
       config:
@@ -79,17 +86,8 @@
         timeoutMs: 8000
         maxRecall: 5
 
-    - id: mc-evolve
-      name: 'dsh-minecraft-agent/lib/plugins/mc-evolve.mjs'
-      config:
-        enabled: true
-        cooldownHours: 12
-
-    - id: mc-adapt
-      name: 'dsh-minecraft-agent/lib/plugins/mc-adapt.mjs'
-
-    # 穿越者 = 独立 dsh session agent（新形态）：创建 agent + persona 阴影 +
-    # Timer steer。替代旧 mc-loop 自驱；mc-loop 在 profile 形态下关闭。
+    # 穿越者 = 独立 dsh session agent（新形态）：创建 agent + persona 阴影，
+    # 目标交给 dsh 官方 goal loop（ctx.goals）驱动持续决策。
     - id: mc-session
       name: 'dsh-minecraft-agent/lib/plugins/mc-session.mjs'
       config:
@@ -97,13 +95,7 @@
         username: 'HarnessBot'
         provider: 'qwen-local'
         model: 'qwen3.8-27b'
-        intervalMs: 8000
-        goal: 'Explore the area, gather wood and coal, and stay alive. Eat food when hungry.'
-
-    - id: mc-loop
-      name: 'dsh-minecraft-agent/lib/plugins/mc-loop.mjs'
-      config:
-        enabled: false
+        goal: '在这个方块世界里活出你自己的一生：自由探索、随性经历、慢慢成长，结识旅伴、见证万物。你不需要时刻「干活」——发呆、看风景、聊天、思考、休息，都是真实生活的一部分。每一轮由你自己决定此刻最想做的一件事。'
 
     - id: mc-panel
       name: 'dsh-minecraft-agent/lib/plugins/mc-panel.mjs'

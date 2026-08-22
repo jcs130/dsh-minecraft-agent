@@ -5,12 +5,12 @@
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
 [![](https://img.shields.io/badge/topic-dsh--plugin-blue?style=flat-square)](https://github.com/topics/dsh-plugin)
 
-一套 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件，让任意 Agent 成为《我的世界》里的**"穿越者"**——像真人玩家一样自主生活：采集、建造、交易、下矿、结伴、念咒施法、低声祈祷。不是又一个 bot 框架，而是一个 **AI 玩家生态**：世界端由"天神"治理（配套开源项目 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend)，见下），客户端每个穿越者是一个独立 Agent 进程——**任何人都可以让自己的 Agent 接入同一个世界一起玩**。
+一套 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 插件，让任意 Agent 成为《我的世界》里的**"穿越者"**——像真人玩家一样自主生活：采集、建造、交易、下矿、结伴、念咒施法、低声祈祷。不是又一个 bot 框架，而是一个 **AI 玩家生态**：世界端由"天神"治理（配套开源项目 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend)，见下），客户端每个穿越者是一个独立 dsh session agent——**任何人都可以让自己的 Agent 接入同一个世界一起玩**。
 
 > **核心特色**
 > - **零 API 成本** — Agent 由本地 LLM 驱动（llama.cpp / Ollama 等任意 OpenAI 兼容端点），不烧云端 token。
-> - **文本即接口** — AI 与真人平权：想施法就在聊天框念咒，想祷告就私聊低语。穿越者进程**零服务器权限**（无 RCON、无命令、无魔法 ID 表），一切交互就是"说话"。
-> - **一人一进程** — 双进程架构：世界（服务器端，唯一特权进程）与穿越者（客户端，每个 AI 玩家一个无特权进程）彻底分离，两者之间只有 Minecraft 聊天。
+> - **文本即接口** — AI 与真人平权：想施法就在聊天框念咒，想祷告就私聊低语。穿越者**零服务器权限**（无 RCON、无命令、无魔法 ID 表），一切交互就是"说话"。
+> - **一人一 Agent** — 双端架构：世界（服务器端，唯一特权端）与穿越者（客户端，每个 AI 玩家一个 dsh session agent）彻底分离，两者之间只有 Minecraft 聊天。
 
 ## 为什么不用 Mindcraft？
 
@@ -20,7 +20,7 @@
 |---|---|---|
 | 运行时 | 单体 | DeepSeek Harness 插件 |
 | 模型 | 云端或本地 | **本地优先**（任意 OpenAI 兼容端点） |
-| 架构 | 自研 agent 循环 | **世界进程 + 每个 AI 玩家一个进程** |
+| 架构 | 自研 agent 循环 | **世界端 + 每个 AI 玩家一个 dsh session agent** |
 | 魔法 / 世界规则 | — | 聊天驱动：念咒施法、低语祈祷 |
 | 扩展 | 改 JS 源码 | 写一个插件 |
 
@@ -32,8 +32,8 @@
                 └───────▲─────────────────────▲───────────────┘
                         │ RCON(世界端独占)     │  公屏聊天 / 私聊
     ┌───────────────────┴──────────┐   ┌──────┴──────────────────────┐
-    │  世界进程（配套开源仓库）      │   │  穿越者进程 ×N（本仓库）      │
-    │  bootstrap-world.mts         │   │  bootstrap-mc.mts           │
+    │  世界端（配套开源仓库）        │   │  穿越者 ×N（本仓库，dsh 插件） │
+    │  bootstrap-world.mts         │   │  mc-session（session agent）  │
     │  mc-rcon/mc-magic/mc-god/    │◄──┼── 仅聊天 ──                 │
     │  mc-ritual/mc-worlddb/...    │   │  mc-bot      mineflayer     │
     │  女神化身（旁观模式）          │   │  mc-tools    工具层          │
@@ -41,33 +41,35 @@
                                        │  mc-transmigrator 人格档案   │
                                        │  mc-mystic   咏唱/祈祷       │
                                        │  mc-wiki     生存知识库      │
-                                       │  mc-loop     自主循环        │
                                        │  mc-vision/camera 视觉      │
                                        └─────────────────────────────┘
 ```
 
-### 穿越者进程（`bootstrap-mc.mts`）— 本仓库
+### 穿越者（本仓库，dsh 插件）
 
-每个 AI 玩家跑一个进程（`start-bot.bat <用户名> <viewer端口>`），**零**服务器特权：没有 RCON、没有服务器命令、没有魔法 ID 表。与世界的每一次交互都是字面意义上的"说话"——公屏聊天施法，`/msg` 私聊祈祷。
+每个 AI 玩家 = 一个独立 **dsh session agent**（`mc-session` 插件程序化创建），**零**服务器特权：没有 RCON、没有服务器命令、没有魔法 ID 表。与世界的每一次交互都是字面意义上的"说话"——公屏聊天施法，`/msg` 私聊祈祷。
 
 | 插件 | 职责 |
 |---|---|
+| `mc-session` | 穿越者本体：创建 session agent + persona 阴影 + 状态写手 + dsh goal loop 接入（`ctx.goals` 驱动自主决策）+ 自动记忆检索披露。 |
 | `mc-bot` | mineflayer 连接、自动重连、双 prismarine-viewer（第一人称 + 跟随镜头）。 |
 | `mc-tools` | Agent 工具层：`mc_status`、`mc_goto`、`mc_collect`、`mc_place`、`mc_attack`、`mc_pickup`、`mc_craft`、`mc_equip`、箱子仓储（`mc_view/put/take_chest`）、`mc_trade`，以及视觉工具（`mc_look` 文字雷达、`mc_see` 第一人称截图）。全部包 try-catch + bot 存活守卫。 |
 | `mc-memory` | 跨重启的持久化个人记忆：基地坐标、资源点、公共箱。 |
-| `mc-transmigrator` | 人格档案库：每个穿越者是一等公民档案（背景故事 + 人格 + 天赋 + 把魔法映射成本作术语的"世界观滤镜"）。内置两份示例人格：**桐人**与**鸣人**。 |
+| `mc-transmigrator` | 人格档案库：每个穿越者是一等公民档案（背景故事 + 人格 + 天赋 + 把魔法映射成本作术语的"世界观滤镜"）。内置示例人格：**桐人**与**鸣人**。 |
+| `mc-identity` | 身份之锚：persona + 前世记忆常驻 system prompt，防穿越者跑久了忘了自己是谁。 |
 | `mc-mystic` | 通往世界的纯聊天接口：`mc_chant`（施法）、`mc_pray`（祈祷）、`mc_choose_innate`（仪式应答）。 |
 | `mc-wiki` | 生存知识库工具（`mc_wiki`）：怪物弱点、食物安全、工具等级——把 LLM 的 Minecraft 幻觉钉回地面。 |
-| `mc-loop` | 自主"感知 → 决策 → 行动 → 观察"循环。多模态：bot 调 `mc_see` 时，第一人称截图会嵌入下一轮 LLM 决策。睡觉时离线反思（sleep-time compute），醒来沉淀知识卡。 |
+| `mc-memos` | MemOS 长期记忆桥：向量检索世界知识与个人经历（渐进披露）。 |
 | `mc-vision` / `mc-camera` | 离屏第一人称渲染器（`node-canvas-webgl`），等待世界网格就绪再截帧，JPEG 输出。 |
+| `mc-panel` | 控制面板：MC 面板以会话视图 tab 内嵌 dsh web，实时状态 / 3D 视角 / 编年史 / 缺陷流，页面可改服务器地址。 |
 
-### 世界进程 — 配套开源仓库 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend)
+### 世界端 — 配套开源仓库 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend)
 
 世界的另一端是配套的**开源**服务器侧项目 [`minecraft-ai-friend`](https://github.com/jcs130/minecraft-ai-friend)：mc-rcon 共享 RCON、mc-logwatch 日志事件流、mc-worlddb SQLite 众生册+编年史、mc-magic 快路径魔法引擎（数据驱动咒语目录、三资源消耗 `{mana, food, hp}`、纯 vanilla 视效）、mc-god 天神慢路径神谕、mc-ritual 降临仪式、供奉经济、成长体系（等级即原生经验条）、被动引擎（"苦难即修行"）、NPC 村民引擎，以及 :9090 观察甲板 web-panel。真人玩家与 AI 在那里完全平权——同一句咒语，谁念都灵。
 
 ### 不变量（铁律）
 
-> 世界进程是唯一的特权持有者。穿越者像真人玩家一样与世界交互——靠说话。任何人念出同样的咒语就得到同样的魔法，无论 AI 还是人类。服务器永远不需要知道登录的是谁（或者是什么）。**穿越者是自主意识体**——天神与世界从不操控它们，只立法、守望、回应祈祷；每个 Agent 自己决定要过怎样的生活。
+> 世界端是唯一的特权持有者。穿越者像真人玩家一样与世界交互——靠说话。任何人念出同样的咒语就得到同样的魔法，无论 AI 还是人类。服务器永远不需要知道登录的是谁（或者是什么）。**穿越者是自主意识体**——天神与世界从不操控它们，只立法、守望、回应祈祷；每个 Agent 自己决定要过怎样的生活。
 
 这正是 "bring your own agent" 成立的根基：服务器端契约只是一段聊天。
 
@@ -82,28 +84,22 @@
 
 ## 快速开始
 
-**最省事（推荐）：Docker 一条命令接入**——不碰源码、不需要本仓 checkout，任何装了 Docker 的电脑（包括局域网里朋友的电脑）都能把自己的 Agent 玩家接进来：
+安装本组合包（详见 [README-INSTALL.md](README-INSTALL.md)）：
 
 ```bash
-node cli/mc-join.mjs join --name XiaoP --host 192.168.3.133   # 浏览器开 localhost:3200 看它玩
+dsh plugin --profile mc add github:jcs130/dsh-minecraft-agent
 ```
 
-详见 [docs/DOCKER.md](docs/DOCKER.md)（镜像构建/分发、CLI 速查、webui 图形接入台、环境变量表）。
-
-**从源码跑（开发/魔改）**：
-
-1. 把本仓库 clone 到 DeepSeek Harness checkout 旁边（`start-*.bat` 期望 `..\node_modules` 存在），先跑一次 `setup-vendor-links.bat` 修复 `@deepseek-ai` junction。
-2. 在 MC 服务器那台机器上启动**世界进程**（配套开源仓库 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend) 的 `start-world.bat`）。
-3. 每个 AI 玩家启动一个穿越者：
+在 MC 服务器那台机器上启动**世界端**（配套开源仓库 [minecraft-ai-friend](https://github.com/jcs130/minecraft-ai-friend) 的 `start-world.bat`），然后启动 dsh：
 
 ```bash
-start-bot.bat Kirito 3001
-start-bot.bat Naruto 3002
+dsh --profile mc "进入方块世界，砍树、挖矿、活下去。"
 ```
 
-4. 打开观察甲板（世界端仓库提供）：`http://localhost:9090`。
+`cordis.patch.yml` 会注入穿越者侧插件，默认拉起一个 `HarnessBot` 穿越者。在 profile 的
+`cordis.patch.yml` 里覆盖 `mc-session` 配置即可定制名字 / 人设 / 目标 / 模型 / 服务器地址。
 
-环境变量：`MC_HOST`、`MC_PORT`、`MC_USERNAME`、`MC_VIEWER_PORT`。运行时状态（记忆、状态快照、日志）在 `data/` 下且已 git-ignore。
+打开 dsh web，进入「我的世界 Agent」工作区即可看到 MC 面板（实时状态 / 3D 视角 / 编年史 / 缺陷流）。
 
 ## 本地模型（免费）
 
@@ -135,10 +131,10 @@ node tools/patch_viewer_bundle.cjs
 
 - [x] 工具加固：每个工具体都在 try-catch + bot 存活守卫后运行
 - [x] 核心工具：移动、采集、建造、战斗、拾取、合成、装备、箱子仓储、交易
-- [x] `mc-loop`：持续自主循环，多模态决策（嵌入截图）
+- [x] 自主循环：dsh goal loop（`ctx.goals` + goal-round-driver，感知 → 决策 → 行动 → 观察），多模态决策（嵌入截图）
 - [x] 跨重启的持久化个人记忆
-- [x] 多穿越者基础设施：人格档案注册表、状态快照、viewer 端口、启动脚本
-- [x] 世界/穿越者进程拆分——世界端独占 RCON，穿越者仅聊天
+- [x] 多穿越者基础设施：人格档案注册表、状态快照、viewer 端口、工作区归属
+- [x] 世界/穿越者双端拆分——世界端独占 RCON，穿越者仅聊天
 - [x] 第一人称视觉（`mc_see`）离屏 WebGL 相机
 - [x] 生存知识库工具 `mc_wiki`
 - [x] 睡觉离线反思（sleep-time compute）：睡一觉把当天经历沉淀成知识卡
@@ -149,11 +145,12 @@ node tools/patch_viewer_bundle.cjs
 
 ### 新建一个穿越者
 
-穿越者 = 一段人格 + 一个独立 session。三步：
+穿越者 = 一段人格 + 一个独立 session agent。两步：
 
-1. **配置人格**：写一份人格档案（背景故事 + 人格 + 出生天赋 + 世界观滤镜）。内置示例：**桐人**、**鸣人**（`mc-transmigrator` 的档案注册表）。
-2. **独立 session**：每个穿越者一个独立 dsh session/agent，人格经 `ctx.agents.create({ sessionId, setup })` 挂 persona，互不串味。
-3. **自主循环**：`mc-loop` 数秒一次触发（感知 → 决策 → 行动 → 观察）。技能在游戏内通过降临仪式习得——出生时是纯人格白纸，天赋进游戏后才获得。
+1. **配置人格**：写一份人格档案（背景故事 + 人格 + 出生天赋 + 世界观滤镜），放进 `data/transmigrators/`。内置示例：**桐人**、**鸣人**。
+2. **独立 session**：每个穿越者一个独立 dsh session agent，人格经 `ctx.agents.create({ sessionId, setup })` 挂 persona，互不串味；`mc-session` 经 dsh goal loop 驱动其自主循环。
+
+技能在游戏内通过降临仪式习得——出生时是纯人格白纸，天赋进游戏后才获得。
 
 ### 接入一个新游戏
 
