@@ -1228,6 +1228,7 @@ export function apply(ctx: Context, config: Config = {}) {
       if (!blockType) return 'blockType is required'
       const feetY = Math.floor(bot.entity!.position.y) - 1
       let collected = 0
+      let failReason: string | undefined
       for (let i = 0; i < num; i++) {
         // Prefer a block at the bot's feet layer or above: its drop lands at
         // the bot's feet and is picked up instantly. Digging below the feet
@@ -1248,14 +1249,20 @@ export function apply(ctx: Context, config: Config = {}) {
             maxDistance: 48,
           })
         }
-        if (!block) break
+        if (!block) {
+          failReason = `no ${blockType} within 48 blocks`
+          break
+        }
         const before = bot.inventory.items().reduce((s, it) => s + it.count, 0)
         // 先空手再换最佳工具：绕过 mineflayer-tool「手持工具已够好就不换」的
         // 优化，否则会手持石铲去挖矿石（慢且不掉落），看起来像「徒手挖」。
         await bot.unequip('hand').catch(() => {})
         await bot.tool.equipForBlock(block)
         const reached = await gotoNear(bot, block.position, 3)
-        if (!reached) break
+        if (!reached) {
+          failReason = `could not reach the ${blockType}`
+          break
+        }
         try {
           await bot.dig(block)
           await pickupNearby(bot)
@@ -1264,12 +1271,14 @@ export function apply(ctx: Context, config: Config = {}) {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
           log(`failed to dig ${blockType}: ${msg}`)
+          failReason = `dig failed: ${msg}`
           break
         }
       }
       // 挖完后把镐子留手（若有），保持「挖掘者」姿态，避免手持石铲乱走。
       const pick = bot.inventory.items().find((it) => it.name.includes('pickaxe'))
       if (pick) await bot.equip(pick, 'hand').catch(() => {})
+      if (failReason) return `collected ${collected} ${blockType} — stopped: ${failReason}`
       return `collected ${collected} ${blockType}`
     }),
   }))
@@ -1385,7 +1394,10 @@ export function apply(ctx: Context, config: Config = {}) {
         }
         await sleep(600)
       }
-      return `attacked ${mobType} ${hits} time(s); ${mob.isValid ? 'still alive' : 'killed'}`
+      if (mob.isValid) {
+        return `attacked ${mobType} ${hits} time(s); still alive after ${hits} hits — the target is unreachable/invalid (a ghost or far/moving entity). Stop attacking it and pick a different approach.`
+      }
+      return `attacked ${mobType} ${hits} time(s); killed`
     }),
   }))
 

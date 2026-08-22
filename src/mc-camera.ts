@@ -139,16 +139,56 @@ async function build(bot: Bot): Promise<CameraState> {
   const canvas = v.createCanvas(WIDTH, HEIGHT)
   const renderer = new v.THREE.WebGLRenderer({ canvas })
   const viewer = new v.Viewer(renderer)
-  // 1.21.11 新实体（text_display/glow_squid/item…）不在 prismarine-viewer 的
-  // 网格注册表里，Entities.update 遇到会 throw 并打断整帧渲染/截图。
-  // 包一层 try/catch：未知实体的网格缺失只影响它自己，不许连累整帧。
-  const entities = (viewer as unknown as { entities?: { update: (...a: unknown[]) => void } }).entities
+  // prismarine-viewer 的 getEntityMesh 对注册表外的实体（玩家名如 "Goddess"、
+  // 1.21.11 新实体 text_display/glow_squid/item…）返回 undefined 或洋红占位方块——
+  // defined 时 Entities.update 的 `if (!mesh) return` 会静默丢弃实体，导致在场实体
+  // 不渲染。这里包一层：try/catch 防 throw 打断整帧，并**补漏**被丢弃的实体为可见
+  // 身体方块（头+躯干），保证任何在场实体都出现在画面里。
+  type EntStore = {
+    update: (...a: unknown[]) => void
+    entities?: Record<string, any>
+    scene?: any
+  }
+  const entities = (viewer as unknown as EntStore).entities
   if (entities?.update) {
     const origUpdate = entities.update.bind(entities)
+    const entityScene = (entities as EntStore).scene
+    const buildBodyMesh = (ent: any): any => {
+      const w = Number(ent?.width) > 0 ? ent.width : 0.6
+      const h = Number(ent?.height) > 0 ? ent.height : 1.8
+      const grp = new v.THREE.Group()
+      const body = new v.THREE.Mesh(
+        new v.THREE.BoxGeometry(w, Math.max(0.4, h * 0.75), w),
+        new v.THREE.MeshLambertMaterial({ color: 0x707070 }),
+      )
+      body.position.y = Math.max(0.2, h * 0.375)
+      const headCol = ent?.type === 'player' ? 0xc8a07a : 0x9a8b6f
+      const head = new v.THREE.Mesh(
+        new v.THREE.BoxGeometry(w * 0.85, w * 0.85, w * 0.85),
+        new v.THREE.MeshLambertMaterial({ color: headCol }),
+      )
+      head.position.y = Math.max(0.4, h * 0.75) + w * 0.42
+      grp.add(body)
+      grp.add(head)
+      return grp
+    }
     entities.update = (...a: unknown[]) => {
       try {
         origUpdate(...a)
       } catch { /* unknown entity mesh: skip it, keep the frame */ }
+      // 补漏：origUpdate 对未知实体丢弃了 mesh（未被 entities.entities 收录），
+      // 手动补一个可见身体方块，保证实体渲染出来。
+      const ent = a[0] as { id?: string; delete?: boolean; pos?: { x: number; y: number; z: number }; yaw?: number; type?: string; width?: number; height?: number } | undefined
+      const map = (entities as EntStore).entities
+      if (ent && ent.id && map && !map[ent.id] && !ent.delete) {
+        const body = buildBodyMesh(ent)
+        if (body) {
+          map[ent.id] = body
+          entityScene?.add(body)
+          if (ent.pos) body.position.set(ent.pos.x, ent.pos.y, ent.pos.z)
+          if (typeof ent.yaw === 'number') body.rotation.y = ent.yaw
+        }
+      }
     }
   }
   // 宽视野：Viewer 默认 75，这里按环境变量覆盖（懒初始化后首次截图生效）

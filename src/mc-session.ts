@@ -188,6 +188,9 @@ export const Config: Schema<Config> = Schema.object({
   autoRecall: Schema.boolean().default(true),
   autoRecallTopK: Schema.number().default(3),
   autoRecallIntervalMs: Schema.number().default(60_000),
+  // 动作执行检查：goal_round 决策前冷却（2026-08-22 修复 Edward 卡楼梯跳变）。
+  // 上一步工具副作用先在 MC 世界 settle，再让 agent 决策，避免指令互相覆盖。
+  goalCooldownMs: Schema.number().default(3000),
   godName: Schema.string().default('Goddess'),
 })
 
@@ -209,11 +212,23 @@ const DEFAULT_RULES = [
   '这个世界人人平等：你与所有普通玩家、其他 AI 同伴都是平等的旅人，可平等交流、互帮互助。但有三类「上位存在」不在平等之列、须敬畏服从：①天神/女神（造物主）——祂的神谕（私语/咏唱回执）是至高指令；②服主/服务器管理员——世界管理者，其指令须服从；③其余所有普通玩家与 AI 同伴——平等相待。',
 ].join('\n')
 
-const DEFAULT_GOAL = [
-  '在这个方块世界里活出你自己的一生：自由探索、随性经历、慢慢成长，',
-  '结识旅伴、见证万物。你不需要时刻「干活」——发呆、看风景、聊天、',
-  '思考、休息，都是真实生活的一部分。每一轮由你自己决定此刻最想做的一件事。',
-].join('')
+/** 此生使命（长期固定，2026-08-22 目标体系拆层）：为什么而活的身世底色，
+ * 不随时间变，也不被 agent 随时改写——只作「价值坐标」，不驱动当下动作。 */
+const DEFAULT_LIFE_MISSION = [
+  '你穿越到了这个方块世界，要在此活出你自己的一生：自由探索、结识旅伴、',
+  '见证万物、慢慢成长。你不需要时刻「干活」——发呆、看风景、聊天、思考、',
+  '休息，都是真实生活的一部分。把人生当作一个个小目标串起来的旅程：',
+  '完成一个中尺度目标，就定下一个，别停在原地空想。',
+].join('\n')
+
+/** 初始当前目标（中尺度，2026-08-22 拆层）：有明确产出的任务，动起来具体做；
+ * 完成一件后用 mc_set_goal 换下一件。从「明确产出的具体事」起步，避免空转。 */
+const DEFAULT_ACTIVE_GOAL = [
+  '先睁眼（mc_see）看清你身在何处，然后挑一件现在最想做的「有产出的事」',
+  '立刻开始：砍些木头做把工具、挖点煤或铁、找个安全处搭个庇护所、',
+  '采集合成材料，或找路过的旅伴聊聊天。定好就动手，别停在原地空想；',
+  '做完一件，用 mc_set_goal 把目标换成下一件想做的事，继续走下去。',
+].join('\n')
 
 // ════════════════════════════════════════════════════════════════════
 // 穿越者「生命循环」思想库（2026-08-21 整合）
@@ -428,6 +443,27 @@ export async function apply(ctx: Context, config: Config = {}) {
 
   const log = (msg: string) => console.log(`[mc-session] ${msg}`)
   const dataDir = resolve(config.dataDir ?? './data')
+
+  // ── 动作执行检查：goal_round 决策前冷却 ──────────────────────────────
+  // 目标体（Edward）此前反复「工具未落地 → 立即再决策」导致卡楼梯/指令互相覆盖。
+  // 在 agent/pre-step（waterfall）上挂一个只针对 goal round 的冷却：进决策前
+  // 让上一轮工具副作用先 settle（睡眠 goalCooldownMs）。非 goal 消息（用户私语
+  // /世界事件）直接 next() 立即响应，不延迟。绝不 reject 任何 round，尊重
+  // goal-round-driver 的 reservation/竞态核验逻辑，只负责「降速」。
+  ctx.on('agent/pre-step', async (_payload, next) => {
+    try {
+      const messages = ((_payload as { messages?: Array<{ source?: { kind?: string; round?: number } }> } | undefined)?.messages ?? [])
+      const submitted = messages.find(
+        (m) => m?.source?.kind === 'goal' && (m.source as { round?: number }).round > 0,
+      )
+      if (submitted && config.goalCooldownMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, config.goalCooldownMs))
+      }
+    } catch {
+      // 冷却失败不阻断决策：降级为直接放行，交给 goal-round-driver 继续核验。
+    }
+    return next()
+  })
   try {
     mkdirSync(dataDir, { recursive: true })
   } catch { /* 已存在或不可建 */ }
@@ -662,7 +698,24 @@ async function spawnTransmigrator(
   // 决策节奏由 goal-round-driver 决定；autoSteer 控制是否自动 arm goal。
   const autoSteer = entry.autoSteer ?? config.autoSteer ?? true
   const viewerPort = entry.viewerPort ?? config.viewerPort ?? 3200
-  const goal = entry.goal ?? config.goal ?? DEFAULT_GOAL
+  // 目标体系（2026-08-22 拆层）：此生使命（mission）固定作价值坐标；当前目标
+  // （activeGoal）是中尺度、可被 agent 用 mc_set_goal 动态更新。两者分开——mission
+  // 不再进 objective，否则又变成「活出自己一生」式的永恒愿景引发空转烧 token。
+  const mission = DEFAULT_LIFE_MISSION
+  let activeGoal = entry.goal ?? config.goal ?? DEFAULT_ACTIVE_GOAL
+  // 目标持久化：重启后恢复上次的当前目标，不让穿越者每次都从零定目标。
+  const goalFile = resolve(dataDir, 'active-goals.json')
+  const loadGoal = (u: string): string => (loadJson<Record<string, { goal?: string }>>(goalFile, {})[u]?.goal ?? '').trim()
+  const saveGoal = (u: string, g: string): void => {
+    try {
+      const all = loadJson<Record<string, { goal?: string; updatedAt?: number }>>(goalFile, {})
+      all[u] = { goal: g, updatedAt: Date.now() }
+      saveJson(goalFile, all)
+    } catch { /* 落盘失败不致命 */ }
+  }
+  const persistedGoal = loadGoal(username)
+  if (persistedGoal) { activeGoal = persistedGoal; log(`已恢复上次的当前目标：${activeGoal.slice(0, 40)}`) }
+  log(`穿越者 ${username} 当前目标：${activeGoal.slice(0, 40)}`)
   const rules = entry.rules ?? config.rules ?? DEFAULT_RULES
   const godName = config.godName ?? 'Goddess'
   /** 本穿越者的身体：多模式 = 装配时捕获的专属门面；单模式 = root 单例实时读。 */
@@ -725,7 +778,7 @@ async function spawnTransmigrator(
       const p = b?.entity?.position
       const env = p ? `我在 (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})` : '我刚降临'
       const isNight = b?.time?.timeOfDay != null && b.time.timeOfDay > 13000 && b.time.timeOfDay < 23000
-      const query = `${env}，${isNight ? '夜晚' : '白天'}。目标「${goal}」。此刻最相关的经历与这个世界的知识。`
+      const query = `${env}，${isNight ? '夜晚' : '白天'}。目标「${activeGoal}」。此刻最相关的经历与这个世界的知识。`
       const hits = await memos.recallAll(username, query, config.autoRecallTopK ?? 3)
       autoMemoryText = hits ? `（你此刻自然想起的相关记忆，仅供参考）\n${hits}` : ''
     } catch {
@@ -1377,7 +1430,19 @@ async function spawnTransmigrator(
         agentCtx.systemPrompt.section({
           name: 'mc:rules',
           order: 100,
-          text: `${rules}\n\n你当前的目标：${goal}`,
+          text: rules,
+        })
+        // 目标块（2026-08-22 动态化）：mission 固定作价值坐标，activeGoal 是
+        // 当前中尺度目标（可被 mc_set_goal 更新）。用 context+函数保证每次构建
+        // prompt 都读最新目标；不塞进静态 section，否则设完目标永不刷新。
+        agentCtx.systemPrompt.context({
+          name: 'mc:goal',
+          order: 99,
+          text: () =>
+            `【此生使命】${mission}\n\n【你当前的目标】${activeGoal}\n\n` +
+            `想换一件更想做的事，就用 mc_set_goal 把目标更新成新的中尺度任务（做完一件就换下一件，别停在原地空想）。\n\n` +
+            `⚠️ 铁律（很重要）：mc_remember 只用来铭记真正值得跨会话留存的经历——新发现（"在(-200,64,180)发现裸露钻石"）、重要交易、与人交往、教训、计划与承诺。绝不要用它记录你当前回合的位置/血量/食物/背包/库存——那些是实时状态快照，不是值得长期记住的记忆；反复铭记只会空转烧回合，对你一无所益。\n` +
+            `行动优先（更重要）：别停在原地空想或反复"确认当前状态"。先用 mc_see 看清脚下与四周（第一人称画面），再用眼睛观察结果决定去哪，然后用 mc_goto 走向目标点、用 mc_collect / mc_dig / mc_build / mc_tunnel 等世界工具真正动手实现你的目标。每一步都朝着「【你当前的目标】」推进，而不是原地循环。`,
         })
         agentCtx.systemPrompt.context({
           name: 'mc:status',
@@ -1696,25 +1761,48 @@ async function spawnTransmigrator(
     }
     try {
       const cur = goalsSvc.get?.(a)
-      if (cur && cur.phase === 'active' && cur.id && typeof cur.revision === 'number') {
-        // 老会话 active goal：续行在 agent/session-start 时被停用（dsh 设计），resume 重新 arm
-        try {
-          goalsSvc.resume?.(a, { id: cur.id, revision: cur.revision })
-          log(`goal 续行（resume，revision=${cur.revision}）`)
-          return
-        } catch (e) {
-          log(`goal resume 失败（${e instanceof Error ? e.message : String(e)}），转 clear+create`)
-        }
-      }
       if (cur && cur.id && typeof cur.revision === 'number') {
+        // 不再 resume 旧 goal：旧 goal 可能带错误 maxGoalRounds（如 100000）导致无限空转烧 token。
+        // 一律 clear 后重新 create，保证每次都以 maxGoalRounds=512 重新 arm，round-limit 可兜底刹车。
         try { goalsSvc.clear?.(a, { id: cur.id, revision: cur.revision }) } catch { /* 已清/无权限：忽略 */ }
       }
-      goalsSvc.create!(a, { objective, maxGoalRounds: 100_000 })
-      log(`goal 创建并 arm（objective=${objective.slice(0, 40)}${objective.length > 40 ? '…' : ''}，maxGoalRounds=100000）`)
+      goalsSvc.create!(a, { objective, maxGoalRounds: 512 })
+      log(`goal 创建并 arm（objective=${objective.slice(0, 40)}${objective.length > 40 ? '…' : ''}，maxGoalRounds=512）`)
     } catch (e) {
       log(`goal loop 接入失败（${e instanceof Error ? e.message : String(e)}）`)
     }
   }
+
+  // ── 目标更新（2026-08-22：中尺度目标动态机制）──────────────────────
+  // agent 完成当前目标后，用 mc_set_goal 把 activeGoal 换成下一件想做的事。
+  // setGoal = 更新内存 activeGoal + 持久化 + clear 旧 goal 重新 arm（512 兜底）。
+  const setGoal = (objective: string): string => {
+    const g = objective.trim()
+    if (!g) return '新目标不能为空。'
+    activeGoal = g
+    saveGoal(username, activeGoal)
+    // 先喂给 agent 一段当前目标的上下文（让它在接下来的决策里照着目标行动），
+    // 再 clear+create arm 新 goal —— goal-round-driver 会据新 objective 驱动下一轮。
+    try {
+      armGoal(agent, activeGoal)
+    } catch { /* goal 服务未接上时至少更新了 activeGoal（mc:goal 会读到） */ }
+    log(`[${username}] 目标已更新：${activeGoal.slice(0, 60)}`)
+    return `目标已更新并接替执行：${activeGoal}`
+  }
+  try {
+    ctx.tools.register(defineTool({
+      name: 'mc_set_goal',
+      description:
+        '更换你当前的「中尺度目标」——一段有明确产出的任务，如「打造一套铁甲」「收集 16 个木头并合成工具」「和路过的旅伴交朋友并帮他一个忙」「挖到一些铁矿石」。' +
+        '当你完成当前目标、或发现有更值得做的事时调用；新目标会立即接替执行。不要在没做完时频繁更换。',
+      parameters: {
+        goal: { type: 'string', required: true, description: '新的中尺度目标（具体、有产出、一句话，如「收集 16 个木头做一把石镐」）' },
+      },
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: String(value) }] },
+      execute: async (args: Record<string, unknown>) => setGoal(String(args.goal ?? '')),
+    }))
+    log('mc_set_goal 工具已注册')
+  } catch (err) { log(`mc_set_goal 注册跳过：${err instanceof Error ? err.message : err}`) }
 
   // 前世记忆碎片（一次性注入，非循环）：fresh create（含会话轮换）时把 episodic
   // 尾部条目 steer 一次，让穿越者记得「上一世」在做什么；resume 的老会话自带
@@ -1735,6 +1823,6 @@ async function spawnTransmigrator(
     }
     // resume 老会话也必须 arm goal：否则 agent 进入 idle 后 goal-round-driver 无 goal
     // 可驱动，决策循环彻底停摆（2026-08-21 根因）。
-    armGoal(agent, goal)
+    armGoal(agent, activeGoal)
   }
 }
