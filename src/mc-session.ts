@@ -37,7 +37,8 @@ import { dirname, join, resolve } from 'node:path'
 import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
 import { createPerception } from './mc-perception'
-import { prewarm } from './mc-decider'
+import { prewarm, callSystemOne, defaultDeciderConfig, DECIDER_THRESHOLDS } from './mc-decider'
+import { createAudienceChannel } from './mc-audience'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -745,6 +746,8 @@ async function spawnTransmigrator(
     bot.on('chat', (speaker: string, message: string) => {
       if (speaker === bot.username) return
       chatBuffer.push({ who: tag(speaker), text: message, ts: Date.now() })
+      // 同一条也进弹幕通道（来源标注为 mc）：MC 里多人在刷屏时，聚合/预算逻辑同样适用
+      try { audience.ingest({ source: 'mc', name: speaker, text: message, kind: 'chat' }) } catch { /* 忽略 */ }
       if (chatBuffer.length > 40) chatBuffer.splice(0, chatBuffer.length - 40)
     })
     bot.on('whisper', (speaker: string, message: string) => {
@@ -1261,6 +1264,108 @@ async function spawnTransmigrator(
     },
   })
 
+  // ── 弹幕（观众）感知通道：目标环要的那一路 ─────────────────────────────
+  // 与"玩家聊天"分开：弹幕是高频、多说话者、大量重复的短消息流，
+  // 按窗口聚合 + 显著度挑选 + 发言预算，每步最多一行（详见 mc-audience.ts 头部的三条铁律）。
+  const audienceCfg = defaultDeciderConfig()
+  audienceCfg.dataDir = dataDir
+  const audience = createAudienceChannel(
+    {
+      viewersDir: join(dataDir, 'viewers'),
+      statePath: join(dataDir, 'audience-state.json'),
+      // 上下文窗口标识用 sessionId：同一 session 内"一个人只念一次"，
+      // 交接/换窗口后重新浮现一次，热重启不重念（与 Cortico 的口径一致）
+      windowId: sessionId,
+    },
+    {
+      // 快决策（本地 Jev 系）：在"值得回吗 / 先回哪条 / 是不是点播"上给判断。
+      // 失败一律退回确定性启发式——绝不因为分类服务不可用而卡住直播沟通。
+      classify: async (w, rendered) => {
+        const map = new Map<string, string>()
+        const criteria: Record<string, string> = {}
+        w.clusters.slice(0, 3).forEach((c, i) => {
+          const id = `c${i}`
+          criteria[id] = `${c.isDirective ? '点播/要求' : c.isQuestion ? '提问' : c.kind === 'superchat' ? '醒目留言' : c.kind === 'gift' ? '礼物' : '普通发言'}：「${c.text.slice(0, 30)}」（${c.count} 次${c.knownViewer ? '，老观众' : '，新面孔'}）`
+          map.set(id, c.text)
+        })
+        if (!Object.keys(criteria).length) return null
+        const r = await callSystemOne(
+          { audience: { window: rendered, count: w.count, senders: w.senders.length, flood: w.flood, known_viewers: w.knownCount }, options: Object.keys(criteria) },
+          {
+            reply_now: {
+              type: 'noul',
+              instructions: `Should the streamer respond to chat right now? Chat window: ${rendered}. ${w.flood ? 'Chat is flooding (many messages).' : ''} Prefer answering questions and requests; ignore pure reactions when busy.`,
+              criteria: { true: 'Worth responding now (question/request/notable message)', false: 'Not worth responding now (only reactions, or flooding with nothing actionable)' },
+            },
+            pick: {
+              type: 'choice',
+              instructions: 'Which chat message should the streamer answer first? Candidates come from the live chat window.',
+              criteria,
+            },
+            pointcast: {
+              type: 'noul',
+              instructions: `Is this chat asking the streamer to do something in the game (a request), rather than just reacting? Window: ${rendered}.`,
+              criteria: { true: 'A request/instruction about what to do in game', false: 'Just a reaction, joke, or comment' },
+            },
+          },
+          audienceCfg,
+        )
+        return {
+          replyNow: r.answers.reply_now.noul,
+          pick: map.get(r.answers.pick.choice),
+          pointcast: r.answers.pointcast.noul,
+        }
+      },
+    },
+  )
+
+  // 弹幕文案缓存（异步刷新、同步取用——分类器是 async，而 systemPrompt.context 要同步）
+  let audienceText = ''
+  const refreshAudience = async (): Promise<void> => {
+    try {
+      const lines: string[] = []
+      const rendered = audience.render()
+      if (rendered) lines.push(rendered)
+      lines.push(...audience.surfaceProfiles())
+      if (rendered) {
+        const adv = await audience.advise()
+        lines.push(
+          `【观众建议】${adv.shouldReply ? '可以回应' : '先不回'}：${adv.reason}`
+          + `${adv.pick ? `｜先回「${adv.pick.slice(0, 20)}」` : ''}`
+          + `${adv.pointcast ? '（点播：若想采纳需过目标防抖，且不得压倒安全）' : ''}`
+          + `〔${adv.source === 'classifier' ? '快决策' : '启发式'}〕`,
+        )
+      }
+      audienceText = lines.join('\n')
+    } catch { audienceText = '' }
+  }
+  ctx.setInterval(() => { void refreshAudience() }, 3000)
+
+  // 弹幕摄取①：MC 公屏也当弹幕流（高频时同样需要聚合，否则会把每步预算冲垮）
+  // 弹幕摄取②：data/danmaku.jsonl 尾随——未来的 B 站/QQ 适配器只需往里追加一行
+  const danmakuPath = join(dataDir, 'danmaku.jsonl')
+  let danmakuOffset = 0
+  try { danmakuOffset = existsSync(danmakuPath) ? readFileSync(danmakuPath, 'utf-8').length : 0 } catch { /* 首次读不到就从头 */ }
+  ctx.setInterval(() => {
+    try {
+      if (!existsSync(danmakuPath)) return
+      const raw = readFileSync(danmakuPath, 'utf-8')
+      if (raw.length <= danmakuOffset) return
+      const chunk = raw.slice(danmakuOffset)
+      const lastNl = chunk.lastIndexOf('\n')
+      if (lastNl < 0) return                    // 半行不消费（防 JSON 截断）
+      danmakuOffset += lastNl + 1
+      for (const line of chunk.slice(0, lastNl).split('\n')) {
+        const t = line.trim()
+        if (!t) continue
+        try {
+          const m = JSON.parse(t) as { source?: string; senderKey?: string; name?: string; text?: string; kind?: 'chat' | 'gift' | 'superchat' }
+          if (m?.text) audience.ingest({ source: m.source || 'external', senderKey: m.senderKey, name: m.name, text: m.text, kind: m.kind })
+        } catch { /* 坏行跳过，不影响后续 */ }
+      }
+    } catch { /* 尾随失败不影响其它感知 */ }
+  }, 1000)
+
   // 快决策（本地 System One / Jev 系）预热：冷启 ~2.5s，暖态 ~200ms。
   // 现在只预热、不接决策（反射层是下一轮的事）；服务不在线就报一声，不影响别的。
   if (config.deciderPrewarm !== false) {
@@ -1353,6 +1458,13 @@ async function spawnTransmigrator(
         // 目标块（2026-08-22 动态化）：mission 固定作价值坐标，activeGoal 是
         // 当前中尺度目标（可被 mc_set_goal 更新）。用 context+函数保证每次构建
         // prompt 都读最新目标；不塞进静态 section，否则设完目标永不刷新。
+        // 弹幕（观众）感知：目标环要的那一路——观众在说什么、值不值得回应、是不是点播。
+        // 位置紧邻目标段：它是"目标选择"的输入之一，而不是普通环境噪声。
+        agentCtx.systemPrompt.context({
+          name: 'mc:audience',
+          order: 98,
+          text: () => audienceText,
+        })
         agentCtx.systemPrompt.context({
           name: 'mc:goal',
           order: 99,
@@ -1789,6 +1901,48 @@ async function spawnTransmigrator(
     }))
     log('mc_set_goal 工具已注册')
   } catch (err) { log(`mc_set_goal 注册跳过：${err instanceof Error ? err.message : err}`) }
+
+  // 观众档案（直播记忆的慢侧）：recall 取整份、note 补事实、list 看计数。
+  // 弹幕正文不带 id（去名化同样适用）：认人只认 [观众档案] 浮现行给的 id。
+  try {
+    ctx.tools.register(defineTool({
+      name: 'mc_viewer',
+      description:
+        '管理「观众档案」：recall=按 source/sender_key 取某个观众的整份档案（弹幕正文不带 id，id 只在自动浮现的 [观众档案] 行里给）；'
+        + 'note=把你新记下的关于这个人的事实追加进档案（首行是一句话摘要，会在他下次出现时自动浮现）；'
+        + 'list=看各来源有多少份档案。只记真正值得长期留的：偏好、约定、帮过你的事、梗。',
+      parameters: {
+        action: { type: 'string', required: true, description: 'recall | note | list' },
+        source: { type: 'string', description: '来源平台（如 mc / bilibili / qq）' },
+        sender_key: { type: 'string', description: '平台侧稳定 id（浮现行里 [观众档案] 后面的那串）' },
+        summary: { type: 'string', description: 'note 时的首行一句话摘要（更新整份印象用）' },
+        fact: { type: 'string', description: 'note 时要追加的一条事实' },
+      },
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: String(value) }] },
+      execute: async (args: Record<string, unknown>) => {
+        const action = String(args.action ?? '').toLowerCase()
+        const source = String(args.source ?? '')
+        const key = String(args.sender_key ?? '')
+        if (action === 'list') {
+          const counts = audience.profileCounts()
+          const total = Object.values(counts).reduce((a, b) => a + b, 0)
+          return total ? `共 ${total} 份档案：${Object.entries(counts).map(([k, v]) => `${k} ${v} 份`).join('、')}` : '还没有任何观众档案。'
+        }
+        if (!source || !key) return '要 source 和 sender_key（id 只在 [观众档案] 浮现行里给，别凭名字猜）。'
+        if (action === 'recall') {
+          const p = audience.readProfile(source, key)
+          if (!p) return `没有 ${source}/${key} 的档案（新面孔的话，先聊过、觉得值得记再 note）。`
+          return `【${source}/${key}】${p.summary}\n${p.body || '（暂时只有摘要）'}`
+        }
+        if (action === 'note') {
+          audience.noteProfile(source, key, String(args.summary ?? ''), String(args.fact ?? ''))
+          return `已记入 ${source}/${key} 的档案。`
+        }
+        return 'action 只支持 recall / note / list。'
+      },
+    }))
+    log('mc_viewer 工具已注册（观众档案）')
+  } catch (err) { log(`mc_viewer 注册跳过：${err instanceof Error ? err.message : err}`) }
 
   // 能力复盘（自主学习闭环，2026-08-22）：把「我掌握的能力」交给穿越者自省——
   // 结合法术书（种子词表+学习进度）、魔力层级，生成一份「我已掌握/可咏唱/尚不能」卡片。

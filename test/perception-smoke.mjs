@@ -12,6 +12,10 @@ import { createPerception, sensesSnapshot, HOSTILE_TYPES, gameClock, weatherOf, 
 import { createVisionGuard, readVisionSentinel, writeVisionSentinel, clearVisionSentinel } from '../src/mc-camera.ts'
 import { validateAnswers, isFresh, decideFresh, DECIDER_THRESHOLDS, pickChoice } from '../src/mc-decider.ts'
 import { dayPhase, terrainStatusOf, terrainProbe, nearbyBlockNames, capabilityFlags, inventoryCounts, classificationState } from '../src/mc-perception.ts'
+import { createAudienceChannel, normalizeDanmaku, salienceOf } from '../src/mc-audience.ts'
+import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 let pass = 0
 let fail = 0
@@ -539,6 +543,93 @@ console.log('\n[16] 解释层：分类器要的小枚举（地形/时间/能力/
   ok(typeof cs.threat.creeper_distance === 'number', '含苦力怕距离（决策关键量）')
   const roundTrip = JSON.parse(JSON.stringify(cs))
   ok(roundTrip.current_goal === 'craft_tools' && roundTrip.recent_actions.length === 2, '裁剪状态可完整序列化（状态里不许有 bot 对象）')
+}
+
+console.log('\n[17] 弹幕（观众）感知：聚合 / 洪水 / 预算 / 档案 / 分类器降级')
+{
+  ok(normalizeDanmaku('快去　挖铁！！！') === '快去挖铁', '归一化：全角+标点+空格都去掉（用于合并刷屏）')
+  ok(normalizeDanmaku('ABC') === normalizeDanmaku('abc'), '归一化：大小写无关')
+  const d = salienceOf({ source: 'mc', text: '快去挖铁' }, 1, false)
+  const q = salienceOf({ source: 'mc', text: '你在干嘛？' }, 1, false)
+  const e = salienceOf({ source: 'mc', text: '哈哈哈' }, 1, false)
+  ok(d > q && q > e, `显著度排序：指令(${d}) > 提问(${q}) > 情绪(${e})`)
+  ok(salienceOf({ source: 'mc', text: '随便说点', kind: 'superchat' }, 1, false) > d, '醒目留言显著度最高')
+  ok(salienceOf({ source: 'mc', text: '挖铁' }, 5, false) > salienceOf({ source: 'mc', text: '挖铁' }, 1, false), '重复刷屏提升显著度')
+
+  const dir = mkdtempSync(join(tmpdir(), 'aud-'))
+  const ch = createAudienceChannel({ viewersDir: join(dir, 'viewers'), statePath: join(dir, 'state.json'), windowId: 'sess1' }, {})
+  const t0 = 1_000_000
+  ok(ch.render(t0) === '', '空窗口不产出（不占预算）')
+  for (let i = 0; i < 12; i++) ch.ingest({ source: 'mc', name: `v${i}`, text: '快去挖铁', at: t0 })
+  ch.ingest({ source: 'mc', name: 'q1', text: '你会做铁镐吗？', at: t0 })
+  ch.ingest({ source: 'mc', name: 'e1', text: '哈哈哈哈哈', at: t0 })
+  const w = ch.window(t0)
+  ok(w.count === 14 && w.senders.length === 14, `窗口聚合：${w.count} 条 / ${w.senders.length} 人`)
+  ok(w.clusters[0].text === '快去挖铁' && w.clusters[0].count === 12, '重复刷屏合并成一条并计数（指令排第一）')
+  const line = ch.render(t0)
+  ok(/【观众】14 条\/14 人/.test(line) && /指令「快去挖铁」×12/.test(line), '渲染成一行：条数/人数/分类/计数')
+  ok(line.split('\n').length === 1, '弹幕呈现只占一行（预算铁律）')
+
+  // 洪水模式：超过阈值后只留问题/指令/礼物
+  const floodCh = createAudienceChannel({ floodCount: 5, windowId: 'f' }, {})
+  for (let i = 0; i < 6; i++) floodCh.ingest({ source: 'mc', name: `x${i}`, text: `哈哈哈${i}`, at: t0 })
+  floodCh.ingest({ source: 'mc', name: 'q', text: '去挖铁吗？', at: t0 })
+  const fw = floodCh.window(t0)
+  ok(fw.flood === true && fw.clusters.every((c) => c.isQuestion || c.isDirective || c.kind !== 'chat'), '洪水模式：只留问题/指令（纯情绪噪声被攒掉）')
+
+  // 观众档案：note → 首行摘要 + 事实；recall 取回
+  ch.noteProfile('mc', 'alice', '常来送矿的老观众', '今天给了你 3 块铁')
+  const prof = ch.readProfile('mc', 'alice')
+  ok(prof?.summary === '常来送矿的老观众' && /3 块铁/.test(prof?.body ?? ''), '档案：首行=一句话摘要 + 追加事实')
+  ok(ch.profileCounts().mc === 1, '档案计数（前缀卫生：只给计数不给清单）')
+  ok(/不暴露内部接口/.test(ch.viewerMemoryNote()), '观众记忆说明含闭包纪律（对外只讲我在做什么）')
+
+  // 浮现：本窗口首次出现念一次；同一窗口再问不重念；换窗口重新念一次（交接后重念）
+  const ch2 = createAudienceChannel({ viewersDir: join(dir, 'viewers'), statePath: join(dir, 'state2.json'), windowId: 'sess1' }, {})
+  ch2.ingest({ source: 'mc', name: 'alice', senderKey: 'alice', text: '在吗', at: t0 })
+  const first = ch2.surfaceProfiles(t0)
+  ok(first.length === 1 && /观众档案\] mc\/alice/.test(first[0]) && /常来送矿/.test(first[0]), '老观众出现 → 机械唤起一行摘要')
+  ok(ch2.surfaceProfiles(t0).length === 0, '同一窗口内不重念（一个窗口只说一次）')
+  const ch3 = createAudienceChannel({ viewersDir: join(dir, 'viewers'), statePath: join(dir, 'state3.json'), windowId: 'sess2' }, {})
+  ch3.ingest({ source: 'mc', name: 'alice', senderKey: 'alice', text: '又来了', at: t0 })
+  ok(ch3.surfaceProfiles(t0).length === 1, '换窗口（交接后）再出现 → 重新唤起一次')
+  const anon = createAudienceChannel({ viewersDir: join(dir, 'viewers'), windowId: 's' }, {})
+  anon.ingest({ source: 'mc', name: '匿名君', text: '你好', at: t0 })
+  ok(anon.surfaceProfiles(t0).length === 0 && anon.window(t0).newFaces.length === 0, '没有 senderKey（脱敏）→ 静默降级，不立档不报错')
+
+  // 发言预算：冷却 + 每分钟上限
+  const speak = createAudienceChannel({ replyCooldownMs: 1000, maxRepliesPerMinute: 2, windowId: 's' }, {})
+  ok(speak.canSpeak(t0).ok === true, '初始可发言')
+  speak.noteSpoke(t0)
+  ok(speak.canSpeak(t0 + 500).ok === false, '冷却期内不许再发言')
+  ok(speak.canSpeak(t0 + 1500).ok === true, '冷却结束后可发言')
+  speak.noteSpoke(t0 + 1500)
+  const capped = speak.canSpeak(t0 + 2600)   // 越过冷却，专门打「每分钟上限」这条路径
+  ok(capped.ok === false && /本分钟/.test(capped.reason ?? ''), `每分钟上限生效（${capped.reason}）`)
+
+  // 防抖：观众点播不能立刻改目标
+  ok(ch.shouldAdoptAudienceGoal(5_000) === false && ch.shouldAdoptAudienceGoal(20_000) === true, '观众点播需过目标防抖（<15s 不采纳）')
+
+  // advise：无分类器走启发式；有分类器用分类器；分类器抛错必须退回启发式
+  const advCh = createAudienceChannel({ windowId: 'a' }, {})
+  advCh.ingest({ source: 'mc', name: 'v', text: '快去挖铁！', at: t0 })
+  const adv1 = await advCh.advise(t0)
+  ok(adv1.source === 'heuristic' && adv1.shouldReply === true && adv1.pointcast === true && adv1.pick === '快去挖铁！', '启发式建议：有人点播 → 可以回应 + 标为点播')
+  const advCh2 = createAudienceChannel({ windowId: 'a' }, {
+    classify: async () => ({ replyNow: 0.8, pick: '先去挖铁', pointcast: 0.9 }),
+  })
+  advCh2.ingest({ source: 'mc', name: 'v', text: '快去挖铁！', at: t0 })
+  const adv2 = await advCh2.advise(t0)
+  ok(adv2.source === 'classifier' && adv2.pick === '先去挖铁' && adv2.pointcast === true, '有分类器时用分类器判断（pick 与点播标记都来自它）')
+  const advCh3 = createAudienceChannel({ windowId: 'a' }, {
+    classify: async () => { throw new Error('decider down') },
+  })
+  advCh3.ingest({ source: 'mc', name: 'v', text: '快去挖铁！', at: t0 })
+  const adv3 = await advCh3.advise(t0)
+  ok(adv3.source === 'heuristic' && adv3.shouldReply === true, '分类器故障 → 退回启发式（绝不因服务不可用而卡住）')
+  ok(existsSync(join(dir, 'state2.json')), '浮现状态已落盘（热重启不重念靠它）')
+  const st = JSON.parse(readFileSync(join(dir, 'state2.json'), 'utf-8'))
+  ok(st.windowId === 'sess1' && Array.isArray(st.surfaced), '状态文件记录了窗口与其已唤起名单')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)
