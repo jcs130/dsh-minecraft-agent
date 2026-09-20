@@ -19,6 +19,7 @@
  * 租约里那条"反射层仅安全类可抢"的纪律由 `mc-body-lease` 强制。
  */
 import type { DangerLevel, ModeId } from './mc-mode'
+import Vec3 from 'vec3'
 
 export interface ReflexInput {
   hp: number
@@ -34,13 +35,18 @@ export interface ReflexInput {
   agentBusy: boolean
   /** 有可吃的东西吗 */
   hasEdible: boolean
+  /** 多久没有实质进展（毫秒）——来自世界模型 paralysis.stalledMs */
+  stalledMs?: number
   /** 该方向是否安全（供选逃向：返回 true 表示那一侧没危险/不是悬崖） */
   safeDirection?: (dx: number, dz: number) => boolean
   /** 各敌对相对方位（用于选"背离"方向） */
   threats?: Array<{ dx: number; dz: number; distance: number }>
 }
 
-export type ReflexId = 'surface' | 'escape' | 'eat'
+export type ReflexId = 'surface' | 'escape' | 'eat' | 'unstick'
+
+/** 「证明性卡死」阈值：这么久没有任何进展，允许抢占正在打转的 LLM（须留痕）。 */
+export const UNSTICK_AFTER_MS = 8 * 60_000
 
 export interface ReflexSpec {
   id: ReflexId
@@ -83,7 +89,23 @@ const eat: ReflexSpec = {
   survival: 6, maxMs: 3000,
 }
 
-export const REFLEXES: readonly ReflexSpec[] = [surface, escape, eat] as const
+/** 解卡：脚下可挖就挖穿（掉下去）——纯判定，便于单测。 */
+export function shouldDigDown(blockBelow: { name?: string } | null | undefined): boolean {
+  if (!blockBelow?.name) return false
+  const nm = blockBelow.name.replace(/^minecraft:/, '')
+  if (nm === 'air' || nm === 'cave_air' || nm === 'void_air') return false
+  return !/lava|water|fire|bedrock|barrier|portal|obsidian/i.test(nm)
+}
+
+/** 解卡反射：证明性卡死（≥8min 无进展）时做一次脱困。 */
+const unstick: ReflexSpec = {
+  id: 'unstick', zh: '解卡脱困',
+  when: (s) => (s.stalledMs ?? 0) >= UNSTICK_AFTER_MS,
+  why: (s) => `已经 ${Math.round((s.stalledMs ?? 0) / 60000)} 分钟没有任何进展（位置/背包/目标都没动）——不能再等它自己转出来`,
+  survival: 7, maxMs: 3000,
+}
+
+export const REFLEXES: readonly ReflexSpec[] = [surface, escape, eat, unstick] as const
 
 /**
  * 选一个该做的反射（纯函数）。返回 null = 不必插手。
@@ -91,7 +113,11 @@ export const REFLEXES: readonly ReflexSpec[] = [surface, escape, eat] as const
  */
 export function pickReflex(s: ReflexInput): ReflexSpec | null {
   const critical = s.danger >= 4
-  if (s.agentBusy && !critical) return null   // 不跟正在跑的动作拔河
+  // 正当抢占只有两种：①安全（危急，立即）②**证明性卡死**（≥8min 无进展）。
+  // 后者是 2026-09-20 真跑加的：爱德华卡在树冠上 50 分钟，LLM 一直在转却毫无进展，
+  // 而"不跟忙碌中的 agent 拔河"这条规则恰好让它帮不上忙 —— 那种情况下必须允许插手。
+  const provenStuck = (s.stalledMs ?? 0) >= UNSTICK_AFTER_MS
+  if (s.agentBusy && !critical && !provenStuck) return null
   // 按生存分从高到低挑第一条满足的
   const candidates = [...REFLEXES].sort((a, b) => b.survival - a.survival).filter((r) => {
     try { return r.when(s) } catch { return false }
@@ -223,6 +249,36 @@ export async function actEat(bot: unknown, ms: number): Promise<void> {
   const withTimeout = (p: Promise<unknown>, t: number) => Promise.race([p, sleep(t).then(() => { throw new Error('超时') })])
   await withTimeout(b.equip(edible, 'hand'), Math.min(ms, 1500))
   await withTimeout(b.consume(), Math.max(500, ms - 1500))
+}
+
+/** 解卡动作：脚下可挖就挖穿，否则朝朝向迈一步冲出悬空边缘。 */
+export async function actUnstick(bot: unknown, ms: number): Promise<void> {
+  const b = bot as {
+    entity?: { position?: { x: number; y: number; z: number }; yaw?: number }
+    blockAt?: (v: unknown) => { name?: string } | null
+    dig?: (block: unknown) => Promise<void>
+    setControlState?: (k: string, v: boolean) => void
+    look?: (yaw: number, pitch: number, force?: boolean) => Promise<void>
+  }
+  const p = b?.entity?.position
+  if (!p || !b.blockAt || !b.setControlState) return
+  const below = ((): { name?: string } | null => {
+    try { return b.blockAt!(new Vec3(Math.floor(p.x), Math.floor(p.y) - 1, Math.floor(p.z))) as { name?: string } | null } catch { return null }
+  })()
+  if (shouldDigDown(below) && b.dig) {
+    try { await b.dig(below) } catch { /* 挖不动，退化为迈步 */ }
+    return
+  }
+  const yaw = b.entity?.yaw ?? 0
+  try { await b.look?.(yaw, 0, true) } catch { /* 转向失败照常走 */ }
+  b.setControlState('forward', true)
+  b.setControlState('sprint', true)
+  await new Promise<void>((r) => setTimeout(r, Math.max(400, ms)))
+  b.setControlState('jump', true)
+  await new Promise<void>((r) => setTimeout(r, 150))
+  b.setControlState('jump', false)
+  b.setControlState('forward', false)
+  b.setControlState('sprint', false)
 }
 
 function sleep(ms: number): Promise<void> {

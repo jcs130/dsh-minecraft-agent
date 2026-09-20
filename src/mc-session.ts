@@ -49,7 +49,7 @@ import { createAudienceChannel, AUDIENCE_INVARIANTS } from './mc-audience'
 import { createGuidanceQueue } from './mc-guidance'
 import { loadSkins } from './agent-store'
 import { createModeMachine, decideMode, renderMode, tickFor, type ModeStateInput } from './mc-mode'
-import { pickReflex, escapeDirection, runReflex, actSurface, actEscape, actEat } from './mc-reflex'
+import { pickReflex, escapeDirection, runReflex, actSurface, actEscape, actEat, actUnstick } from './mc-reflex'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -1460,6 +1460,8 @@ async function spawnTransmigrator(
           nearestThreat: wm.threat.nearest,
           creeperDistance: wm.threat.creeperDist,
           mode: lastMode.mode, danger: lastMode.danger,
+          // 证明性卡死要用它：≥8 分钟无进展时允许解卡反射抢占正在打转的 LLM
+          stalledMs: wm.paralysis.stalledMs,
           agentBusy,
           hasEdible: wm.stock.hasEdible,
           threats,
@@ -1493,6 +1495,7 @@ async function spawnTransmigrator(
           act: async (ms) => {
             if (spec.id === 'surface') return actSurface(bot, ms)
             if (spec.id === 'eat') return actEat(bot, ms)
+            if (spec.id === 'unstick') return actUnstick(bot, ms)
             const dir = escapeDirection(input) ?? { dx: 1, dz: 0 }
             return actEscape(bot, dir, ms)
           },
