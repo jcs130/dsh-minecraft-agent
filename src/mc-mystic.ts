@@ -428,7 +428,7 @@ export function apply(ctx: Context, config: Config) {
       const chant = String(args.chant ?? '').trim()
       if (!chant) return '你没有咏唱任何咒语'
       const bot = getBot()
-      if (!bot.entity) return '你尚未在此界立足，无法咏唱。'
+      if (!bot.entity) return '女神化身尚未就位（连接未稳），咏唱暂不可行。稍候片刻再试；或先砍树造木剑、寻村庄避夜自保。'
       const me = bot.username
       // ── 自主学习·发唱前防呆（2026-08-22）：照法术书标准词校核，造词→改写/拦截 ──
       // mc-spellbook 是服务定位器读数口；未就绪则跳过（不阻断咏唱本身）。
@@ -487,6 +487,10 @@ export function apply(ctx: Context, config: Config) {
         return chantNote + '\n' + prefix + body
       }
       if (!reply) return prefix + '（世界静默——天神似乎没有听见你的咒语，或咒语里没有她们认识的法术关键词。）'
+      // 失败回执必须给"下一步怎么办"，否则穿越者只会重复同一个错词（线上 8/24 修复，本次回填）
+      if (chantFailed) {
+        return prefix + reply + '\n（这次没灵——多半是等级不足或词不对。用 mc_skills 看你现在能咏哪些，再用 mc_spell_detail 查标准词照咏。）'
+      }
       return prefix + reply
     },
   }))
@@ -515,7 +519,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
       '女神握有全部技艺，会视情形裁量：可能代施、可能拒绝、可能提条件。' +
       '神恩不轻授：祈愿时宜献上供奉（见 offering 参数）——供品从你的行囊消失、归入神库，女神按供品贵贱与你的供奉历史掂量虔诚度，再决定帮不帮、帮多少。' +
       '祈愿会进入女神的收件箱按序处理——本工具立即返回「已上达天听」，神谕稍后以女神私聊送达（留心之后的私语，勿重复祈愿、勿枯等）。' +
-      '只在真正需要时才祈愿，不要滥用。',
+      '只在真正需要时才祈愿，不要滥用。【绝境可求怜悯】若你已山穷水尽——血见底、饿得快撑不住、被怪物围殴、没有武器护甲、落单在危险之地——即便交不出像样的供奉，也要开口把你的苦处告诉女神（供奉该写就写，实在没有就空手）。女神会看见你的处境：你死了多少次、饿成什么样，她都看在眼里；出于怜悯，她可能在你走投无路时出手庇护，给你喘息与转机。真到绝境，开口求神不是示弱，是求生。',
     parameters: {
       wish: { type: 'string', required: true, description: '你向天神祈愿的内容，用自然语言，如「伟大的女神，我尚未学会传送之术，请施展神力送我向东十格」或「我受了重伤，请治愈我」' },
       offering: {
@@ -530,7 +534,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
       const wish = String(args.wish ?? '').trim()
       if (!wish) return '没有祈愿内容'
       const bot = getBot()
-      if (!bot.entity) return '你尚未在此界立足，无法祈愿。'
+      if (!bot.entity) return '女神化身尚未就位（连接未稳），祈愿暂不能送达。稍候片刻再试；危难中先砍树造木剑、寻亮处避夜自保——天神在听，只是此刻够不着此界。'
       // 供奉自检：名目可辨 + 行囊里有货（世界侧还会权威复核再收执）。
       const offeringText = String(args.offering ?? '').trim()
       let offer = null as ReturnType<typeof resolveOfferingText>
@@ -598,7 +602,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
         const deal = String(args.deal ?? '').trim()
         if (!deal) return '没有交割内容'
         const bot = getBot()
-        if (!bot.entity) return '你尚未在此界立足，无法交割。'
+        if (!bot.entity) return '女神化身尚未就位（连接未稳），交易暂不可行。稍候片刻再试。'
         try {
           bot.whisper(config.godName, `交易：${deal}`)
         } catch {
@@ -639,7 +643,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
     timeoutMs: 60_000,
     execute: async (args: Record<string, unknown>) => {
       const bot = getBot()
-      if (!bot.entity) return '你尚未在此界立足。'
+      if (!bot.entity) return '女神化身尚未就位（连接未稳），此事暂不可行。稍候片刻再试。'
       const me = bot.username
       if (store.get(me)) return '你早已选定出生天赋，无需再次降临。'
       const skill = String(args.skill ?? '').trim()
@@ -711,7 +715,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
       const body = String(args.text ?? '').trim()
       if (!body) return '你没有说话'
       const bot = getBot()
-      if (!bot.entity) return '你尚未在此界立足，说不出话。'
+      if (!bot.entity) return '女神化身尚未就位（连接未稳），传话暂不可行。稍候片刻再试。'
       const style = String(args.style ?? 'say').toLowerCase()
       const mode = style === 'shout' ? '喊' : style === 'whisper' ? '悄悄' : '说'
       try {
@@ -749,7 +753,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
     execute: async (args: Record<string, unknown>) => {
       const action = String(args.action ?? '').trim().toLowerCase()
       const bot = getBot()
-      if (!bot.entity) return '你尚未在此界立足。'
+      if (!bot.entity) return '女神化身尚未就位（连接未稳），此事暂不可行。稍候片刻再试。'
       let command = ''
       if (action === 'send') {
         const to = String(args.to ?? '').trim()
@@ -798,7 +802,7 @@ function looksLikeWorldQuestion(wish: string): boolean {
     execute: async (args: Record<string, unknown>) => {
       const action = String(args.action ?? '').trim().toLowerCase()
       const bot = getBot()
-      if (!bot.entity) return '你尚未在此界立足。'
+      if (!bot.entity) return '女神化身尚未就位（连接未稳），此事暂不可行。稍候片刻再试。'
       let command = ''
       if (action === 'list') {
         command = '/friend list'

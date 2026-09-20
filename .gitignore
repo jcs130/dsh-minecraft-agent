@@ -88,3 +88,22 @@ deepseek-harness/
 .commitmsg.tmp  
 mc-server-neoforge/
 .commitmsg
+
+# 本地临时件（感知层改造期间产生；可再生成，不入库）
+*.bak-*
+*.bak2
+*.bak3
+*.bak4
+*.bak5
+*.bak6
+test/*.bundle.mjs
+_patch_*.py
+_bf_*.py
+_finalize.py
+_diff_*.txt
+_head/
+_eb/
+_test_*.mjs
+_test_out*.txt
+_syntax_check.mjs
+_commitmsg.txt

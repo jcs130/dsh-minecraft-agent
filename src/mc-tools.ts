@@ -15,6 +15,12 @@ import type { McStoreService } from './mc-store'
 import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { botFor } from './mc-bots'
 
+import { sensesSnapshot, isUnloadedBlock, bagStamp, worldStamp, createReadoutGate } from './mc-perception'
+
+// 读数闸（Cortico readouts.ts）：同一份读数在窗口内重复问 → 回一句「已答过」。
+// 指纹**不含时钟**（会随时间变的字段进指纹 = 这道闸等于不存在）。
+const readoutGate = createReadoutGate(120_000)
+
 export const name = 'mc-tools'
 export const inject = ['tools', 'mcbot', 'mcStore']
 
@@ -1155,19 +1161,31 @@ export function apply(ctx: Context, config: Config = {}) {
   // ── Observe: position / health / food / held item / inventory ────────
   ctx.tools.register(defineTool({
     name: 'mc_status',
-    description: 'Get the bot\'s current state: position, health, food, held item and inventory.',
+    description:
+      '自查全身状态（按需档的具身快照，比每步自动感知更全）：本体（坐标/面朝/站立/速度/睡眠）、内感（生命/饱食/饱和/氧气/经验/药水效果）、'
+      + '外感·视（视线内方块、四向、脚下、所在方块光照、群系）、威胁（近处敌对怪数量与最近方位、可见实体含掉落物）、'
+      + '库存（全部物品、手持、装备、**低耐久警告**）、社会（在线旅人数量与方位，不具名）、元（已加载区块=你的感知范围）。'
+      + '想知道「我现在到底什么状况、身上还够不够、周围有没有威胁」时用它。坐标/血/食这类每步自动感知里已有，不必为此调用。',
     parameters: {},
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     execute: guard(async (bot) => {
-      const p = bot.entity!.position
-      const items = bot.inventory.items().map((i) => `${i.name} x${i.count}`)
-      return JSON.stringify({
-        position: { x: Math.round(p.x), y: Math.round(p.y), z: Math.round(p.z) },
-        health: bot.health,
-        food: bot.food,
-        heldItem: bot.heldItem ? bot.heldItem.name : null,
-        inventory: items,
-      })
+      const snap = sensesSnapshot(bot, hasLineOfSight as never)
+      let stamp = 'unknown'
+      try {
+        const slots = (bot.inventory as unknown as { slots?: unknown[] }).slots
+        const items = bot.inventory.items()
+        stamp = bagStamp({
+          items,
+          slotsUsed: Array.isArray(slots) ? slots.filter((x) => x != null).length : -1,
+          slotsTotal: Array.isArray(slots) ? slots.length : -1,
+          held: bot.heldItem ? bot.heldItem.name : null,
+          equipment: (bot.entity as unknown as { equipment?: Array<{ name?: string } | null> }).equipment ?? [],
+        })
+      } catch { /* 指纹失败就照常答 */ }
+      if (readoutGate.duplicate('status', stamp)) {
+        return '（这份读数刚才答过、且没有变化——不重复给出。要最新世界状态，直接看你每步注入的【世界模型】行。）'
+      }
+      return JSON.stringify(snap, null, 1)
     }),
   }))
 
@@ -1729,6 +1747,10 @@ export function apply(ctx: Context, config: Config = {}) {
     output: { schema: { type: 'string' }, render: (_args, value) => text(value) },
     execute: guard(async (bot) => {
       const pos = bot.entity!.position.floored()
+      // 雷达指纹 = 站的位置：没挪窝就是同一份读数（Cortico：答案在窗口内不会变）
+      if (readoutGate.duplicate('scan', `${pos.x},${pos.y},${pos.z}`)) {
+        return '（你没挪窝，四周雷达和刚才那份一样——不重复给出。要走动后再看，或换 mc_map 看更大范围。）'
+      }
       const headY = pos.y + 1 // 头部所在格
 
       // 朝向（mineflayer yaw：forward = (-sin yaw, -cos yaw)）
@@ -1771,7 +1793,10 @@ export function apply(ctx: Context, config: Config = {}) {
       const surroundings: Record<string, string> = {}
       for (const [label, ox, oz] of dirs) {
         const b = bot.blockAt(new Vec3(pos.x + ox, pos.y + 1, pos.z + oz))
-        surroundings[label] = b && b.boundingBox !== 'empty' ? `${b.name} 挡路` : '开阔'
+        // 认知边界：blockAt 返回 null = 该区块未加载（≠ 空气），不许当成「开阔」
+        surroundings[label] = isUnloadedBlock(b)
+          ? '未加载（不可知）'
+          : b && b.boundingBox !== 'empty' ? `${b.name} 挡路` : '开阔'
       }
 
       // 危险液体（8 格内）
@@ -1852,6 +1877,9 @@ export function apply(ctx: Context, config: Config = {}) {
     execute: guard(async (bot, args) => {
       const R = Math.max(2, Math.min(12, Math.round(Number(args.radius) || 6)))
       const pos = bot.entity!.position.floored()
+      if (readoutGate.duplicate(`map${R}`, `${pos.x},${pos.y},${pos.z}`)) {
+        return `（你还在原地，半径 ${R} 的地形图和刚才那份一样——不重复给出。）`
+      }
       const bx = pos.x
       const bz = pos.z
       const feetY = Math.floor(bot.entity!.position.y)
@@ -1862,6 +1890,10 @@ export function apply(ctx: Context, config: Config = {}) {
         const above = bot.blockAt(new Vec3(x, feetY + 1, z))
         const ground = bot.blockAt(new Vec3(x, feetY, z))
         const below = bot.blockAt(new Vec3(x, feetY - 1, z))
+        // 认知边界：三格全 null = 未加载区块，标 '?' 而不是「悬崖/悬空」
+        if (isUnloadedBlock(above) && isUnloadedBlock(ground) && isUnloadedBlock(below)) {
+          return { ch: '?', surface: '未加载（不可知）' }
+        }
         const na = nameOf(above)
         const ng = nameOf(ground)
         const nb = nameOf(below)
@@ -1874,6 +1906,7 @@ export function apply(ctx: Context, config: Config = {}) {
 
       const legend: Record<string, string> = {
         '●': '你', '.': '平地·可走', '#': '石壁/实心', 'T': '树/植被', '≈': '水', 'M': '岩浆', '·': '悬崖/悬空',
+        '?': '未加载（不可知，别猜）',
       }
       const grid: string[] = []
       for (let dz = -R; dz <= R; dz++) {
@@ -1906,8 +1939,8 @@ export function apply(ctx: Context, config: Config = {}) {
       lines.push('        北↑')
       for (const row of grid) lines.push(`        ${row}`)
       lines.push('        南↓')
-      lines.push(`图例：${['●', '.', '#', 'T', '≈', 'M', '·'].map((k) => `${k}=${legend[k]}`).join('  ')}`)
-      lines.push(`脚下=${groundHere?.name ?? '未知'}；朝向=${facing}${hazards.length ? `；近处危险：${hazards.join('；')}` : ''}`)
+      lines.push(`图例：${['●', '.', '#', 'T', '≈', 'M', '·', '?'].map((k) => `${k}=${legend[k]}`).join('  ')}`)
+      lines.push(`脚下=${groundHere && !isUnloadedBlock(groundHere) ? groundHere.name : '未加载（不可知）'}；朝向=${facing}${hazards.length ? `；近处危险：${hazards.join('；')}` : ''}`)
       return lines.join('\n')
     }),
   }))

@@ -36,6 +36,7 @@ import { realpath } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
+import { createPerception } from './mc-perception'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -1224,201 +1225,70 @@ async function spawnTransmigrator(
   // 自动带：朝向、脚下地质、16 格实体雷达（含玩家）、8 格危险液体。
   // 纯 mineflayer 只读查询，零工具调用、零 LLM 额外往返。
   // ------------------------------------------------------------------
+  // ── 感知层（具身智能分类，2026-09-20）────────────────────────────────
+  // 分类与三档见 mc-perception.ts 头部：本体感受 / 内感受 / 外感受(视·听·触) /
+  // 时间 / 空间(含认知边界) / 社会 / 动作反馈 / 元认知。
+  //   status()          = 每步底线注入（门控：变了才说、危险必说）
+  //   事件入队           = mineflayer 事件增量，随下一次注入吐出（合并去重限流）
+  //   sensesSnapshot()  = 按需全量快照（mc_status 工具，不进每步）
+  const perception = createPerception({
+    body,
+    username,
+    log,
+    // 社会感知只喂「亲耳听到的」：聊天/私语（上位者已标注）+ NPC/神谕/信使台词。
+    // 名字只在这条真实社交路径上出现（去名化铁律：平白知道的一律不具名）。
+    socialLines: () => {
+      const out: string[] = []
+      const chat = drainChat()
+      if (chat) out.push(chat.split('\n').map((l) => `💬 ${l}`).join('\n'))
+      const npc = drainNpc()
+      if (npc) out.push(npc)
+      return out
+    },
+    recentActions: () => (store?.episodicTail(username, 8) ?? []).map((r) => r.text).filter(Boolean),
+    // decision_trace 落盘目录（慢循环可离线重放"当时看到的世界"）
+    dataDir,
+    // 死亡热点簇 → 世界模型的"我是否正站在死亡区里"（neko 的 insideDeathZone）
+    deathZones: () => {
+      try {
+        const file = loadJson<HotspotFile>(hotspotsPath, { clusters: {} as never })
+        return Object.values(file.clusters ?? {})
+          .map((c) => ({ x: c.x, z: c.z, r: 24, count: c.count }))
+      } catch { return [] }
+    },
+  })
+
+  // 每步注入（system prompt 组装时求值）：感知文本由感知层产出，本包装另负责
+  // ①社交/死亡监听武装（幂等）②指导块缓存更新（mc:guidance 读缓存）。
   const perceive = (): string => {
+    const bot = body()
+    if (bot) {
+      try { ensureChatListener(bot) } catch { /* 监听武装失败不阻塞感知 */ }
+      try { ensureMessageListener(bot) } catch { /* 同上 */ }
+      try { ensureDeathListener(bot) } catch { /* 同上 */ }
+    }
+    const text = perception.status()
     try {
-      const bot = body()
-      const p = bot?.entity?.position
-      if (!p) return '(尚未出生 — 等待身体接入方块世界)'
-      const parts = [
-        `位置: (${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)})`,
-        `生命: ${Math.round(bot!.health)} / 20`,
-        `饱食: ${Math.round(bot!.food)} / 20`,
-      ]
-      // 聊天感知（人人平等）：所有同伴说的话都进上下文，不区分玩家/机器人。
-      let freshChatText = ''
-      try {
-        ensureChatListener(bot!)
-        freshChatText = drainChat()
-        if (freshChatText) parts.push(`最近同伴们说的话：\n${freshChatText}`)
-      } catch { /* 聊天监听失败不阻塞状态组装 */ }
-      // 村庄感知：NPC（<铁匠·岳山>）/ 神谕（[女神]）/ 信使（[信使]）的 tellraw 台词。
-      try {
-        ensureMessageListener(bot!)
-        const npcLines = drainNpc()
-        if (npcLines) parts.push(`NPC/神谕话语：\n${npcLines}`)
-      } catch { /* 村庄监听失败不阻塞 */ }
-      // 朝向（mineflayer yaw：forward = (-sin yaw, -cos yaw)）
-      try {
-        const yaw = bot!.entity!.yaw ?? 0
-        const dx = -Math.sin(yaw)
-        const dz = -Math.cos(yaw)
-        parts.push(`面向: ${Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? '东' : '西') : (dz > 0 ? '南' : '北')}`)
-      } catch { /* yaw 缺席跳过 */ }
-      // 脚下地质
-      try {
-        const under = bot!.blockAt(p.offset(0, -1, 0))
-        if (under) parts.push(`脚下: ${under.name}`)
-      } catch { /* blockAt 失败跳过 */ }
-      // 附近迷你地形（5×5，北↑，你在中心 ●）：拍一圈即时空间感，零工具调用零 LLM。
-      // 符号同 mc_map（.=可走 #=石壁 T=树 ≈=水 M=岩浆 ·=悬空），只进 prompt 一行。
-      // 想看更大范围/更完整俯视图，用 mc_map 工具调大半径。
-      try {
-        const bx = Math.round(p.x)
-        const bz = Math.round(p.z)
-        const fy = Math.floor(p.y)
-        const mini = (x: number, z: number): string => {
-          const above = bot!.blockAt(new Vec3(x, fy + 1, z))
-          const g = bot!.blockAt(new Vec3(x, fy, z))
-          const below = bot!.blockAt(new Vec3(x, fy - 1, z))
-          const na = above?.name ?? ''
-          const ng = g?.name ?? ''
-          const nb = below?.name ?? ''
-          if (/water|lava/.test(na + ng)) return /lava/.test(na + ng) ? 'M' : '≈'
-          if (above && above.boundingBox !== 'empty') return /log|leaves|mangrove|bamboo/.test(na) ? 'T' : '#'
-          if (g && g.boundingBox !== 'empty') return /log|leaves|mangrove|bamboo/.test(ng) ? 'T' : '.'
-          if (below && below.boundingBox !== 'empty') return /water|lava/.test(nb) ? (/lava/.test(nb) ? 'M' : '≈') : '.'
-          return '·'
-        }
-        let mapRow = ''
-        for (let dz = -2; dz <= 2; dz++) {
-          for (let dx = -2; dx <= 2; dx++) {
-            mapRow += dx === 0 && dz === 0 ? '●' : mini(bx + dx, bz + dz)
-          }
-        }
-        parts.push(`周围地形(北↑,5×5,你●): ${mapRow}`)
-      } catch { /* 迷你地形失败不阻塞 */ }
-      const inv = bot!.inventory.items()
-      if (inv.length) parts.push(`背包: ${inv.map((i) => `${i.name} x${i.count}`).join(', ')}`)
-      const isNight = bot!.time?.timeOfDay != null && bot!.time.timeOfDay > 13000 && bot!.time.timeOfDay < 23000
-      parts.push(`时间: ${isNight ? '夜晚（危险）' : '白天'}`)
-      // 相对方位（8 方位）：环境感知的基本信息——方向+距离，名字仍去名化。
-      const relDir = (dx: number, dz: number): string => {
-        const ax = Math.abs(dx)
-        const az = Math.abs(dz)
-        if (ax === 0 && az === 0) return '脚下'
-        const ew = dx >= 0 ? '东' : '西'
-        const ns = dz >= 0 ? '南' : '北'
-        if (ax >= az * 2) return ew
-        if (az >= ax * 2) return ns
-        return ew + ns
-      }
-      // 实体雷达（16 格，最多 6 个，玩家去名化）
-      try {
-        const ents = Object.values((bot as unknown as { entities?: Record<string, unknown> }).entities ?? {})
-          .filter((e) => {
-            const ent = e as { name?: string; position?: { x: number; y: number; z: number; distanceTo: (v: unknown) => number } }
-            if (!!ent && ent !== bot!.entity && !!ent.name && !!ent.position && p.distanceTo(ent.position) <= 16) {
-              // 视线遮挡剔除：只报真实看得见的实体（防透视观感）
-              const eye = { x: p.x, y: p.y + 1.62, z: p.z }
-              const c = { x: ent.position.x, y: ent.position.y + 0.9, z: ent.position.z }
-              return hasLineOfSight(bot!, eye, c)
-            }
-            return false
-          })
-          .sort((a, b) => {
-            const ea = a as { position: { distanceTo: (v: unknown) => number } }
-            const eb = b as { position: { distanceTo: (v: unknown) => number } }
-            return p.distanceTo(ea.position) - p.distanceTo(eb.position)
-          })
-          .slice(0, 6)
-          .map((e) => {
-            const ent = e as { username?: string; displayName?: string; name: string; position: { distanceTo: (v: unknown) => number } }
-            // 去名化铁律：玩家不具名（名字须经实际社交获得——对方说话/自我介绍），只标「玩家」
-            const label = ent.username ? '玩家' : (ent.displayName ?? ent.name)
-            const d = Math.round(p.distanceTo(ent.position))
-            const dir = relDir(ent.position.x - p.x, ent.position.z - p.z)
-            return `${label} ${dir}${d}格`
-          })
-        if (ents.length) parts.push(`附近: ${ents.join(', ')}`)
-      } catch { /* 实体雷达失败不阻塞 */ }
-      // 周围同伴感知（环境感知·社交）：Agent 知道「身边有没有人、远处有没有人在线」，
-      // 但**不具名**——名字要通过实际社交才知道（对方说话、mc_scan 看到、自我介绍），
-      // 未见过就报名字会让 Agent「认识」它没见过的人。只报数量+距离，纯 bot.players
-      // 只读查询（服务器 tab-list 全量下发），零工具调用零 LLM 往返。
-      try {
-        const nearby: { d: number; dir: string }[] = []
-        const faraway: { d: number; dir: string }[] = []
-        let unknownFarCount = 0
-        for (const [uname, player] of Object.entries(
-          (bot as unknown as { players?: Record<string, { username?: string; entity?: unknown }> }).players ?? {},
-        )) {
-          if (!player || uname === bot!.username) continue
-          const ent = player.entity as { position?: { distanceTo: (v: unknown) => number } } | null | undefined
-          if (ent?.position) {
-            const d = p.distanceTo(ent.position)
-            const dir = relDir(ent.position.x - p.x, ent.position.z - p.z)
-            if (d <= 16) nearby.push({ d, dir })
-            else faraway.push({ d, dir })
-          } else {
-            unknownFarCount++
-          }
-        }
-        const dirDesc = (arr: { d: number; dir: string }[]): string =>
-          arr
-            .sort((a, b) => a.d - b.d)
-            .slice(0, 3)
-            .map((n) => `${n.dir}${Math.round(n.d)}格`)
-            .join('、')
-        const social: string[] = []
-        if (nearby.length) {
-          social.push(`身边（16格内）：有 ${nearby.length} 位旅人（${dirDesc(nearby)}）`)
-        } else {
-          social.push('身边（16格内）：没有其他旅人，只有你')
-        }
-        if (faraway.length) {
-          social.push(`远处（在线不在身边）：有 ${faraway.length} 位旅人（${dirDesc(faraway)}）`)
-        }
-        if (unknownFarCount) {
-          social.push(`更远处：还有 ${unknownFarCount} 位旅人在线（方位未明）`)
-        }
-        parts.push(`周围同伴：\n${social.join('\n')}`)
-      } catch { /* 同伴感知失败不阻塞 */ }
-      // 危险液体（8 格内最近一处）
-      try {
-        const hazards: string[] = []
-        for (const [names, label] of [
-          [['lava', 'flowing_lava'], '岩浆'],
-          [['water', 'flowing_water'], '水'],
-        ] as const) {
-          for (const name of names) {
-            const hb = bot!.findBlock({ matching: (b: unknown) => !!b && (b as { name?: string }).name === name, maxDistance: 8 })
-            if (hb) {
-              hazards.push(`${label} ${Math.round(p.distanceTo(hb.position))}格`)
-              break
-            }
-          }
-        }
-        if (hazards.length) parts.push(`危险: ${hazards.join(', ')}`)
-      } catch { /* 危险扫描失败不阻塞 */ }
-      // ── 卡住检测 + 每步指导块（mc:guidance）+ 死亡监听武装 ────────────
-      try {
-        const posKey = `${Math.round(p.x)},${Math.round(p.z)}`
-        samePosCount = posKey === lastPosKey ? samePosCount + 1 : 0
-        lastPosKey = posKey
-        const stuck = samePosCount >= 4
-        const vill = nearbyVillagers(p)
-        const invItems = bot!.inventory.items()
-        const hasWritingKit = invItems.some((i) => /paper|writable_book|book|信纸/.test(i.name))
+      const s = perception.signals()
+      if (s.position) {
+        const vill = nearbyVillagers(s.position)
         guidanceCache = buildGuidance(
           {
-            health: Math.round(bot!.health),
-            food: Math.round(bot!.food),
-            isNight,
-            stuck,
+            health: s.hp,
+            food: s.food,
+            isNight: s.isNight,
+            stuck: s.stuck,
             hasNpcNearby: vill.n > 0,
-            hasFreshChat: !!freshChatText,
-            hasWritingKit,
+            hasFreshChat: s.freshChat,
+            hasWritingKit: s.hasWritingKit,
             innateMissing: innateMissing(),
           },
-          Math.round(p.x),
-          Math.round(p.z),
+          Math.round(s.position.x),
+          Math.round(s.position.z),
         )
-        ensureDeathListener(bot!)
-      } catch { /* 指导块计算失败不阻塞状态组装 */ }
-      return parts.join('\n')
-    } catch {
-      return '(身体尚未接入方块世界)'
-    }
+      }
+    } catch { /* 指导块失败不阻塞感知 */ }
+    return text
   }
 
   // ------------------------------------------------------------------

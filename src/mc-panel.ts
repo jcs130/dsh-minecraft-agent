@@ -96,6 +96,12 @@ export interface PanelPayload {
   online: boolean
   archive: { name?: string; epithet?: string; source?: string } | null
   mystic: { innateSkill?: string; level?: number } | null
+  /** 当前中尺度目标（读 active-goals.json，回落到记忆里的 currentGoal）。 */
+  goal?: string | null
+  /** 法术书状态（等级 + 掌握清单）。 */
+  spellbook?: { level?: number; innate?: unknown; total: number; skills: unknown[] } | null
+  /** 学习进度账本（咏唱统计/上次升层等）。 */
+  progress?: Record<string, unknown> | null
   wiki: { total: number; cards: Array<{ topic: string; source: string; ts: number; content: string }> }
   memory: {
     base?: { x: number; y: number; z: number }
@@ -202,6 +208,9 @@ export function collect(dataDir: string, username: string, store?: McStoreServic
     mystic: null,
     wiki: { total: 0, cards: [] },
     memory: null,
+    goal: null,
+    spellbook: null,
+    progress: null,
     defects: [],
     latestShot: null,
     uptimeSec: Math.round((Date.now() - START_MS) / 1000),
@@ -248,6 +257,38 @@ export function collect(dataDir: string, username: string, store?: McStoreServic
   } catch { /* no wiki yet */ }
   // long-term memory (base / chest / resource points / current goal)
   payload.memory = readJson(join(dataDir, 'mc-memory.json')) as PanelPayload['memory']
+  // 当前中尺度目标（active-goals.json 持久层 → 回落到记忆里的 currentGoal）：
+  // 面板要让监工一眼看到"它此刻想干什么"，别去翻文件。
+  try {
+    const ag = readJson(join(dataDir, 'active-goals.json')) as Record<string, { goal?: string }> | undefined
+    const g = ag?.[u]?.goal
+    payload.goal = g ?? (payload.memory as { currentGoal?: string } | null)?.currentGoal ?? null
+  } catch { /* 无目标文件 */ }
+  // 法术书（掌握清单按等级降序，面板直接看成长）
+  try {
+    const sb = s?.loadSpellbook?.(u) as
+      | { level?: number; innate?: unknown; skills?: Record<string, { level?: number; name?: string }> }
+      | undefined
+    if (sb) {
+      const skills = sb.skills ? Object.values(sb.skills) : []
+      payload.spellbook = {
+        level: sb.level,
+        innate: sb.innate ?? null,
+        total: skills.length,
+        skills: skills.slice().sort((a, b) => (b.level ?? 0) - (a.level ?? 0) || String(a.name).localeCompare(String(b.name))),
+      }
+    }
+  } catch { /* 无法术书 */ }
+  // 学习进度账本（咏唱统计 / 上次升层）
+  try {
+    const pj = s?.loadProgress?.(u) as Record<string, unknown> | null
+    if (pj) {
+      payload.progress = {
+        level: pj.level, chantTotal: pj.chantTotal, chantSuccess: pj.chantSuccess, chantFail: pj.chantFail,
+        lastChantAt: pj.lastChantAt, lastChantText: pj.lastChantText, samples: pj.samples, lastLevelUpAt: pj.lastLevelUpAt,
+      }
+    }
+  } catch { /* 无进度账本 */ }
   // defect tickets
   try {
     const ddir = join(dataDir, 'defects')

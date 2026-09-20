@@ -149,6 +149,33 @@ function flattenText(blocks: readonly ContentBlock[]): string {
     .join('')
 }
 
+/**
+ * 修复被中断的流截断掉的工具参数（线上 2026-08-25 的修复，本次回填进 src）。
+ *
+ * 流被打断时 tool-call 的 arguments 可能只有半截 JSON，直接写进历史会让**下一次重放**
+ * 整体解析失败（会话历史从此不可用）。这里在序列化时兜底：解析不了就换成合法 JSON 占位，
+ * 保留原始前缀供排查；结果做缓存，避免同一串反复解析。
+ */
+const sanitizeCache = new Map<string, string>()
+function sanitizeToolArgs(args: unknown): unknown {
+  if (typeof args !== 'string' || args === '') return args
+  const cached = sanitizeCache.get(args)
+  if (cached !== undefined) return cached
+  let result: string = args
+  try {
+    JSON.parse(args)
+  } catch {
+    result = JSON.stringify({
+      __sanitized: true,
+      note: 'tool-call arguments were truncated by an interrupted stream; repaired for replay',
+      rawHead: args.slice(0, 200),
+    })
+  }
+  if (sanitizeCache.size > 4096) sanitizeCache.clear()
+  sanitizeCache.set(args, result)
+  return result
+}
+
 /** Serialize one assistant message (text + reasoning + tool calls). */
 function serializeAssistant(message: Message): Record<string, unknown> {
   const text = flattenText(message.content)
@@ -161,7 +188,7 @@ function serializeAssistant(message: Message): Record<string, unknown> {
     .map((block) => ({
       id: block.id,
       type: 'function',
-      function: { name: block.name, arguments: block.arguments },
+      function: { name: block.name, arguments: sanitizeToolArgs(block.arguments) },
     }))
   return {
     role: 'assistant',
