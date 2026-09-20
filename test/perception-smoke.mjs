@@ -21,6 +21,8 @@ import {
   resolveUntil, untilUnknownNote, createExecutionLayer,
 } from '../src/mc-execution.ts'
 import { createBodyLease, bodyUtilityScore, UTILITY_WEIGHTS, BODY_PREEMPT_MARGIN, REFLEX_SAFETY_MIN } from '../src/mc-body-lease.ts'
+import { MODES, DANGER_LEVELS, createModeMachine, heuristicMode, tickFor, renderMode, buildModeQuestions, decideMode } from '../src/mc-mode.ts'
+import { REFLEXES, pickReflex, escapeDirection, runReflex } from '../src/mc-reflex.ts'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -940,6 +942,118 @@ console.log('\n[21] 执行门面 + 身体租约（E4）')
   ok(lease.propose({ owner: a, ownerKind: 'goal', intent: '新连接', utility: scoreTool }).granted === true, '新代次可重新取得')
   lease.release(a)
   ok(lease.current() === null, '释放后无人持有')
+}
+
+console.log('\n[22] 模式与态势分类：模式 / 危险度 / 是否卡住（快决策的第二用法）')
+{
+  ok(MODES.length === 9 && MODES.every((m) => m.id && m.zh && m.when), '九种模式都有 id/中文名/适用条件')
+  ok(DANGER_LEVELS.length === 5, '危险度五档')
+  ok(tickFor(0) === 2000 && tickFor(2) === 1000 && tickFor(4) === 500, '节奏随危险变化：安全 2s → 危急 500ms')
+
+  const base = {
+    hp: 20, food: 20, oxygen: 10, isNight: false, actionableThreats: 0, nearestThreatDistance: -1,
+    creeperDistance: -1, starving: false, longStall: false, trappedInDeathZone: false,
+    hasEdible: true, socialPending: false, hasGoal: true,
+  }
+  const h = (over) => heuristicMode({ ...base, ...over })
+  ok(h({ oxygen: 3 }).danger === 4 && h({ oxygen: 3 }).mode === 'recover', '溺水 → 危急 + 复原模式')
+  ok(h({ creeperDistance: 3 }).danger === 4, '贴脸苦力怕（≤4 格）→ 危急')
+  ok(h({ hp: 5, nearestThreatDistance: 8, actionableThreats: 1 }).mode === 'flee', '濒死且有威胁 → 逃跑')
+  ok(h({ actionableThreats: 3 }).danger === 3, '三只可动威胁 → 高危')
+  ok(h({ starving: true, hasEdible: false }).mode === 'recover', '饿且没粮 → 复原')
+  ok(h({ socialPending: true }).mode === 'social', '有人在说话（且安全）→ 社交')
+  ok(h({ hasGoal: false }).mode === 'idle', '没目标 → 待命')
+  ok(h({ isNight: true }).mode === 'shelter', '夜里且安全 → 避险')
+  ok(h({}).mode === 'gather', '安全且有目标 → 采集（默认干活）')
+  ok(h({ longStall: true }).stalled === true, '长时间无进展 → 标记卡住')
+
+  // 模式机：迟滞（驻留下限 + 分布余量），但危险可以越权
+  const mm = createModeMachine({ minDwellMs: 20_000, switchMargin: 0.2, emergencyDanger: 3 })
+  const first = mm.decide({ mode: 'gather', danger: 1, stalled: false, source: 'heuristic' }, 1000)
+  ok(first.switched === true && /首次/.test(first.why), '首次确立模式')
+  const same = mm.decide({ mode: 'gather', danger: 1, stalled: false, source: 'heuristic' }, 5000)
+  ok(same.switched === false && same.mode === 'gather', '同一模式 → 不切换')
+  const tooSoon = mm.decide({ mode: 'travel', danger: 1, stalled: false, source: 'classifier' }, 6000)
+  ok(tooSoon.switched === false && /驻留下限/.test(tooSoon.why), `驻留不够 → 不换（${tooSoon.why}）`)
+  const margin = mm.decide({ mode: 'travel', danger: 1, stalled: false, probs: { travel: 0.45, gather: 0.4 }, source: 'classifier' }, 30_000)
+  ok(margin.switched === false && /分布余量/.test(margin.why), `驻留够了但分布余量不足 → 不换（${margin.why}）`)
+  const okSwitch = mm.decide({ mode: 'travel', danger: 1, stalled: false, probs: { travel: 0.7, gather: 0.2 }, source: 'classifier' }, 31_000)
+  ok(okSwitch.switched === true && okSwitch.mode === 'travel', '余量够了 → 切换')
+  const emergency = mm.decide({ mode: 'flee', danger: 4, stalled: false, source: 'classifier' }, 31_500)
+  ok(emergency.switched === true && /保命优先/.test(emergency.why), `危险到危急 → 无视驻留立刻换（${emergency.why}）`)
+  ok(renderMode(emergency, 500).includes('当前模式') && /危险度 4\/4/.test(renderMode(emergency, 500)), '渲染含模式/危险度/节奏')
+  ok(/决策节奏 500ms/.test(renderMode(emergency, 500)), '渲染含建议节奏')
+
+  // 一问三题的形状
+  const q = buildModeQuestions(base, { modeList: MODES, dangerLevels: DANGER_LEVELS })
+  ok(Object.keys(q.questions.mode.criteria).length === 9, '模式问题：九个候选，criteria 逐个写"何时适用"')
+  ok(q.questions.danger.type === 'score' && q.questions.danger.criteria.length === 5, '危险度用 Score 五档')
+  ok(q.questions.stalled.type === 'noul' && q.questions.stalled.criteria.true, '是否卡住用 Noul（并列判断）')
+  ok(/HP 20\/20/.test(q.questions.mode.instructions), 'instructions 里内联当前局面（分类器要看得到）')
+
+  // decideMode：分类器可用 / 不可用 / 给了非法选项
+  const mm2 = createModeMachine({})
+  const fakeOk = { call: async () => ({ answers: {
+    mode: { type: 'choice', choice: 'flee', confidence: 0.8, probabilities: { flee: 0.8, fight: 0.2 } },
+    danger: { type: 'score', score: 3.7, confidence: 0.6 },
+    stalled: { type: 'noul', noul: 0.7 },
+  } }) }
+  const d1 = await decideMode(base, { machine: mm2, classifier: fakeOk }, undefined)
+  ok(d1.mode === 'flee' && d1.danger === 4 && d1.stalled === true && d1.source === 'classifier', `分类器可用：模式/危险度(取整 3.7→4)/卡住都采纳（${d1.why}）`)
+  const mm3 = createModeMachine({})
+  const d2 = await decideMode(base, { machine: mm3, classifier: { call: async () => { throw new Error('decider down') } } })
+  ok(d2.source === 'heuristic' && d2.classifierError === 'decider down' && d2.mode === 'gather', '分类器故障 → 降级启发式，并记下原因（不静默）')
+  const mm4 = createModeMachine({})
+  const d3 = await decideMode(base, { machine: mm4, classifier: { call: async () => ({ answers: { mode: { type: 'choice', choice: '飞上天' } } }) } })
+  ok(d3.source === 'heuristic' && /没给出合法模式/.test(d3.classifierError ?? ''), '分类器给了不在允许集里的选项 → 拒绝并降级')
+}
+
+console.log('\n[23] 反射层 L0：只做保命、不与 LLM 拔河、每次插手都留痕')
+{
+  ok(REFLEXES.length === 3 && REFLEXES.every((r) => r.survival >= 5 || r.id === 'eat'), '三条反射：上浮/躲开/进食（生存分够抢占）')
+  const base = {
+    hp: 20, food: 20, oxygen: 10, nearestThreat: -1, creeperDistance: -1,
+    mode: 'gather', danger: 0, agentBusy: false, hasEdible: true,
+  }
+  const R = (over) => pickReflex({ ...base, ...over })
+  ok(R({ oxygen: 4 })?.id === 'surface', '氧气见底 → 上浮（最不容置疑）')
+  ok(R({ creeperDistance: 3 })?.id === 'escape', '苦力怕贴脸 → 躲开')
+  ok(R({ hp: 5, nearestThreat: 6 })?.id === 'escape', '濒死且有威胁 → 躲开')
+  ok(R({ food: 5, mode: 'recover' })?.id === 'eat', '饿到危险线且模式是复原 → 进食')
+  ok(R({ food: 5, mode: 'gather', danger: 0 }) === null, '饿但不在复原模式、也不危险 → 不插手（交给目标环）')
+  ok(R({}) === null, '一切正常 → 不插手')
+  ok(R({ agentBusy: true, danger: 2, oxygen: 4 }) === null, '**agent 正忙且非危急 → 排队，不拔河**')
+  ok(R({ agentBusy: true, danger: 4, creeperDistance: 3 })?.id === 'escape', 'agent 忙但危险到危急 → 必须插手（保命不排队）')
+
+  // 逃向：背离威胁；不安全的方向要转开
+  const dir1 = escapeDirection({ ...base, threats: [{ dx: 3, dz: 0, distance: 3 }] })
+  ok(dir1 && dir1.dx < -0.9, '单只威胁在东 → 往西跑')
+  const dir2 = escapeDirection({ ...base, threats: [{ dx: 3, dz: 0, distance: 3 }, { dx: 0, dz: 3, distance: 3 }] })
+  ok(dir2 && dir2.dx < 0 && dir2.dz < 0, '两只威胁（东 + 南）→ 往西北跑（背离合成方向）')
+  const dir3 = escapeDirection({
+    ...base, threats: [{ dx: 3, dz: 0, distance: 3 }],
+    safeDirection: (dx) => dx < -0.5 ? false : true,   // 正西不安全 → 该转开
+  })
+  ok(dir3 && dir3.dx > -1, '首选方向不安全 → 转到可行方向（不硬撞悬崖/岩浆）')
+  ok(escapeDirection({ ...base, threats: [] }) === null, '没威胁 → 不编方向')
+
+  // runReflex：拿不到身体 → 不动作但留痕；拿到 → 动作 + 释放 + 记录
+  let acted = 0
+  let released = 0
+  const spec = REFLEXES.find((r) => r.id === 'surface')
+  const j1 = await runReflex(spec, { ...base, oxygen: 3 }, {
+    acquire: () => false, release: () => { released++ }, act: async () => { acted++ },
+  })
+  ok(j1.grabbed === false && acted === 0 && /被别人占着/.test(j1.reason ?? '') && released === 0, '身体被别人占着 → 不动作、只留痕（等它这一步结束）')
+  const j2 = await runReflex(spec, { ...base, oxygen: 3 }, {
+    acquire: () => true, release: () => { released++ }, act: async () => { acted++; },
+  })
+  ok(j2.grabbed === true && acted === 1 && released === 1 && j2.ms >= 0, '拿到身体 → 动作 + 用后释放（反射不许长期占着）')
+  const j3 = await runReflex(spec, { ...base, oxygen: 3 }, {
+    acquire: () => true, release: () => { released++ }, act: async () => { throw new Error('被水流冲走') },
+  })
+  ok(j3.grabbed === true && /被水流冲走/.test(j3.reason ?? ''), '反射动作失败也要留痕（原因照记）')
+  ok(REFLEXES.every((r) => r.maxMs <= 3000), '每条反射都有最长持续（≤3s，不许长期占身体）')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

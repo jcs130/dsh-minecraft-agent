@@ -1163,7 +1163,13 @@ export function apply(ctx: Context, config: Config = {}) {
   // ── 执行层（E1–E4）：所有工具过这一个咽喉点 ────────────────────────────────
   // 闸（租约/前置）→ 执行（计时+输出摘要）→ **回读核验**（期望 vs 实际）→ 回执 → 受阻账。
   // 纪律：**不改动作语义**；`noop`（工具说成功、世界没变）与 `by`（谁打断的）是一等信号。
-  const execution = createExecutionLayer({ dataDir: EPISODIC_DIR, lease: createBodyLease({}) })
+  // 身体租约由**本插件创建并 provide 成服务**：mc-session 的反射层要拿同一份实例
+  //（跨插件共享必须走 cordis provide/get —— 每个插件独立 bundle，模块级变量是各自的副本）
+  const bodyLease = createBodyLease({
+    emit: (e) => { try { appendJsonl(EPISODIC_DIR, 'body-lease.jsonl', e) } catch { /* 审计失败不影响仲裁 */ } },
+  })
+  try { (ctx as unknown as { provide?: (k: string, v: unknown) => void }).provide?.('mcBodyLease', bodyLease) } catch { /* 已提供 */ }
+  const execution = createExecutionLayer({ dataDir: EPISODIC_DIR, lease: bodyLease })
   const itemsOf = (bot: Bot): Array<{ name?: string; count?: number }> => {
     try { return bot.inventory.items() as Array<{ name?: string; count?: number }> } catch { return [] }
   }

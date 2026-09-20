@@ -36,10 +36,12 @@ import { realpath } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
-import { createPerception } from './mc-perception'
+import { createPerception, collectHostiles, appendJsonl } from './mc-perception'
 import { prewarm, callSystemOne, defaultDeciderConfig, DECIDER_THRESHOLDS } from './mc-decider'
 import { createAudienceChannel, AUDIENCE_INVARIANTS } from './mc-audience'
 import { createGuidanceQueue } from './mc-guidance'
+import { createModeMachine, decideMode, renderMode, tickFor, type ModeStateInput } from './mc-mode'
+import { pickReflex, escapeDirection, runReflex, actSurface, actEscape, actEat } from './mc-reflex'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -1341,6 +1343,115 @@ async function spawnTransmigrator(
   let guidanceText = ''
   const refreshGuidance = (): void => { guidanceText = guidance.render() }
 
+  // ── 模式与态势分类（快决策的第二用法）+ 反射层 L0 ────────────────────────
+  // 模式：九种行为体制；危险度：五档；是否卡住：并列判断（照那篇 Jev 自驾文章的"是否被堵死"）。
+  // 节奏随危险变化：安全 2s、危急 500ms（分类器暖态 ~190ms，撑得住）。
+  const modeMachine = createModeMachine({})
+  let modeText = ''
+  let lastMode = { mode: 'idle' as const, danger: 0 as 0 | 1 | 2 | 3 | 4, stalled: false, tickMs: 2000 }
+  let modeTimer: ReturnType<typeof setTimeout> | null = null
+  let agentBusy = false          // dsh 的 agent/status：LLM 那一步是否正在跑
+  const refreshMode = async (): Promise<void> => {
+    try {
+      const wm = perception.lastWorldModel()
+      if (wm) {
+        const s: ModeStateInput = {
+          hp: wm.self.hp, food: wm.self.food, oxygen: 20, isNight: wm.self.isNight,
+          actionableThreats: wm.threat.actionable,
+          nearestThreatDistance: wm.threat.nearest,
+          creeperDistance: wm.threat.creeperDist,
+          starving: wm.paralysis.starving,
+          longStall: wm.paralysis.longStall,
+          trappedInDeathZone: wm.paralysis.trappedInDeathZone,
+          hasEdible: wm.stock.hasEdible,
+          socialPending: (() => { try { return audience.render().length > 0 } catch { return false } })(),
+          hasGoal: activeGoal.trim().length > 0,
+        }
+        const d = await decideMode(s, {
+          machine: modeMachine,
+          classifier: {
+            call: (st, qs) => callSystemOne(st, qs as Parameters<typeof callSystemOne>[1], audienceCfg),
+          },
+        })
+        lastMode = { mode: d.mode, danger: d.danger, stalled: d.stalled, tickMs: d.tickMs }
+        modeText = renderMode(d, modeMachine.dwellMs())
+        // 模式行进指引队列的**常驻位**（原地更新：永远只有一行，不越堆越多）
+        guidance.replaceStanding('system', {
+          kind: d.stalled ? 'warning' : 'info',
+          level: d.stalled || d.danger >= 3 ? 2 : 1,
+          text: modeText.replace('【模式】', ''),
+        })
+        refreshGuidance()
+        if (d.switched) appendJsonl(dataDir, 'mode.jsonl', { ts: new Date(d.at).toISOString(), ...d })
+      }
+    } catch (e) { log(`⚠️ 模式分类失败（不影响别的）：${e instanceof Error ? e.message : e}`) }
+    // 自适应节奏：这一步定下一步什么时候问
+    modeTimer = setTimeout(() => { void refreshMode() }, Math.max(400, lastMode.tickMs))
+  }
+  void refreshMode()
+
+  // 反射层 L0：300ms 巡检，**只做保命**；agent 忙时只有危急才插手（不与 LLM 抢身体）
+  ctx.setInterval(() => {
+    void (async () => {
+      try {
+        const bot = body()
+        if (!bot?.entity) return
+        const wm = perception.lastWorldModel()
+        if (!wm) return
+        const hostiles = collectHostiles(bot)
+        const p = bot.entity.position
+        const threats = hostiles.map((h) => ({ dx: h.x - p.x, dz: h.z - p.z, distance: Math.hypot(h.x - p.x, h.z - p.z) }))
+        const input = {
+          hp: wm.self.hp, food: wm.self.food,
+          oxygen: (() => { try { return Math.round(Number((bot as unknown as { oxygenLevel?: number }).oxygenLevel ?? 20)) } catch { return 20 } })(),
+          nearestThreat: wm.threat.nearest,
+          creeperDistance: wm.threat.creeperDist,
+          mode: lastMode.mode, danger: lastMode.danger,
+          agentBusy,
+          hasEdible: wm.stock.hasEdible,
+          threats,
+          safeDirection: (dx: number, dz: number): boolean => {
+            // 只看脚下与前方一格：不是液体、不是空气（悬空）
+            try {
+              const ahead = bot.blockAt(new Vec3(Math.floor(p.x + dx * 2), Math.floor(p.y) - 1, Math.floor(p.z + dz * 2)))
+              const at = bot.blockAt(new Vec3(Math.floor(p.x + dx * 2), Math.floor(p.y), Math.floor(p.z + dz * 2)))
+              if (!ahead || !at) return false
+              const solid = (b: { boundingBox?: string }) => b.boundingBox === 'block'
+              const hazard = /lava|water|fire/.test(`${ahead.name ?? ''}`)
+              return solid(ahead) && !hazard && (at.boundingBox === 'empty')
+            } catch { return false }
+          },
+        }
+        const spec = pickReflex(input)
+        if (!spec) return
+        const lease = (ctx as unknown as { get?: (n: string) => unknown }).get?.('mcBodyLease') as
+          | { propose: (p: unknown) => { granted: boolean }; release: (o?: object) => void } | undefined
+        const owner = {}
+        await runReflex(spec, input, {
+          acquire: (survival) => {
+            if (!lease) return true   // 没有租约服务时退化：直接动手（保命优先）
+            const d = lease.propose({
+              owner, ownerKind: 'reflex', intent: `reflex:${spec.zh}`,
+              utility: { survival, urgency: 6, feasibility: 8, progress: 0, continuity: 1, disruption: 3 },
+            })
+            return d.granted
+          },
+          release: () => { try { lease?.release(owner) } catch { /* 忽略 */ } },
+          act: async (ms) => {
+            if (spec.id === 'surface') return actSurface(bot, ms)
+            if (spec.id === 'eat') return actEat(bot, ms)
+            const dir = escapeDirection(input) ?? { dx: 1, dz: 0 }
+            return actEscape(bot, dir, ms)
+          },
+          onJournal: (e) => {
+            appendJsonl(dataDir, 'reflex.jsonl', { ts: new Date(e.at).toISOString(), ...e, mode: lastMode.mode, danger: lastMode.danger })
+            log(`反射 ${e.reflex}：${e.why}${e.grabbed ? `（${e.ms}ms）` : `（未插手：${e.reason}）`}`)
+          },
+        })
+      } catch (e) { log(`⚠️ 反射巡检失败（不影响主循环）：${e instanceof Error ? e.message : e}`) }
+    })()
+  }, 300)
+
   // 弹幕文案缓存（异步刷新、同步取用——分类器是 async，而 systemPrompt.context 要同步）
   let audienceText = ''
   const refreshAudience = async (): Promise<void> => {
@@ -1474,6 +1585,8 @@ async function spawnTransmigrator(
       log('⚠️ agentPresets 服务未就绪，跳过 preset mount（无 compaction 兜底）')
     }
         agentCtx.on('agent/status', (payload) => {
+          // 反射层靠它判断「LLM 那一步是不是正在跑」：忙着就排队，只有危急才插手
+          agentBusy = payload.status === 'running'
           console.log(`[mc-session] agent status -> ${payload.status} (${sessionId})`)
         })
         agentCtx.on('agent/error', (payload) => {
