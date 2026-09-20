@@ -142,6 +142,12 @@ const START_MS = Date.now()
 // 不持 ctx，故 apply 时经 cordis 服务把 store 注入到本 bundle 的模块级变量；
 // 单测则直接传第 3 参 store，不依赖模块级单例。
 let panelStore: McStoreService | undefined
+/**
+ * store 的**惰性解析器**（apply 时装入）。
+ * 真跑踩到过「闭包创建时捕获、那时服务还没就绪」⇒ 面板全空：档案/状态/编年史/截图都读不到，
+ * 连带 viewerPort 也拿不到 ⇒ 3D 观战 iframe 变成 about:blank。改成每次取数时现解析，最稳。
+ */
+let panelStoreResolver: (() => McStoreService | undefined) | undefined
 
 function readJson(file: string): Record<string, unknown> | null {
   try {
@@ -197,7 +203,8 @@ export function resolveShotPath(dataDir: string, shot: string): string | null {
 
 /** Build the whole dashboard payload. Never throws. store 可选（单测注入；生产用模块级 panelStore）。 */
 export function collect(dataDir: string, username: string, store?: McStoreService): PanelPayload {
-  const s = store ?? panelStore
+  // 优先用调用方注入（单测），其次每次现解析，最后回退静态引用
+  const s = store ?? panelStoreResolver?.() ?? panelStore
   const u = resolveUsername(dataDir, username, s)
   const payload: PanelPayload = {
     username: u,
@@ -343,6 +350,8 @@ export function apply(ctx: Context, config: PanelConfig): void {
   if (!config.enabled) return
   const dataDir = resolve(config.dataDir)
   panelStore = ctx.get('mcStore') as McStoreService | undefined
+  panelStoreResolver = () => ctx.get('mcStore') as McStoreService | undefined
+  console.log(`[mc-panel] store ${panelStore ? '已就绪' : '未就绪（面板数据会空，已启用惰性重取）'}`)
 
   // ── RPC：专属逻辑通道（不抢 /api 单拦截器）─────────────────────────────────
   ctx.inject(['connection'], (connectionCtx) => {
@@ -385,7 +394,43 @@ export function apply(ctx: Context, config: PanelConfig): void {
     console.log(`[mc-panel] RPC mounted at /mc-panel (data=${dataDir})`)
   })
 
-  // ── 截图二进制：同一 dsh web 服务器路由，非独立端口 ─────────────────────────
+  // ── 面板数据：走 web 服务器 HTTP 路由 ─────────────────────────────────────
+    // 为什么不用 connection RPC：dsh 0.1.5 起 **connection 服务只在浏览器侧**
+    // （提供者 = dsh-client-connection），host 半的 `ctx.inject(['connection'], …)`
+    // 不再触发 ⇒ rpc.handle 从未注册 ⇒ 客户端取数永远为空 ⇒ viewerPort 拿不到
+    // ⇒ 3D 观战 iframe 停在 about:blank（2026-09-20 真跑定位）。
+    // 截图路由一直好用，因为它走的就是 webServer —— 数据同路。
+    const DATA_PREFIX = '/mc-panel/data/'
+    ctx.inject(['webServer'], () => {
+      const ws = ctx.get('webServer') as { register?: (spec: {
+        kind: 'prefix'
+        path: string
+        handler: (req: IncomingMessage, res: ServerResponse) => void
+      }) => () => void } | undefined
+      if (!ws || typeof ws.register !== 'function') {
+        console.warn('[mc-panel] webServer 不可用 —— 面板数据路由未挂载')
+        return
+      }
+      const disposeData = ws.register({
+        kind: 'prefix',
+        path: DATA_PREFIX,
+        handler: (req: IncomingMessage, res: ServerResponse) => {
+          try {
+            const u = new URL(req.url ?? '/', 'http://localhost').searchParams.get('user') ?? config.username
+            const body = JSON.stringify(collect(dataDir, u))
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+            res.end(body)
+          } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
+            res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }))
+          }
+        },
+      })
+      console.log(`[mc-panel] data route mounted at ${DATA_PREFIX}`)
+      ;(ctx as unknown as { effect?: (fn: () => unknown) => void }).effect?.(() => disposeData)
+    })
+
+      // ── 截图二进制：同一 dsh web 服务器路由，非独立端口 ─────────────────────────
   const SHOT_PREFIX = '/mc-panel/shot/'
   ctx.inject(['webServer'], () => {
     const ws = ctx.get('webServer') as { register?: (spec: { kind: 'prefix'; path: string; handler: (req: IncomingMessage, res: ServerResponse) => void }) => () => void } | undefined

@@ -1397,6 +1397,20 @@ async function spawnTransmigrator(
   }
   void refreshMode()
 
+  // 感知体检：每分钟报一次「实体 N / 已加载区块 M / 敌对 K」。
+  // 目的：判定那堆 PartialReadError（entity metadata 解析失败）有没有让实体感知**静默失明**
+  //（失明的症状：实体数恒 0、威胁恒 0，而世界模型一切看起来"正常"）。
+  ctx.setInterval(() => {
+    try {
+      const bot = body()
+      if (!bot?.entity) return
+      const ents = Object.keys((bot as unknown as { entities?: Record<string, unknown> }).entities ?? {}).length
+      const cols = Object.keys((bot as unknown as { world?: { columns?: Record<string, unknown> } }).world?.columns ?? {}).length
+      const hostiles = (() => { try { return collectHostiles(bot).length } catch { return -1 } })()
+      console.log(`[mc-perception] 体检：实体 ${ents}｜已加载区块 ${cols}｜敌对 ${hostiles}`)
+    } catch { /* 体检失败不影响运行 */ }
+  }, 60_000)
+
   // 反射层 L0：300ms 巡检，**只做保命**；agent 忙时只有危急才插手（不与 LLM 抢身体）
   ctx.setInterval(() => {
     void (async () => {

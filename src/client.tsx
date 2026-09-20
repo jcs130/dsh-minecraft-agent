@@ -247,7 +247,10 @@ function McPanelView({ rpc }: { rpc: PanelRpc | undefined }) {
     let alive = true
     const tick = async () => {
       try {
-        const res = await rpc.call('/mc-panel', 'snapshot', {})
+        // 走 webServer 的 HTTP 路由（connection RPC 在 dsh 0.1.5 的 host 半已失效）
+        const res = await fetch('/mc-panel/data/', { headers: { Accept: 'application/json' } })
+          .then(async (r) => ({ ok: r.ok, value: (await r.json()) as unknown }))
+          .catch(() => ({ ok: false, value: null as unknown }))
         if (alive && res.ok) setP(res.value as Payload)
       } catch { /* 瞬时失败忽略，下轮重试 */ }
     }

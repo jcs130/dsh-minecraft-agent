@@ -244,9 +244,11 @@ export async function callSystemOne(
       const valid = validateAnswers(raw, questions)
       const latencyMs = Date.now() - t0
       if (cfg.dataDir) {
+        // 瘦身：成功路径不再写 raw（answer 已含决定，raw 只是同样内容再来一遍）。
+        // 真跑实测 decider.jsonl 1.2MB/10 分钟，砍掉 raw 约减半。
         appendJsonl(cfg.dataDir, 'decider.jsonl', {
           ts: new Date().toISOString(), latencyMs, attempt,
-          request, answer: valid.answers, raw, usage: valid.usage ?? null,
+          request, answer: valid.answers, usage: valid.usage ?? null,
         })
       }
       return { answers: valid.answers, latencyMs, usage: valid.usage }
