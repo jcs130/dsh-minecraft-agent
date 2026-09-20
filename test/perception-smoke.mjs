@@ -76,13 +76,13 @@ console.log('\n[2] 每步底线注入 + 门控（变了才说）')
   const first = p.status()
   ok(/♥生命 20\/20/.test(first), '首次注入含生命')
   ok(/🍗饱食 20\/20/.test(first), '首次注入含饱食')
-  ok(/📍你移到 \(128, 64, -301\)/.test(first), '首次注入含位置')
-  ok(/【态势】/.test(first), '含态势行')
-  ok(/在线旅人 1/.test(first), '含在线旅人数（不具名）')
+  ok(/【处境】你在 \(128, 64, -301\)/.test(first), '首次注入含位置（并入处境行）')
+  ok(/【处境】/.test(first), '含处境行（位置/威胁/旅人/感知范围合成一行）')
+  ok(/旅人 1/.test(first), '含在线旅人数（不具名）')
   ok(!/Alice/.test(first), '去名化：注入里不出现玩家名')
   const second = p.status()
   ok(!/♥生命/.test(second), '第二次生命未变 → 不再注入（门控）')
-  ok(!/📍你移到/.test(second), '第二次未跨区段 → 不再注入位置（节流）')
+  ok(!/♥生命/.test(second) && second.split('\n').length === 1, '常态步只有 1 行（位置不单独占行、静态事实不重复）')
 }
 
 console.log('\n[3] 内感受：受伤 / 溺水 / 低耐久')
@@ -93,14 +93,14 @@ console.log('\n[3] 内感受：受伤 / 溺水 / 低耐久')
   bot.health = 15
   bot.emit('health')
   const hit = p.status()
-  ok(/你被击中 -5/.test(hit), '受伤事件进入注入')
+  ok(/♥生命 15\/20/.test(hit) && /-5/.test(hit), '受伤只报一条：血量行携带扣血量')
   ok(/⚠重伤/.test((bot.health = 6, p.status())), '生命 ≤8 标重伤')
   bot.oxygenLevel = 6
   bot.emit('breath')
-  ok(/氧气 6\/20.*空气过半/.test(p.status()), '空气过半提醒（0..20 刻度）')
+  ok(/氧气 6\/20/.test(p.status()), '氧气变化时报（0..20 刻度）')
   bot.oxygenLevel = 4
   bot.emit('breath')
-  ok(/氧气 4\/20 ⚠快要溺水/.test(p.status()), '≤5 才判将溺水')
+  ok(/氧气 4\/20.*溺水/.test(p.status()), '≤5 升级为溺水警告')
   const snap = sensesSnapshot(bot, noLos)
   ok(snap.库存.低耐久警告.length === 1 && snap.库存.低耐久警告[0].left === 11, '耐久 11/131 → 低耐久警告')
   ok(snap.内感.氧气 === 4, '快照读到氧气（0..20 刻度，此刻=4）')
@@ -160,8 +160,8 @@ console.log('\n[6] 元认知：停滞 / 威胁 / 脉搏 / 锚点')
   bot.entities = { 1: { name: 'creeper', position: { x: 133, y: 64, z: -301 } }, 2: { name: 'cow', position: { x: 129, y: 64, z: -301 } } }
   for (let i = 0; i < 5; i++) p.status()
   const s = p.status()
-  ok(/【停滞】你已连续 \d+ 轮待在同一片区域/.test(s), '停滞检测')
-  ok(/近处敌对怪 1 个/.test(s) && /creeper 东\d+格/.test(s), '威胁计数 + 最近威胁方位（cow 不算敌对）')
+  ok(!/无进展/.test(s), '原地重复调用不再误报停滞（改按「有进展」判定：同区块干活不算卡死）')
+  ok(/威胁 1 个\(最近 creeper 东\d+格\)/.test(s), '威胁只出现一次（cow 不算敌对）')
   if (!/【最近动作】移动 去\(120,64,-295\)/.test(s)) console.log('  ---调试---\n' + s + '\n  ----------')
   ok(/【最近动作】移动 去\(120,64,-295\)/.test(s) && /已连续 2 轮同类型/.test(s), '脉搏：最近动作 + 连续同类型')
   ok(s.includes('【锚点】背包 3 类'), '锚点每 N 步补全量（防压缩漂移）')
@@ -213,20 +213,22 @@ console.log('\n[9] 预处理：按 mineflayer 真实载荷形状解析')
   const s999 = p.status()
   ok(/音效#999/.test(s999) && /hostile/.test(s999), '换不到名字时报 id + 类别（不编名字）')
   // 伤害源：entityHurt 第二参是攻击者
+  bot.health = 5
   bot.emit('entityHurt', bot.entity, { name: 'skeleton' })
-  ok(/你被击中 被 skeleton/.test(p.status()), '受伤带上真实伤害源')
+  ok(/♥生命 5\/20.*skeleton/.test(p.status()), '受伤带上真实伤害源（合入血量行）')
+  bot.health = 4
   bot.emit('entityHurt', bot.entity, { name: 'player', username: 'Bob' })
   const hurt = p.status()
-  ok(/被 某个玩家/.test(hurt) && !/Bob/.test(hurt), '玩家伤害源去名化（不泄露 Bob）')
+  ok(/某个玩家/.test(hurt) && !/Bob/.test(hurt), '玩家伤害源去名化（不泄露 Bob）')
   // title / actionBar 是 ChatMessage 形态
   bot.emit('title', { text: '', extra: [{ text: '村庄' }, { text: '被袭击' }] }, 'title')
   ok(/【字幕】村庄被袭击/.test(p.status()), 'title：嵌套 ChatMessage 扁平化为文本')
   bot.emit('actionBar', { text: '剩余 3 分钟' }, null)
   ok(/【提示】剩余 3 分钟/.test(p.status()), 'actionBar：扁平化')
   // 氧气刻度实证为 0..20
-  bot.oxygenLevel = 4
+  bot.oxygenLevel = 3
   bot.emit('breath')
-  ok(/氧气 4\/20 ⚠快要溺水/.test(p.status()), '氧气 0..20 刻度 + 危险阈值（≤5 才算将溺水）')
+  ok(/氧气 3\/20/.test(p.status()), '氧气 0..20 刻度（危险阈值 ≤5 才升级措辞）')
 }
 
 console.log('\n[10] 世界模型 / 派生感知（判断下沉到确定性代码）')
@@ -373,6 +375,31 @@ console.log('\n[13] 视觉韧性（native 崩溃无法被 JS 捕获 → 哨兵 +
   ok(left && left.op === 'captureFirstPerson' && left.username === 'Edward', '哨兵可读（崩溃后唯一的死因线索）')
   clearVisionSentinel(root)
   ok(readVisionSentinel(root) === null, '成功后哨兵被擦掉')
+}
+
+console.log('\n[14] 注入预算与去重不变量（复审后锁定）')
+{
+  const bot = makeBot()
+  const p = createPerception({ body: () => bot, username: 'Edward', log: () => {}, socialLines: () => [], recentActions: () => [] })
+  const first = p.status()
+  ok(first.split('\n').length <= 3, `首次接入 ≤3 行（实际 ${first.split('\n').length}）：` + JSON.stringify(first))
+  const steady = p.status()
+  ok(steady.split('\n').length === 1, `常态只有 1 行（实际 ${steady.split('\n').length}）`)
+  ok(steady.length <= 90, `常态单行 ≤90 字符（实际 ${steady.length}）`)
+  bot.entities = { 1: { name: 'zombie', position: { x: 131, y: 64, z: -301 } }, 2: { name: 'creeper', position: { x: 145, y: 64, z: -301 } } }
+  bot.health = 12
+  bot.emit('health')
+  bot.emit('entityHurt', bot.entity, { name: 'zombie' })
+  const hurt = p.status()
+  const hitLines = hurt.split('\n').filter((l) => /被|击中/.test(l))
+  ok(hitLines.length === 1, `一次受击只出现一条（实际 ${hitLines.length}）`)
+  ok(/zombie/.test(hitLines[0] ?? ''), '来源用真值 zombie（不猜 17 格外那只 creeper）')
+  ok((hurt.match(/你在 \(/g) ?? []).length === 1, '位置只出现一次')
+  ok((hurt.match(/威胁 /g) ?? []).length === 1, '威胁只出现一次')
+  bot.health = 7
+  const a = p.status()
+  const b = p.status()
+  ok((a.match(/♥生命/g) ?? []).length === 1 && (b.match(/♥生命/g) ?? []).length === 0, '危险行边沿触发：变化时报、随后不重复')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

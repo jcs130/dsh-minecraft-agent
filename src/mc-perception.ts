@@ -561,7 +561,6 @@ export function createPerception(deps: PerceptionDeps): Perception {
   let lastDim = ''
   let lastLevel = -1
   let lastEffects = ''
-  let lastDurability = ''
   let lastPackFull = ''
   let lastDayPhase = ''
   let lastLoaded = -1
@@ -574,8 +573,17 @@ export function createPerception(deps: PerceptionDeps): Perception {
   }
   let anchorInv = { kinds: -1, total: -1 }
   let pendingProgress = ''
-  // 停滞判定改用真实时钟（原先按"轮数"近似，不准确）
-  let regionSince = 0
+  // 停滞判定：以"有进展"为基准（逐格位置 / 背包构成 / 区段 任一变化都算进展），
+  // 而不是"区段没变"——后者会把"在同一个区块里挖矿/盖房 8 分钟"误判成卡死。
+  let lastProgressAt = 0
+  let lastPosBlock = ''
+  let lastInvKinds = -1
+  let lastInvTotal = -1
+  // 最近一次真实攻击者（由 entityHurt 的真值填，供血量行合并陈述；不靠"最近威胁"猜）
+  let lastAttacker = ''
+  let lastAttackerAt = 0
+  /** 资产/风险串的指纹（不含时钟）：不变就不重复追加。 */
+  let assetStamp = ''
   let lastWorld: WorldModel | null = null
   const marks: Record<string, number | null> = { vitals: null, threat: null, social: null, world: null, inventory: null }
   let lastTraceAt = 0
@@ -612,23 +620,14 @@ export function createPerception(deps: PerceptionDeps): Perception {
     bot.on('kicked', (...a: unknown[]) => push('本体', `⚠ 你被服务器踢出：${String(a[0] ?? '').slice(0, 80)}`))
 
     // ② 内感受（痛觉/呼吸/效果/经验）
-    bot.on('health', () => guard(() => {
-      const hp = n((bot as unknown as { health?: number }).health, 20)
-      const delta = hp - lastHp
-      if (lastHp >= 0 && delta < 0) {
-        const th = threatState(bot, 16)
-        const src = th.nearest ? `（最近威胁 ${th.nearest}）` : ''
-        push('外感·触', `你被击中 ${delta}（${Math.round(hp)}/20）${src}`)
-      }
-      if (lastHp >= 0 && delta > 0) push('内感', `你恢复了 ${delta} 点生命（${Math.round(hp)}/20）`)
-      lastHp = hp
-    }))
-    bot.on('breath', () => guard(() => {
-      const o = n((bot as unknown as { oxygenLevel?: number }).oxygenLevel, 20)
-      if (o <= 5 && o < lastOxygen) push('内感', `🫧氧气骤降 ${o}/20（水下会溺死，立刻上浮换气）`)
-      if (o > lastOxygen && lastOxygen >= 0 && lastOxygen <= 10) push('内感', '🫧呼吸恢复正常')
-      lastOxygen = o
-    }))
+    // 血量变化的**陈述权归每步注入**（它同时知道上一次的值与真实攻击者）。
+    // 原先这里也 push 一条"你被击中"，结果是同一击报两遍、而且来源是猜的
+    // （实测抓出：真凶 zombie 被猜成 creeper）。事件层不再重复报告。
+    bot.on('health', () => guard(() => { /* 血量由 status() 的边沿触发统一陈述 */ }))
+    // ⚠️ 这个处理器**不许再写 lastOxygen**：变化检测的所有权归每步注入
+    //（原先它把 lastOxygen 改成事件后的值 → 注入层看到"没变" → 溺水/恢复都将不报，
+    //  实测抓出：氧气从 20 掉到 6 时注入层一声不响）。与 health 同一个坑，一并堵死。
+    bot.on('breath', () => guard(() => { /* 氧气由 status() 的边沿触发统一陈述 */ }))
     bot.on('entityEffect', (...a: unknown[]) => guard(() => {
       if (a[0] !== me()) return
       push('内感', `获得药水效果：${effectLabel(bot, a[1])}`)
@@ -744,8 +743,9 @@ export function createPerception(deps: PerceptionDeps): Perception {
       // 我自己被打：带上真实伤害源（mineflayer 第二参），比按最近怪猜方位准。
       // 先判身份再判 name —— 自身实体未必带 name 字段。
       if (e === me()) {
-        const by = source?.name ? ` 被 ${source.username ? '某个玩家' : source.name}` : ''
-        push('外感·触', `你被击中${by}${where && where !== '脚下0格' ? `（${where}）` : ''}`)
+        // 只记真值：谁打的（玩家去名化）。陈述交给每步注入的血量行，避免同一击说两遍。
+        lastAttacker = source?.name ? (source.username ? '某个玩家' : source.name) : ''
+        lastAttackerAt = Date.now()
         return
       }
       if (!e.name) return
@@ -820,24 +820,49 @@ export function createPerception(deps: PerceptionDeps): Perception {
 
     // ① 本体感受（位置：跨 16 格区段才报 —— 防止每步刷坐标）
     const region = `${Math.floor(pos.x / 16)},${Math.floor(pos.z / 16)}`
-    if (region !== lastRegion) {
-      lines.push(`📍你移到 (${Math.round(pos.x)}, ${Math.round(pos.y)}, ${Math.round(pos.z)})`)
-      lastRegion = region
-      regionSince = Date.now()   // 停滞按真实时长算
+    const regionChanged = region !== lastRegion
+    lastRegion = region
+    // 位置不再单独占一行（下面的态势行本来就带坐标）——省一行、去一处重复。
+    // 但"是否跨区段"仍是进展信号之一。
+    let invKinds = -1
+    let invTotal = -1
+    try {
+      const its = bot.inventory?.items?.() ?? []
+      invKinds = its.length
+      invTotal = its.reduce((sum, i) => sum + (typeof i === 'object' && i && 'count' in i ? Number((i as { count?: number }).count ?? 0) : 0), 0)
+    } catch { /* 背包读取失败：进展判定退化为位置 */ }
+    const posBlock = `${Math.round(pos.x)},${Math.round(pos.y)},${Math.round(pos.z)}`
+    const progressed = regionChanged || posBlock !== lastPosBlock || invKinds !== lastInvKinds || invTotal !== lastInvTotal
+    if (progressed) {
+      lastProgressAt = Date.now()
+      lastPosBlock = posBlock
+      lastInvKinds = invKinds
+      lastInvTotal = invTotal
     }
+    const stalledMs = lastProgressAt ? Date.now() - lastProgressAt : 0
+    /** 最告急的那件工具（并入处境行资产位；不再单独占行） */
+    let lowDurDetail = ''
 
     // ② 内感受（门控：变了才报，危险必报）
     const hp = Math.round(n(bot.health, 20))
     const food = Math.round(n(bot.food, 20))
     const oxygen = Math.round(n(bot.oxygenLevel, 20))
-    if (hp !== lastHp || hp <= 8) lines.push(`${clock.stamp} ♥生命 ${hp}/20${hp <= 8 ? ' ⚠重伤' : ''}`)
-    if (food !== lastFood || food <= 8) lines.push(`${clock.stamp} 🍗饱食 ${food}/20${food <= 8 ? ' ⚠饥饿' : ''}`)
+    // 边沿触发 + 每 20 步补底：变化时报；仍处于危险态时定期重述，但绝不每步刷同一行。
+    const refresh = stepCount % 20 === 0
+    if (hp !== lastHp || (hp <= 8 && refresh)) {
+      const d = lastHp >= 0 && hp < lastHp ? `（-${lastHp - hp}` : ''
+      const who = Date.now() - lastAttackerAt < 15_000 && lastAttacker ? ` 被 ${lastAttacker}` : ''
+      lines.push(`${clock.stamp} ♥生命 ${hp}/20${hp <= 8 ? ' ⚠重伤' : ''}${d ? d + (who ? `，${who.trim()}` : '') + '）' : who ? `（${who.trim()}）` : ''}`)
+      lastHp = hp
+    }
+    if (food !== lastFood || (food <= 8 && refresh)) {
+      lines.push(`${clock.stamp} 🍗饱食 ${food}/20${food <= 8 ? ' ⚠饥饿' : ''}`)
+      lastFood = food
+    }
     // oxygenLevel = air_supply/15 → 0..20（满 20）。≤10 提醒，≤5 才是真危险。
-    if (oxygen <= 10) {
+    if (oxygen <= 10 && (oxygen !== lastOxygen || refresh)) {
       lines.push(`${clock.stamp} 🫧氧气 ${oxygen}/20${oxygen <= 5 ? ' ⚠快要溺水，立刻上浮换气' : '（空气过半，留意上浮）'}`)
     }
-    if (hp !== lastHp) lastHp = hp
-    if (food !== lastFood) lastFood = food
     lastOxygen = oxygen
 
     // ③ 外感受·视：天气/维度/光照（变化时或危险时）
@@ -867,18 +892,7 @@ export function createPerception(deps: PerceptionDeps): Perception {
       }
     } catch { /* 容量读取失败不阻塞 */ }
 
-    // ⑦ 装备耐久（危险才报）
-    try {
-      const held = bot.heldItem as { name?: string; maxDurability?: number; durabilityUsed?: number } | null
-      const d = durabilityOf(held)
-      if (d && d.ratio <= 0.15) {
-        const key = `${held?.name}:${Math.floor(d.ratio * 10)}`
-        if (key !== lastDurability) {
-          lines.push(`${clock.stamp} ⛏ ${held?.name} 耐久仅剩 ${d.left}/${d.max}（快坏了，注意备件）`)
-          lastDurability = key
-        }
-      }
-    } catch { /* 耐久读取失败不阻塞 */ }
+    // ⑦ 装备耐久：不再单独占一行——并入处境行的资产位（同一事实只说一遍，实测查出过重复）
 
     // ⑤ 空间感知 · 认知边界（夜里 + 光暗 = 刷怪风险）
     try {
@@ -910,9 +924,9 @@ export function createPerception(deps: PerceptionDeps): Perception {
     const trav = travellers(bot)
     const loadedCols = (bot as unknown as { world?: { columns?: Record<string, unknown> } }).world?.columns
     const loaded = loadedCols ? Object.keys(loadedCols).length : -1
-    // ⑧ 元认知：这一行**每步都有**，所以游戏时刻固定挂在这里（时间感知不随门控消失）
-    lines.push(`${clock.stamp} 【态势】你在 (${Math.round(pos.x)}, ${Math.round(pos.y)}, ${Math.round(pos.z)})｜近处敌对怪 ${threat.count} 个${threat.nearest ? `（最近 ${threat.nearest}${threat.ranged ? '·远程' : ''}）` : ''}${threat.rangedAny && !threat.ranged ? '·另有远程' : ''}｜在线旅人 ${trav.total}${loaded >= 0 ? `｜感知 ${loaded} 区块` : ''}`)
-    if (samePosCount >= 4) lines.push(`【停滞】你已连续 ${samePosCount} 轮待在同一片区域没挪窝`)
+    // ⑧ 元认知：这一行**每步都有**，游戏时刻固定挂在这里（时间感知不随门控消失）。
+    // 位置/威胁/旅人/感知范围合成一行；资产与风险（护甲/工具/包/饥荒/困死区）只在
+    // 变化或危险时追加——实测出的 6 处重复就是这么消掉的。
 
     // ⑧ 派生感知 · 决策就绪的世界模型（判断下沉：零 token 的确定性判断，可单测可重放）
     try {
@@ -926,7 +940,11 @@ export function createPerception(deps: PerceptionDeps): Perception {
       try {
         for (const it of items) {
           const d = durabilityOf(it)
-          if (d && d.ratio <= 0.25) lowDur++
+          if (d && d.ratio <= 0.25) {
+            lowDur++
+            const nm = (it as { name?: string }).name ?? '工具'
+            if (!lowDurDetail || d.ratio < 0.15) lowDurDetail = `${nm} 耐久 ${d.left}/${d.max}`
+          }
         }
       } catch { /* 耐久扫描失败不阻塞 */ }
       const wm = deriveWorldModel({
@@ -946,11 +964,10 @@ export function createPerception(deps: PerceptionDeps): Perception {
         hostiles: collectHostiles(bot),
         threatFresh: true,
         deathZones: deps.deathZones?.() ?? [],
-        stalledMs: regionSince ? Date.now() - regionSince : 0,
+        stalledMs,
         lowDurabilityCount: lowDur,
       })
       lastWorld = wm
-      lines.push(renderWorldModel(wm))
       // 通道新鲜度
       const t = Date.now()
       marks.vitals = t
@@ -991,16 +1008,46 @@ export function createPerception(deps: PerceptionDeps): Perception {
       }
     } catch { /* 锚点失败不阻塞 */ }
 
-    const travDesc = trav.total
-      ? `身边旅人 ${trav.nearby.length ? trav.nearby.map((v) => `${v.dir}${v.d}格`).join('、') : '无'}｜远处在线 ${trav.faraway}${trav.unknown ? `｜方位未明 ${trav.unknown}` : ''}`
-      : '这个世界此刻只有你一个旅人'
-
     sig = {
       hp, food, oxygen, isNight: clock.isNight, stuck: samePosCount >= 4, samePosCount,
       hostileNear: threat.count, freshChat: social.length > 0,
       hasWritingKit, position: { x: pos.x, y: pos.y, z: pos.z },
     }
-    lines.push(travDesc)
+
+    // ── 合成"态势行"：位置/威胁/旅人/感知范围（每步）＋ 资产与风险（变化或危险才追加）──
+    {
+      const bits: string[] = [`你在 (${Math.round(pos.x)}, ${Math.round(pos.y)}, ${Math.round(pos.z)})`]
+      if (threat.count > 0) {
+        bits.push(`威胁 ${threat.count} 个${threat.nearest ? `(最近 ${threat.nearest}${threat.ranged ? '·远程' : ''})` : ''}${threat.rangedAny && !threat.ranged ? '·另有远程' : ''}`)
+      } else bits.push('无威胁')
+      bits.push(`旅人 ${trav.total}${trav.nearby.length ? `(身边 ${trav.nearby.map((v) => `${v.dir}${v.d}格`).join('、')})` : ''}${trav.faraway ? `｜远处 ${trav.faraway}` : ''}${trav.unknown ? `｜方位未明 ${trav.unknown}` : ''}`)
+      if (loaded >= 0) bits.push(`感知 ${loaded} 区块`)
+      if (stalledMs >= 4 * 60_000) bits.push(`⚠${Math.round(stalledMs / 60_000)}min 无进展`)
+      // 资产/风险：只在"变化 or 危险"时追加（避免每步重复同一串静态事实）
+      const wm = lastWorld
+      if (wm) {
+        const asset: string[] = []
+        if (wm.defense.weakDefense) asset.push('⚠无甲无盾')
+        else if (wm.defense.armorPieces < 4) asset.push(`护甲 ${wm.defense.armorPieces}/4`)
+        if (wm.stock.picks === 0) asset.push('⚠无镐')
+        else if (wm.stock.picks < 3) asset.push(`⚠镐仅剩 ${wm.stock.picks}`)
+        if (lowDurDetail) asset.push(`⚠${lowDurDetail}${wm.durability.lowCount > 1 ? `（另有 ${wm.durability.lowCount - 1} 件）` : ''}`)
+        if (wm.stock.tier !== 'none') asset.push(`镐阶 ${wm.stock.tier}`)
+        if (wm.stock.slotsTotal > 0) {
+          const ratio = wm.stock.slotsUsed / wm.stock.slotsTotal
+          if (ratio >= PACK_FULL_TRIGGER) asset.push(`⚠包将满(${wm.stock.emptySlots} 空)`)
+        }
+        if (wm.paralysis.starving) asset.push('⚠饥饿且无粮')
+        if (wm.zone.insideDeathZone) asset.push(`⚠身处死亡区(中心距 ${wm.zone.zoneDistance}格)`)
+        const stamp = asset.join('|')
+        // 变化时报（边沿）；仍是危险态则每 20 步补一次 —— 静态事实绝不每步重复
+        if (stamp !== assetStamp || (stepCount % 20 === 0 && asset.some((a) => a.startsWith('⚠')))) {
+          bits.push(...asset)
+          assetStamp = stamp
+        }
+      }
+      lines.push(`${clock.stamp} 【处境】${bits.join('｜')}`)
+    }
 
     return lines.join('\n')
   }
