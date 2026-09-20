@@ -6,8 +6,8 @@
  *   - 仅供 mc_see / mc-loop 使用；渲染按需触发，不常驻渲染循环
  */
 import { mkdir, readdir, unlink } from 'node:fs/promises'
-import { writeFileSync, readFileSync, unlinkSync } from 'node:fs'
-import { join } from 'node:path'
+import { writeFileSync, readFileSync, unlinkSync, existsSync, appendFileSync, mkdirSync } from 'node:fs'
+import { join, dirname } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { Worker } from 'node:worker_threads'
@@ -307,7 +307,7 @@ async function renderOne(cam: CameraState, bot: Bot, yaw: number, pitch: number,
  * 截取 bot 当前第一人称画面。
  * @param shotsRoot 截图根目录（如 ./data/screenshots）；传 null 则不落盘
  */
-export async function captureFirstPerson(bot: Bot, shotsRoot: string | null): Promise<Shot> {
+export async function captureFirstPersonImpl(bot: Bot, shotsRoot: string | null): Promise<Shot> {
   const cam = await getCamera(bot)
   await waitForMesher(cam)
   const e = bot.entity!
@@ -323,7 +323,7 @@ export interface LookaroundShot extends Shot {
  * 环顾四周：原地不动，按 前→右→后→左 拍四张（yaw 每次顺时针 +90°）。
  * 俯仰收平到 ±0.3 rad，避免原视角在盯着天/地时四张全是天空或脚底。
  */
-export async function captureLookaround(bot: Bot, shotsRoot: string | null): Promise<LookaroundShot[]> {
+export async function captureLookaroundImpl(bot: Bot, shotsRoot: string | null): Promise<LookaroundShot[]> {
   const cam = await getCamera(bot)
   await waitForMesher(cam)
   const e = bot.entity!
@@ -592,4 +592,149 @@ function annotateShotSync(jpeg: Buffer, bot: Bot, yaw: number, pitch: number): B
       try { unlinkSync(p) } catch { /* already gone */ }
     }
   }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 视觉韧性层（2026-09-20 审计 wehos/mc-agent-neko 的教训后加）
+//
+// 背景：neko 用同样的三件套（prismarine-viewer + node-canvas-webgl + headless-gl）
+// 做第一人称相机，结果 **每 30-60s 原生崩溃一次、把整个进程带走**，最终只能全部硬禁。
+// 我们的栈经隔离进程实测可用（Node 22 上加载/建 GL 上下文/出帧都通过），而且
+// mc_see 是**按需**触发、不常驻渲染循环——但 native 崩溃**无法被 JS 捕获**，
+// 一旦发生，死的是 dsh web 整个进程（所有穿越者一起下线）。
+// 所以做事三件，都是"把不可捕获的崩溃变成可解释、可收敛的故障"：
+//   ① 崩溃哨兵：动 GL 之前落标，成功之后擦掉 ⇒ 进程若死，重启时能说出"死在截图渲染里"
+//   ② 熔断：连续失败就停手，冷却期内拒绝再截图（别拿整个进程赌）
+//   ③ 超时：挂住的渲染不该拖死 agent 循环
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface VisionGuardState {
+  failStreak: number
+  breakerUntil: number
+  lastError: string
+  lastOkMs: number | null
+}
+
+/** 纯逻辑守卫（不碰 GL，可单测）：超时保护 + 失败计数 + 熔断。 */
+export function createVisionGuard(opts: { timeoutMs?: number; maxStreak?: number; cooldownMs?: number } = {}) {
+  const timeoutMs = opts.timeoutMs ?? 15_000
+  const maxStreak = opts.maxStreak ?? 3
+  const cooldownMs = opts.cooldownMs ?? 30 * 60_000
+  const state: VisionGuardState = { failStreak: 0, breakerUntil: 0, lastError: '', lastOkMs: null }
+  return {
+    state,
+    maxStreak,
+    cooldownMs,
+    tripped: (now = Date.now()): boolean => now < state.breakerUntil,
+    async run<T>(label: string, fn: () => Promise<T>, now = Date.now()): Promise<T> {
+      if (now < state.breakerUntil) {
+        throw new Error(
+          `视觉已熔断（连续 ${state.failStreak} 次失败，冷却至 ${new Date(state.breakerUntil).toLocaleTimeString()}）——`
+          + '这段时间改用文字感知：mc_scan 看四周、mc_map 看地形、mc_status 看全身，别截图。',
+        )
+      }
+      const t0 = Date.now()
+      let timer: ReturnType<typeof setTimeout> | undefined
+      try {
+        const out = await Promise.race([
+          fn(),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`视觉操作超时（>${timeoutMs}ms）：${label}`)), timeoutMs)
+          }),
+        ])
+        state.failStreak = 0
+        state.lastOkMs = Date.now() - t0
+        return out
+      } catch (err) {
+        state.failStreak += 1
+        state.lastError = err instanceof Error ? err.message : String(err)
+        // 用注入的 now 上期限：纯逻辑可测，且与调用方同一条时间线（修自测试：原先用真实时钟）
+        if (state.failStreak >= maxStreak) state.breakerUntil = now + cooldownMs
+        throw err
+      } finally {
+        if (timer) clearTimeout(timer)
+      }
+    },
+  }
+}
+
+export interface VisionSentinel { ts: string; op: string; username: string; note: string }
+
+function visionDir(shotsRoot: string | null): string {
+  // 哨兵与视觉日志与截图同源（调用方给的 shotsRoot 的上一级 = 插件的 dataDir）
+  return shotsRoot ? dirname(shotsRoot) : tmpdir()
+}
+
+/** 动 GL 之前落标：若进程随后消失，这枚标就是唯一的死因线索。 */
+export function writeVisionSentinel(shotsRoot: string | null, rec: Omit<VisionSentinel, 'ts'>): void {
+  const dir = visionDir(shotsRoot)
+  try {
+    mkdirSync(dir, { recursive: true })   // 目录不存在要自建：否则静默写失败，崩溃时反而没有线索
+    writeFileSync(join(dir, 'vision-crash-sentinel.json'), JSON.stringify({ ts: new Date().toISOString(), ...rec }), 'utf-8')
+  } catch { /* 落标失败不阻塞截图 */ }
+}
+
+export function clearVisionSentinel(shotsRoot: string | null): void {
+  try {
+    const p = join(visionDir(shotsRoot), 'vision-crash-sentinel.json')
+    if (existsSync(p)) unlinkSync(p)
+  } catch { /* 擦标失败无所谓 */ }
+}
+
+/** 读残留哨兵：有残留 = 上次进程死在 GL 操作里（配合 mc-panel/日志报出来）。 */
+export function readVisionSentinel(shotsRoot: string | null): VisionSentinel | null {
+  try {
+    const p = join(visionDir(shotsRoot), 'vision-crash-sentinel.json')
+    if (!existsSync(p)) return null
+    return JSON.parse(readFileSync(p, 'utf-8')) as VisionSentinel
+  } catch { return null }
+}
+
+function journalVision(shotsRoot: string | null, rec: Record<string, unknown>): void {
+  try {
+    mkdirSync(visionDir(shotsRoot), { recursive: true })
+    appendFileSync(join(visionDir(shotsRoot), 'vision.log'), JSON.stringify({ ts: new Date().toISOString(), ...rec }) + '\n')
+  } catch { /* 日志失败不影响截图 */ }
+}
+
+const visionGuard = createVisionGuard()
+
+export function visionHealth(): VisionGuardState & { tripped: boolean } {
+  return { ...visionGuard.state, tripped: visionGuard.tripped() }
+}
+
+/** mc_see 正式入口：包住哨兵 + 熔断 + 超时 + 日志。 */
+export async function captureFirstPerson(bot: Bot, shotsRoot: string | null): Promise<Shot> {
+  const username = (bot as unknown as { username?: string }).username ?? '?'
+  return visionGuard.run('captureFirstPerson', async () => {
+    writeVisionSentinel(shotsRoot, { op: 'captureFirstPerson', username, note: '进程若消失=死在第一人称截图渲染中' })
+    try {
+      const shot = await captureFirstPersonImpl(bot, shotsRoot)
+      clearVisionSentinel(shotsRoot)
+      journalVision(shotsRoot, { op: 'captureFirstPerson', ok: true, ms: visionGuard.state.lastOkMs, username })
+      return shot
+    } catch (err) {
+      clearVisionSentinel(shotsRoot)
+      journalVision(shotsRoot, { op: 'captureFirstPerson', ok: false, err: err instanceof Error ? err.message : String(err), username, streak: visionGuard.state.failStreak })
+      throw err
+    }
+  })
+}
+
+export async function captureLookaround(bot: Bot, shotsRoot: string | null): Promise<LookaroundShot[]> {
+  const username = (bot as unknown as { username?: string }).username ?? '?'
+  return visionGuard.run('captureLookaround', async () => {
+    writeVisionSentinel(shotsRoot, { op: 'captureLookaround', username, note: '进程若消失=死在环顾截图中' })
+    try {
+      const shots = await captureLookaroundImpl(bot, shotsRoot)
+      clearVisionSentinel(shotsRoot)
+      journalVision(shotsRoot, { op: 'captureLookaround', ok: true, ms: visionGuard.state.lastOkMs, username })
+      return shots
+    } catch (err) {
+      clearVisionSentinel(shotsRoot)
+      journalVision(shotsRoot, { op: 'captureLookaround', ok: false, err: err instanceof Error ? err.message : String(err), username, streak: visionGuard.state.failStreak })
+      throw err
+    }
+  })
 }

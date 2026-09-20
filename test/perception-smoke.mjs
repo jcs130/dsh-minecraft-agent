@@ -9,6 +9,7 @@
 import { createPerception, sensesSnapshot, HOSTILE_TYPES, gameClock, weatherOf, threatState, travellers, visibleEntities, durabilityOf, relDir8,
   deriveWorldModel, renderWorldModel, stockFrom, defenseFrom, threatBreakdown, freshnessReport, ObservationLedger,
   bagStamp, worldStamp, createReadoutGate, isEdibleName, collectHostiles } from '../src/mc-perception.ts'
+import { createVisionGuard, readVisionSentinel, writeVisionSentinel, clearVisionSentinel } from '../src/mc-camera.ts'
 
 let pass = 0
 let fail = 0
@@ -342,6 +343,36 @@ console.log('\n[12] 读数指纹 + 一轮一答闸（Cortico：指纹不含时�
   ok(gate.duplicate('status', 'X', 500) === true, '窗口内同指纹再问 → 判重')
   ok(gate.duplicate('status', 'Y', 600) === false, '指纹变了 → 放行')
   ok(gate.duplicate('status', 'Y', 5000) === false, '超出窗口 → 放行')
+}
+
+console.log('\n[13] 视觉韧性（native 崩溃无法被 JS 捕获 → 哨兵 + 熔断 + 超时）')
+{
+  const g = createVisionGuard({ timeoutMs: 60, maxStreak: 2, cooldownMs: 1000 })
+  ok(g.tripped(0) === false, '初始未熔断')
+  const okVal = await g.run('x', async () => 'ok', 0)
+  ok(okVal === 'ok' && g.state.failStreak === 0 && typeof g.state.lastOkMs === 'number', '成功：清零失败计数并记录耗时')
+  // 连续失败到阈值 → 熔断
+  for (let i = 0; i < 2; i++) { try { await g.run('x', async () => { throw new Error('gl boom') }, 10) } catch { /* 预期 */ } }
+  ok(g.state.failStreak === 2, '连续两次失败 → 计数 2')
+  ok(g.tripped(20) === true, '达到阈值 → 熔断')
+  let trippedMsg = ''
+  try { await g.run('x', async () => 'should not run', 30) } catch (e) { trippedMsg = e.message }
+  ok(/熔断/.test(trippedMsg), '熔断期内直接拒绝（带可读原因 + 改用文字感知的建议）')
+  ok(g.tripped(1100) === false, '冷却过后自动恢复')
+  // 超时保护
+  const g2 = createVisionGuard({ timeoutMs: 40, maxStreak: 5, cooldownMs: 10 })
+  let toMsg = ''
+  try { await g2.run('slow', () => new Promise(() => {}), 0) } catch (e) { toMsg = e.message }
+  ok(/超时/.test(toMsg), '挂住的渲染被超时掐断（不拖死 agent 循环）')
+  ok(g2.state.failStreak === 1, '超时计入失败计数')
+  // 哨兵：落标 → 读得到（= 进程若在此刻消失，重启能说出死在哪一步）→ 擦标后读不到
+  const dir = '_vision_sentinel_test'
+  const root = dir + '/screenshots'
+  writeVisionSentinel(root, { op: 'captureFirstPerson', username: 'Edward', note: 'test' })
+  const left = readVisionSentinel(root)
+  ok(left && left.op === 'captureFirstPerson' && left.username === 'Edward', '哨兵可读（崩溃后唯一的死因线索）')
+  clearVisionSentinel(root)
+  ok(readVisionSentinel(root) === null, '成功后哨兵被擦掉')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

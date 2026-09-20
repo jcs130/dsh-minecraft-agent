@@ -16,6 +16,7 @@ import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { botFor } from './mc-bots'
 
 import { sensesSnapshot, isUnloadedBlock, bagStamp, worldStamp, createReadoutGate } from './mc-perception'
+import { readVisionSentinel, visionHealth } from './mc-camera'
 
 // 读数闸（Cortico readouts.ts）：同一份读数在窗口内重复问 → 回一句「已答过」。
 // 指纹**不含时钟**（会随时间变的字段进指纹 = 这道闸等于不存在）。
@@ -966,6 +967,18 @@ async function tradeWithVillager(bot: Bot, tradeIndex: number | undefined, count
     v.close()
   }
 }
+
+// ── 视觉健康自检（2026-09-20 审计 neko 的视觉崩溃教训后加）──
+// native 崩溃留不下堆栈：靠"动 GL 前落的哨兵"回答"上次是不是死在渲染里"。
+try {
+  const leftover = readVisionSentinel(join(EPISODIC_DIR, 'screenshots'))
+  if (leftover) {
+    log(`⚠️ 上次进程可能死在视觉渲染中：${leftover.op} @ ${leftover.ts}（${leftover.username}）——${leftover.note}`)
+    log('   → 若再次发生，优先关掉 viewerEnabled（常驻 3D 查看器 = neko 被拖死的同款风险），其次再考虑禁 mc_see')
+  }
+  const h = visionHealth()
+  log(`视觉健康：熔断=${h.tripped ? '是' : '否'}｜连续失败=${h.failStreak}｜上次成功=${h.lastOkMs ?? '-'}ms`)
+} catch { /* 自检失败不阻塞插件加载 */ }
 
 // ── mc_see 后端：方案 C 进程内相机（node-canvas-webgl）优先，playwright 截 viewer 兜底 ──
 // 相机直出 800x512 JPEG，无浏览器开销；仅当相机不可用（如刚 spawn 未就绪）时退回无头 Chrome。
