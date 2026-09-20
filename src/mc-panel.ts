@@ -30,6 +30,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { CONNECTION_FILE, RUNTIME_FILE, validateOverrides, type RuntimeConnection } from './mc-connection'
+// 人物与皮肤数据层（agent-store 早就写好，但一直没有消费者 —— 2026-09-20 接上面板）
+import { listAgents, updateAgent, loadSkins } from './agent-store'
 import type { McStoreService } from './mc-store'
 
 export const name = 'mc-panel'
@@ -96,6 +98,10 @@ export interface PanelPayload {
   online: boolean
   archive: { name?: string; epithet?: string; source?: string } | null
   mystic: { innateSkill?: string; level?: number } | null
+  /** 人物注册表（agents.json）：面板的「人物」区用它列出所有角色。 */
+  characters?: Array<{ id: string; name: string; username: string; skin?: string; status?: string }>
+  /** 皮肤库（skins.json）：presets 供下拉选择 + 预览（Mojang 签名 url 直接当图片地址用） */
+  skins?: { presets: Record<string, { url?: string; model?: string; displayName?: string }>; assignments: Record<string, string> }
   /** 当前中尺度目标（读 active-goals.json，回落到记忆里的 currentGoal）。 */
   goal?: string | null
   /** 法术书状态（等级 + 掌握清单）。 */
@@ -227,6 +233,16 @@ export function collect(dataDir: string, username: string, store?: McStoreServic
     connection: { override: null, runtime: null },
   }
   // 服务器连接信息（进程级，与 username 无关）
+  // 人物与皮肤：与 username 无关，所以放在早退之前（否则没连上身体时面板里看不到角色）
+  try {
+    payload.characters = listAgents(dataDir).map((a) => ({ id: a.id, name: a.name, username: a.username, skin: a.skin, status: a.status }))
+    const sk = loadSkins(dataDir)
+    payload.skins = {
+      presets: Object.fromEntries(Object.entries(sk.presets).map(([k, v]) => [k, { url: v.url, model: v.model, displayName: v.displayName }])),
+      assignments: sk.assignments,
+    }
+  } catch { /* 人物/皮肤读取失败不影响其它面板数据 */ }
+
   payload.connection.override = readJson(join(dataDir, CONNECTION_FILE)) as PanelPayload['connection']['override']
   payload.connection.runtime = readJson(join(dataDir, RUNTIME_FILE)) as RuntimeConnection | null
   if (!u) return payload
@@ -415,11 +431,34 @@ export function apply(ctx: Context, config: PanelConfig): void {
         kind: 'prefix',
         path: DATA_PREFIX,
         handler: (req: IncomingMessage, res: ServerResponse) => {
+          const send = (code: number, obj: unknown): void => {
+            res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+            res.end(JSON.stringify(obj))
+          }
           try {
             const u = new URL(req.url ?? '/', 'http://localhost').searchParams.get('user') ?? config.username
-            const body = JSON.stringify(collect(dataDir, u))
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
-            res.end(body)
+            if (req.method === 'POST') {
+              // 写操作：改皮肤 / 改名字背景（走 agent-store 的 updateAgent，自带 username 冲突检查）
+              let raw = ''
+              req.on('data', (c) => { raw += c })
+              req.on('end', () => {
+                try {
+                  const body = JSON.parse(raw || '{}') as { action?: string; id?: string; skin?: string; name?: string; background?: string }
+                  if (!body.id) return send(400, { error: '缺 id' })
+                  const patch: Record<string, unknown> = {}
+                  if (body.skin !== undefined) patch.skin = body.skin
+                  if (body.name !== undefined) patch.name = body.name
+                  if (body.background !== undefined) patch.background = body.background
+                  const next = updateAgent(dataDir, body.id, patch)
+                  if (!next) return send(404, { error: '改不动（人物不存在或名字冲突）' })
+                  send(200, { ok: true, agent: next, payload: collect(dataDir, u) })
+                } catch (e) {
+                  send(400, { error: e instanceof Error ? e.message : String(e) })
+                }
+              })
+              return
+            }
+            send(200, collect(dataDir, u))
           } catch (e) {
             res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' })
             res.end(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }))

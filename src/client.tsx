@@ -530,6 +530,33 @@ function McPanelView({ rpc }: { rpc: PanelRpc | undefined }) {
 
         <div className="bottom">
           <div className="card">
+              <h2>人物（含皮肤）</h2>
+              {(p?.characters ?? []).length ? (p!.characters!).map((c) => {
+                const presets = p?.skins?.presets ?? {}
+                const cur = c.skin ?? ''
+                const saveSkin = async (skin: string): Promise<void> => {
+                  try {
+                    await fetch('/mc-panel/data/', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'setSkin', id: c.id, skin }),
+                    })
+                  } catch { /* 下一轮 3s 轮询会刷新显示 */ }
+                }
+                return (
+                  <div className="item" key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    {presets[cur]?.url
+                      ? <img src={presets[cur].url} alt="" width={40} height={40} style={{ imageRendering: 'pixelated' }} />
+                      : <span className="chip">无皮肤</span>}
+                    <span style={{ flex: 1 }}>{c.name}（{c.username}）· {c.status ?? '—'}</span>
+                    <select value={cur} onChange={(e) => { void saveSkin(e.target.value) }}>
+                      {Object.keys(presets).map((k) => <option value={k} key={k}>{presets[k]?.displayName ?? k}</option>)}
+                    </select>
+                  </div>
+                )
+              }) : <div className="empty">尚无人物（agents.json 为空）</div>}
+            </div>
+            <div className="card">
             <h2>背包</h2>
             <div className="chips">
               {invKeys.length ? invKeys.map((k) => <span className="chip" key={k}>{k} ×{agg[k]}</span>) : <div className="empty">背包空空如也</div>}

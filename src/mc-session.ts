@@ -47,6 +47,7 @@ import { createPerception, collectHostiles, appendJsonl } from './mc-perception'
 import { prewarm, callSystemOne, defaultDeciderConfig, DECIDER_THRESHOLDS } from './mc-decider'
 import { createAudienceChannel, AUDIENCE_INVARIANTS } from './mc-audience'
 import { createGuidanceQueue } from './mc-guidance'
+import { loadSkins } from './agent-store'
 import { createModeMachine, decideMode, renderMode, tickFor, type ModeStateInput } from './mc-mode'
 import { pickReflex, escapeDirection, runReflex, actSurface, actEscape, actEat } from './mc-reflex'
 import type { McBotEntry } from './mc-bots'
@@ -1396,6 +1397,37 @@ async function spawnTransmigrator(
     modeTimer = setTimeout(() => { void refreshMode() }, Math.max(400, lastMode.tickMs))
   }
   void refreshMode()
+
+  // ── 本地皮肤注入（不依赖 skin-proxy）─────────────────────────────────────
+  // viewer 的补丁（viewer/lib/worldView.js）从 bot.players[username].skinData 取皮肤；
+  // 正版服该字段由 player_info 下发（Mojang 签名），但我们的服是 offline-mode；
+  // 而把 skin-proxy 摆在 bot 前面在 **NeoForge** 服上握手失败（真跑实测：join 后约 200ms 被关）。
+  // 于是**本地注入**：从 skins.json 的 assignments 取该用户名的预设，直接写给 viewer 看。
+  // 每 20s 复查一次（重连/换预设后自动跟上），热读文件（面板改皮肤即刻生效）。
+  let lastSkinUrl = ''
+  ctx.setInterval(() => {
+    try {
+      const b = body() as unknown as {
+        username?: string
+        players?: Record<string, { skinData?: { url?: string; model?: string } }>
+      } | null
+      if (!b?.username || !b.players) return
+      const me = b.players[b.username]
+      if (!me) return
+      const sk = loadSkins(dataDir)
+      const key = sk.assignments?.[b.username] ?? sk.assignments?.[b.username.toLowerCase()]
+      const preset = key ? sk.presets?.[key] : undefined
+      if (!preset?.url) return
+      const want = { url: preset.url, model: preset.model ?? 'classic' }
+      if (me.skinData?.url !== want.url) {
+        me.skinData = want
+        if (lastSkinUrl !== want.url) {
+          lastSkinUrl = want.url
+          log(`本地皮肤注入：${b.username} ← 预设「${key}」(${want.model}) → 3D 观战可见`)
+        }
+      }
+    } catch { /* 注入失败不影响运行 */ }
+  }, 20_000)
 
   // 感知体检：每分钟报一次「实体 N / 已加载区块 M / 敌对 K」。
   // 目的：判定那堆 PartialReadError（entity metadata 解析失败）有没有让实体感知**静默失明**
