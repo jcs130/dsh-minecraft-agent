@@ -38,7 +38,8 @@ import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
 import { createPerception } from './mc-perception'
 import { prewarm, callSystemOne, defaultDeciderConfig, DECIDER_THRESHOLDS } from './mc-decider'
-import { createAudienceChannel, renderInfluence, AUDIENCE_INVARIANTS } from './mc-audience'
+import { createAudienceChannel, AUDIENCE_INVARIANTS } from './mc-audience'
+import { createGuidanceQueue } from './mc-guidance'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -1252,7 +1253,15 @@ async function spawnTransmigrator(
       const chat = drainChat()
       if (chat) out.push(chat.split('\n').map((l) => `💬 ${l}`).join('\n'))
       const npc = drainNpc()
-      if (npc) out.push(npc)
+      if (npc) {
+        out.push(npc)
+        // 神谕/信使/上位者的话 → 一条指引（L3：他的话可以改目标；限时 2 分钟）
+        // 注意：guidance 在下面才声明 —— 这个闭包只在组装上下文时执行，晚绑定是安全的。
+        try {
+          guidance.push({ source: 'deity', kind: 'request', level: 3, text: npc.slice(0, 200), ttlMs: 120_000, evidence: ['mc:message'] })
+          refreshGuidance()
+        } catch { /* 独立失败不影响感知 */ }
+      }
       return out
     },
     recentActions: () => (store?.episodicTail(username, 8) ?? []).map((r) => r.text).filter(Boolean),
@@ -1325,6 +1334,13 @@ async function spawnTransmigrator(
     },
   )
 
+  // ── 指引队列：弹幕/神谕/教训都是"同一种东西"（可能影响行为的指引）──
+  // 「未来插入」语义：push 先挂 pending，每次组装上下文只取已生效（now ≥ from）且未过期的几条，
+  // 所以它天然是"下一步/稍后那一步才出现的信息"，而不是当步立刻打断。
+  const guidance = createGuidanceQueue({ maxInject: 4, defaultTtlMs: 45_000 })
+  let guidanceText = ''
+  const refreshGuidance = (): void => { guidanceText = guidance.render() }
+
   // 弹幕文案缓存（异步刷新、同步取用——分类器是 async，而 systemPrompt.context 要同步）
   let audienceText = ''
   const refreshAudience = async (): Promise<void> => {
@@ -1335,16 +1351,21 @@ async function spawnTransmigrator(
       lines.push(...audience.surfaceProfiles())
       if (rendered) {
         const adv = await audience.advise(Date.now(), { goalAgeMs: Date.now() - goalSetAt })
-        lines.push(
-          `【观众建议】${adv.shouldReply ? '可以回应' : '先不回'}：${adv.reason}`
-          + `${adv.pick ? `｜先回「${adv.pick.slice(0, 20)}」` : ''}`
-          + `${adv.pointcast ? '（点播：若想采纳需过目标防抖，且不得压倒安全）' : ''}`
-          + `〔${adv.source === 'classifier' ? '快决策' : '启发式'}〕`,
-        )
-        // 选择性影响：默认只影响"回应"，点播要靠上位者/档案授权/多人同诉求挣 L3；
-        // 并明说"弹幕不能改变的事"，让模型有据可依（策略在代码里，不靠模型自觉）。
-        lines.push(renderInfluence(adv.influence))
-        lines.push(AUDIENCE_INVARIANTS)
+        // 弹幕 → 一条**指引**（而不是单独一路感知）：等级来自影响判定，限时 45s。
+        // 「观众建议」不再单独出现在 mc:audience 里 —— 一件事只说一遍，指引块里带等级与配额。
+        if (adv.pick) {
+          guidance.push({
+            source: 'audience',
+            kind: adv.pointcast ? 'request' : 'info',
+            level: adv.influence.level,
+            text: `${adv.pick}${adv.shouldReply ? '' : '（暂不回应）'}`
+              + `｜${adv.reason}｜${adv.influence.why}`
+              + `｜${AUDIENCE_INVARIANTS}`,
+            ttlMs: 45_000,
+            evidence: [`audience:${adv.source}`],
+          })
+        }
+        refreshGuidance()
       }
       audienceText = lines.join('\n')
     } catch { audienceText = '' }
@@ -1396,6 +1417,11 @@ async function spawnTransmigrator(
     const text = perception.status()
     try {
       const s = perception.signals()
+      // 教训/自调守则/神谕进化/渐进披露卡是"算出来的整块"：原地替换常驻指引，不越堆越多
+      if (guidanceCache.trim()) {
+        guidance.replaceStanding('lesson', { kind: 'warning', level: 2, text: guidanceCache.trim(), evidence: ['mc:guidance'] })
+        refreshGuidance()
+      }
       if (s.position) {
         const vill = nearbyVillagers(s.position)
         guidanceCache = buildGuidance(
@@ -1497,10 +1523,11 @@ async function spawnTransmigrator(
         })
         // 生命循环指导块：死亡教训 + 自调守则 + 神谕进化 + 渐进披露卡
         // （由 perceive 每轮更新并缓存到 guidanceCache；这里只读缓存）。
+        // 统一指引块：教训/守则（常驻）+ 弹幕点播/神谕（限时）都在这里，带等级与配额。
         agentCtx.systemPrompt.context({
           name: 'mc:guidance',
           order: 102,
-          text: () => guidanceCache,
+          text: () => guidanceText,
         })
         // 法术书知识（自主学习闭环，2026-08-22）：渐进披露——常驻只注入「指引+天赋」，
         // 不再整块塞标准词。技能清单用 mc_skills 查，某技能咏唱词用 mc_spell_detail 查，

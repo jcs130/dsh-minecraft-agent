@@ -14,6 +14,7 @@ import { validateAnswers, isFresh, decideFresh, DECIDER_THRESHOLDS, pickChoice }
 import { dayPhase, terrainStatusOf, terrainProbe, nearbyBlockNames, capabilityFlags, inventoryCounts, classificationState } from '../src/mc-perception.ts'
 import { createAudienceChannel, normalizeDanmaku, salienceOf, judgeInfluence, renderInfluence, noteInfluenceAdopted,
   profileGrantsInfluence, AUDIENCE_INVARIANTS, INFLUENCE_LABEL } from '../src/mc-audience.ts'
+import { createGuidanceQueue } from '../src/mc-guidance.ts'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -715,6 +716,62 @@ console.log('\n[18] 弹幕的选择性影响：默认无影响权，必须挣来
   chInf.ingest({ source: 'mc', senderKey: '777', name: '老王', text: '再去砍点树', at: 2_000_001 })
   const adv2 = await chInf.advise(2_000_100, { goalAgeMs: 60_000 })
   ok(adv2.influence.level === 2, '采纳一次后配额用尽 → 下一条只能微调（改目标限速）')
+}
+
+console.log('\n[19] 指引信息队列：弹幕只是指引的一个生产者')
+{
+  const T = 5_000_000
+  const q = createGuidanceQueue({ maxInject: 3, defaultTtlMs: 10_000 })
+  ok(q.render(T) === '', '空队列 → 空渲染（不占预算）')
+
+  // 弹幕进来 → 一条限时指引
+  const it = q.push({ source: 'audience', kind: 'request', level: 3, text: '先去挖点铁', at: T, ttlMs: 10_000, evidence: ['audience:classifier'] })
+  ok(it.lifetime === 'transient' && it.until === T + 10_000, '弹幕指引是限时的（默认 transient + TTL）')
+  ok(/\[指引·观众·请求·L3\] 先去挖点铁/.test(q.render(T)), '渲染带来源/性质/等级（一行一条）')
+
+  // 同一句话被反复提 → 合并刷新，不新增行
+  q.push({ source: 'audience', kind: 'request', level: 3, text: '先去挖点铁', at: T + 2_000, ttlMs: 10_000 })
+  ok(q.all().length === 1 && q.all()[0].hits === 2, '同来源同话合并计次（不新增行）')
+  ok(q.all()[0].until === T + 12_000, '合并时刷新有效期（"它还在说这件事"）')
+  ok(/×2/.test(q.render(T + 2_500)), '渲染体现命中次数')
+
+  // ★「未来插入」：from 在未来的指引，当下不出现、到点才出现
+  q.push({ source: 'system', kind: 'warning', level: 2, text: '三分钟后天黑', at: T, from: T + 60_000, ttlMs: 30_000 })
+  ok(!/天黑/.test(q.render(T)), '未到生效时刻 → 不注入（这就是"未来才插进来"）')
+  ok(q.stats(T).pending === 1, '统计里能看到"待生效"的条数')
+  ok(/天黑/.test(q.render(T + 61_000)), '到点后自动出现')
+  ok(!/天黑/.test(q.render(T + 91_000)), '未来生效的项在生效后按自己的 TTL 过期（不是出生即过期）')
+
+  // 过期即消失；常驻项永不消失
+  ok(!/先去挖点铁/.test(q.render(T + 20_000)), '限时指引过期后消失')
+  q.push({ source: 'lesson', kind: 'warning', level: 2, text: '夜里别沿河走', lifetime: 'standing', at: T })
+  ok(/夜里别沿河走/.test(q.render(T + 999_999)), '常驻指引（教训/守则）不随时间消失')
+
+  // 常驻块原地替换（算出来的整块，不能越堆越多）
+  q.replaceStanding('lesson', { kind: 'warning', level: 2, text: '夜里别沿河走，也别下水', at: T + 5 })
+  const standing = q.all().filter((x) => x.source === 'lesson' && x.lifetime === 'standing')
+  ok(standing.length === 1 && /也别下水/.test(standing[0].text), 'replaceStanding：同来源常驻项只留最新一条')
+
+  // 预算与优先级：超预算时按 等级 > 性质 > 新近 取前 N
+  const q2 = createGuidanceQueue({ maxInject: 2 })
+  q2.push({ source: 'audience', kind: 'info', level: 1, text: '低等级信息', at: T })
+  q2.push({ source: 'audience', kind: 'request', level: 2, text: '中等级请求', at: T + 1 })
+  q2.push({ source: 'deity', kind: 'rule', level: 3, text: '神谕规则', at: T + 2 })
+  const picked = q2.select(T + 3)
+  ok(picked.length === 2 && picked[0].text === '神谕规则' && /中等级|低等级/.test(picked[1].text), '超预算按等级优先取前 N')
+
+  // 采纳标记（供影响配额记账）
+  const q3 = createGuidanceQueue()
+  const adv = q3.push({ source: 'audience', kind: 'request', level: 3, text: '去砍树', at: T })
+  q3.markAdopted(adv.id)
+  ok(/已采纳/.test(q3.render(T)), '采纳后渲染标记（审计可见）')
+
+  // 神谕作为指引（L3：可以改目标）
+  const q4 = createGuidanceQueue()
+  q4.push({ source: 'deity', kind: 'request', level: 3, text: '[女神] 去东边的村子看看', at: T, ttlMs: 120_000 })
+  ok(/\[指引·神谕·请求·L3\]/.test(q4.render(T)), '神谕也是指引（同一抽象，不同生产者）')
+  const st = q4.stats(T)
+  ok(st.total === 1 && st.transient === 1, '统计：限时 1 条')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)
