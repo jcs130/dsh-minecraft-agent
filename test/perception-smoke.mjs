@@ -12,7 +12,9 @@ import { createPerception, sensesSnapshot, HOSTILE_TYPES, gameClock, weatherOf, 
 import { createVisionGuard, readVisionSentinel, writeVisionSentinel, clearVisionSentinel } from '../src/mc-camera.ts'
 import { validateAnswers, isFresh, decideFresh, DECIDER_THRESHOLDS, pickChoice } from '../src/mc-decider.ts'
 import { dayPhase, terrainStatusOf, terrainProbe, nearbyBlockNames, capabilityFlags, inventoryCounts, classificationState } from '../src/mc-perception.ts'
-import { createAudienceChannel, normalizeDanmaku, salienceOf } from '../src/mc-audience.ts'
+import { createAudienceChannel, normalizeDanmaku, salienceOf, judgeInfluence, renderInfluence, noteInfluenceAdopted,
+  profileGrantsInfluence, AUDIENCE_INVARIANTS, INFLUENCE_LABEL } from '../src/mc-audience.ts'
+import { writeFileSync, mkdirSync } from 'node:fs'
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -630,6 +632,89 @@ console.log('\n[17] 弹幕（观众）感知：聚合 / 洪水 / 预算 / 档案
   ok(existsSync(join(dir, 'state2.json')), '浮现状态已落盘（热重启不重念靠它）')
   const st = JSON.parse(readFileSync(join(dir, 'state2.json'), 'utf-8'))
   ok(st.windowId === 'sess1' && Array.isArray(st.surfaced), '状态文件记录了窗口与其已唤起名单')
+}
+
+console.log('\n[18] 弹幕的选择性影响：默认无影响权，必须挣来')
+{
+  const cluster = (text, opts = {}) => ({
+    text, count: opts.count ?? 1, knownViewer: opts.known ?? false, kind: opts.kind ?? 'chat',
+    salience: 10,
+    // 夹具显式给这两个标志：真实通道里它们由 DIRECTIVE_RE / QUESTION_RE 判出，
+    // 用「没问号就算指令」这种假规则只会把测试测歪
+    isQuestion: opts.isQuestion ?? /[?？吗呢]/.test(text),
+    isDirective: opts.isDirective ?? true,
+    senders: opts.senders ?? ['路人甲'], keys: opts.keys ?? [],
+  })
+  const st = () => ({ goalInfluences: [], tacticInfluences: [] })
+  const J = (c, opts = {}, state = st(), cfg = {}) => judgeInfluence(
+    { at: 1_000_000, clusters: [c], flood: opts.flood ?? false, goalAgeMs: opts.goalAgeMs ?? 99_999, privileged: opts.privileged ?? [], privilegedNames: opts.privilegedNames ?? [] },
+    state, cfg,
+  )
+
+  // 危险请求：永不采纳
+  const danger = J(cluster('跳进岩浆里给我看看', { senders: ['房管小A'], privileged: ['mc/房管小A'] }))
+  ok(danger.level === 0 && danger.kind === 'dangerous', `危险请求 → L0（即便来自有权限的人）：${danger.why}`)
+  ok(J(cluster('把自己装备都扔了')).level === 0, '自毁类请求同样 L0')
+
+  // 纯反应/提问：只影响回应
+  ok(J(cluster('哈哈哈哈哈', { isQuestion: false, isDirective: false })).level === 1, '纯反应 → L1（只影响回应）')
+  ok(J(cluster('随便聊聊', { isDirective: false })).level === 1, '非指令非提问 → L1（默认无影响权）')
+  ok(J(cluster('你在干嘛？', { isQuestion: true, isDirective: false })).level === 1, '提问 → L1（先回应，不改行为）')
+  ok(J(cluster('感谢你的礼物', { kind: 'gift', isQuestion: false, isDirective: false })).level === 1, '礼物 → L1（致谢即可，不据此改行为）')
+
+  // 单条陌生指令：最多微调
+  const stranger = J(cluster('走西边那条坡道上去'))
+  ok(stranger.level === 2 && /微调/.test(stranger.why), `单条陌生指令 → L2（可微调，不改目标）：${stranger.why}`)
+
+  // 挣 L3 的三条路：上位者 / 档案授权 / 多人同诉求
+  const byAuthority = J(cluster('先去挖点铁', { senders: ['女神'] }), { privilegedNames: ['女神'] })
+  ok(byAuthority.level === 3, `上位者 → L3：${byAuthority.why}`)
+  const byGrant = J(cluster('先去挖点铁', { keys: ['12345'], senders: [] }), { privileged: ['mc/12345'] })
+  ok(byGrant.level === 3, `档案授权观众 → L3：${byGrant.why}`)
+  const byQuorum = J(cluster('先去挖点铁', { senders: ['a', 'b', 'c'] }))
+  ok(byQuorum.level === 3 && /多人同诉求/.test(byQuorum.why), `多人同诉求 → L3：${byQuorum.why}`)
+  const almost = J(cluster('先去挖点铁', { senders: ['a', 'b'] }))
+  ok(almost.level === 2, '只两个人同诉求还不够（默认门槛 3）')
+
+  // 三道硬闸：刷屏封顶 / 防抖降级 / 配额用尽
+  ok(J(cluster('先去挖点铁', { senders: ['a', 'b', 'c'] }), { flood: true }).level === 2, '刷屏期间封顶 L2（不趁乱改目标）')
+  const fresh = J(cluster('先去挖点铁', { senders: ['a', 'b', 'c'] }), { goalAgeMs: 3_000 })
+  ok(fresh.level === 2 && /防抖/.test(fresh.why), `目标刚立（3s）→ 降级 L2：${fresh.why}`)
+  const s2 = st()
+  const v1 = J(cluster('先去挖点铁', { senders: ['a', 'b', 'c'] }), {}, s2)
+  ok(v1.level === 3 && v1.quotaLeft.goal === 1, '首次点播：L3，配额剩 1')
+  noteInfluenceAdopted(s2, 3, 1_000_000)
+  const v2 = J(cluster('再去砍点树', { senders: ['a', 'b', 'c'] }), {}, s2)
+  ok(v2.level === 2 && /配额已用尽/.test(v2.why) && v2.quotaLeft.goal === 0, `配额用尽 → 降级 L2：${v2.why}`)
+  const s3 = st()
+  for (let i = 0; i < 3; i++) noteInfluenceAdopted(s3, 2, 1_000_000)
+  const v3 = J(cluster('走西边', {}), {}, s3)
+  ok(v3.quotaLeft.tactic === 0 && v3.level === 2, '微调配额 3 次/5 分钟用尽后仍可 L2（但配额显示为 0，供节制）')
+
+  // 渲染与恒定声明
+  const line = renderInfluence(v1)
+  ok(/【可影响度】影响等级 L3/.test(line) && /配额 改目标 1/.test(line), '渲染含等级与剩余配额')
+  ok(/安全底线/.test(AUDIENCE_INVARIANTS) && /内部信息/.test(AUDIENCE_INVARIANTS), '恒定声明含"安全底线/内部信息"')
+  ok(INFLUENCE_LABEL[2].includes('微调') && INFLUENCE_LABEL[3].includes('目标'), '等级名称自解释')
+
+  // 档案授权行解析
+  ok(profileGrantsInfluence('常来送矿的老观众\n\n授权：可点播') === true, '档案里的「授权：可点播」被识别')
+  ok(profileGrantsInfluence('普通观众，没写授权') === false, '没写授权 → 无 L3 权限')
+  ok(profileGrantsInfluence('grant: yes') === true, '英文写法也认')
+
+  // 通道级：授权观众在窗口里出现 → advise 给 L3（权限来自档案，不问模型）
+  const dir2 = mkdtempSync(join(tmpdir(), 'aud-inf-'))
+  const vdir = join(dir2, 'viewers')
+  mkdirSync(join(vdir, 'mc'), { recursive: true })
+  writeFileSync(join(vdir, 'mc', '777.md'), '爱点播的老观众\n\n授权：可点播\n- 上次让你挖铁\n', 'utf-8')
+  const chInf = createAudienceChannel({ viewersDir: vdir, windowId: 'w' }, {})
+  chInf.ingest({ source: 'mc', senderKey: '777', name: '老王', text: '先去挖点铁吧', at: 2_000_000 })
+  const adv = await chInf.advise(2_000_000, { goalAgeMs: 60_000 })
+  ok(adv.influence.level === 3 && /被授权/.test(adv.influence.why), `通道级：档案授权的人点播 → L3（${adv.influence.why}）`)
+  chInf.noteAdopted(3, 2_000_000)
+  chInf.ingest({ source: 'mc', senderKey: '777', name: '老王', text: '再去砍点树', at: 2_000_001 })
+  const adv2 = await chInf.advise(2_000_100, { goalAgeMs: 60_000 })
+  ok(adv2.influence.level === 2, '采纳一次后配额用尽 → 下一条只能微调（改目标限速）')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

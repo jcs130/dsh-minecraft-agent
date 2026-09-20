@@ -38,7 +38,7 @@ import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
 import { createPerception } from './mc-perception'
 import { prewarm, callSystemOne, defaultDeciderConfig, DECIDER_THRESHOLDS } from './mc-decider'
-import { createAudienceChannel } from './mc-audience'
+import { createAudienceChannel, renderInfluence, AUDIENCE_INVARIANTS } from './mc-audience'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -131,6 +131,8 @@ export interface Config {
   autoSteer?: boolean
   /** 启动时是否预热本地快决策服务（默认 true；关掉可省一次启动请求）。 */
   deciderPrewarm?: boolean
+  /** 额外授权到 L3 的名字（房管等；女神自动在内） */
+  audienceAuthorityNames?: string[]
   /** 人格（穿越者前世档案）；不传用内置 isekai 默认人格。 */
   persona?: string
   /** 世界规则 + 当前目标 + 工具使用指引。 */
@@ -709,6 +711,8 @@ async function spawnTransmigrator(
   // 不再进 objective，否则又变成「活出自己一生」式的永恒愿景引发空转烧 token。
   const mission = DEFAULT_LIFE_MISSION
   let activeGoal = entry.goal ?? config.goal ?? DEFAULT_ACTIVE_GOAL
+  // 目标何时立的（弹幕点播要过防抖：刚立的目标不许被观众立刻换掉）
+  let goalSetAt = Date.now()
   // 目标持久化：重启后恢复上次的当前目标，不让穿越者每次都从零定目标。
   const goalFile = resolve(dataDir, 'active-goals.json')
   const loadGoal = (u: string): string => (loadJson<Record<string, { goal?: string }>>(goalFile, {})[u]?.goal ?? '').trim()
@@ -1276,6 +1280,8 @@ async function spawnTransmigrator(
       // 上下文窗口标识用 sessionId：同一 session 内"一个人只念一次"，
       // 交接/换窗口后重新浮现一次，热重启不重念（与 Cortico 的口径一致）
       windowId: sessionId,
+      // 上位者（女神/房管）的话可到 L3；其余观众的 L3 权限由他们档案里的「授权：可点播」决定
+      authorityNames: [godName, ...(config.audienceAuthorityNames ?? [])],
     },
     {
       // 快决策（本地 Jev 系）：在"值得回吗 / 先回哪条 / 是不是点播"上给判断。
@@ -1328,13 +1334,17 @@ async function spawnTransmigrator(
       if (rendered) lines.push(rendered)
       lines.push(...audience.surfaceProfiles())
       if (rendered) {
-        const adv = await audience.advise()
+        const adv = await audience.advise(Date.now(), { goalAgeMs: Date.now() - goalSetAt })
         lines.push(
           `【观众建议】${adv.shouldReply ? '可以回应' : '先不回'}：${adv.reason}`
           + `${adv.pick ? `｜先回「${adv.pick.slice(0, 20)}」` : ''}`
           + `${adv.pointcast ? '（点播：若想采纳需过目标防抖，且不得压倒安全）' : ''}`
           + `〔${adv.source === 'classifier' ? '快决策' : '启发式'}〕`,
         )
+        // 选择性影响：默认只影响"回应"，点播要靠上位者/档案授权/多人同诉求挣 L3；
+        // 并明说"弹幕不能改变的事"，让模型有据可依（策略在代码里，不靠模型自觉）。
+        lines.push(renderInfluence(adv.influence))
+        lines.push(AUDIENCE_INVARIANTS)
       }
       audienceText = lines.join('\n')
     } catch { audienceText = '' }
@@ -1878,6 +1888,7 @@ async function spawnTransmigrator(
     const g = objective.trim()
     if (!g) return '新目标不能为空。'
     activeGoal = g
+    goalSetAt = Date.now()
     saveGoal(username, activeGoal)
     // 先喂给 agent 一段当前目标的上下文（让它在接下来的决策里照着目标行动），
     // 再 clear+create arm 新 goal —— goal-round-driver 会据新 objective 驱动下一轮。
