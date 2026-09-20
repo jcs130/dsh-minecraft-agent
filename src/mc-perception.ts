@@ -427,6 +427,23 @@ export function sensesSnapshot(
     },
     社会: { 在线旅人: trav.total, 身边16格内: trav.nearby.length ? trav.nearby : '无', 远处: trav.faraway, 方位未明: trav.unknown },
     元认知: { 感知范围_已加载区块: loaded ?? '未知', 说明: '未加载区块内的一切都不可知（不许猜）', 世界上下限: b.game?.minY != null && b.game?.height != null ? `${b.game.minY}~${b.game.minY + b.game.height}` : '未知' },
+    // 分类用（解释层）：把原始方块/物品压成**决策就绪的小枚举**，给 LLM 与快决策（Jev 系）共用。
+    // 与"视"那段的分工：视 = 人在哪、眼前是什么；这里 = **能不能过、这一带有什么材料、我会什么**。
+    分类用: (() => {
+      try {
+        const items = b.inventory?.items?.() ?? []
+        const itemsLoose = items as unknown as Array<{ name?: string }>
+        return {
+          时段: dayPhase(clock.tod),
+          地形: terrainProbe(bot),
+          材料: nearbyBlockNames(bot, 3),
+          能力: capabilityFlags(itemsLoose),
+          背包计数: inventoryCounts(items),
+        }
+      } catch (e) {
+        return { 说明: '解释层失败（不影响其余感知）', 错误: e instanceof Error ? e.message : String(e) }
+      }
+    })(),
   }
 }
 
@@ -1460,5 +1477,179 @@ export function createReadoutGate(windowMs = 120_000) {
       return false
     },
     reset(kind?: string): void { if (kind) seen.delete(kind); else seen.clear() },
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 解释层：把原始感知转成分类器要的小枚举（参考 jev-craft state.js / demo observe.cjs）
+// 与 sensesSnapshot（给人/LLM 看的全量）并存：**形状取决于消费者**。
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 一天五段（枚举比数字更好判；demo/jev-craft 同款切法）。 */
+export type DayPhase = 'morning' | 'afternoon' | 'dusk' | 'night' | 'dawn'
+export function dayPhase(tod: number): DayPhase {
+  if (tod < 6000) return 'morning'
+  if (tod < 12000) return 'afternoon'
+  if (tod < 13000) return 'dusk'
+  if (tod < 23000) return 'night'
+  return 'dawn'
+}
+
+/** 地形格状态（决策就绪：分类器不需要"这是什么方块在哪"，需要"能不能过"）。 */
+export type TerrainStatus = 'clear' | 'hazard' | 'blocked' | 'one_block_rise' | 'one_block_descent' | 'drop_or_no_floor' | 'unknown'
+
+const TERRAIN_HAZARDS = new Set(['lava', 'flowing_lava', 'water', 'flowing_water', 'fire', 'cactus', 'magma_block', 'powder_snow', 'sweet_berry_bush', 'campfire'])
+
+export interface TerrainCell { distance: number; status: TerrainStatus; ground?: string; feet?: string; head?: string }
+
+/** 单个方向、单个距离上的状态判定（纯函数式：只依赖传入的 4 个方块）。 */
+export function terrainStatusOf(blocks: Array<{ name?: string; boundingBox?: string } | null>): TerrainStatus {
+  if (blocks.some((b) => isUnloadedBlock(b))) return 'unknown'   // 未加载 ≠ 空气（认知边界）
+  const [ground, feet, head, above] = blocks as Array<{ name?: string; boundingBox?: string }>
+  const solid = (b: { boundingBox?: string }): boolean => b.boundingBox === 'block'
+  if (blocks.some((b) => TERRAIN_HAZARDS.has((b as { name?: string }).name ?? ''))) return 'hazard'
+  if (solid(head) || (solid(feet) && solid(above))) return 'blocked'
+  if (solid(feet)) return 'one_block_rise'
+  if (!solid(ground)) return 'drop_or_no_floor'
+  return 'clear'
+}
+
+/**
+ * 四方向 × 四距离的地形探测（前/左/右/后，各 1~4 格）。
+ * demo 用 ±60°/180° 取样 —— 比只探正前方更能回答"往哪走"。
+ */
+export function terrainProbe(bot: unknown, yawOverride?: number): Record<'forward' | 'left' | 'right' | 'behind', TerrainCell[]> {
+  const b = bot as {
+    entity?: { position?: { x: number; y: number; z: number }; yaw?: number }
+    blockAt?: (v: unknown) => unknown
+  } | null
+  const p = b?.entity?.position
+  const out = { forward: [] as TerrainCell[], left: [] as TerrainCell[], right: [] as TerrainCell[], behind: [] as TerrainCell[] }
+  if (!p || !b?.blockAt) return out
+  const yaw = yawOverride ?? b.entity?.yaw ?? 0
+  const dirs: Array<[keyof typeof out, number]> = [['forward', 0], ['left', Math.PI / 3], ['right', -Math.PI / 3], ['behind', Math.PI]]
+  const y = Math.floor(p.y + 0.05)
+  for (const [name, offset] of dirs) {
+    const cells: TerrainCell[] = []
+    for (const distance of [1, 2, 3, 4]) {
+      const x = p.x - Math.sin(yaw + offset) * distance
+      const z = p.z - Math.cos(yaw + offset) * distance
+      const fx = Math.floor(x)
+      const fz = Math.floor(z)
+      const blocks = [-1, 0, 1, 2].map((d) => b.blockAt!(new Vec3(fx, y + d, fz)) as { name?: string; boundingBox?: string } | null)
+      const status = terrainStatusOf(blocks)
+      cells.push({
+        distance, status,
+        ground: blocks[0]?.name, feet: blocks[1]?.name, head: blocks[2]?.name,
+      })
+    }
+    out[name] = cells
+  }
+  return out
+}
+
+/** 附近方块**名字集合**（默认 ±3 xz、-1..+2 y，同 demo）：回答"这一带有什么材料"。 */
+export function nearbyBlockNames(bot: unknown, radius = 3): string[] {
+  const b = bot as { entity?: { position?: { x: number; y: number; z: number } }; blockAt?: (v: unknown) => unknown } | null
+  const p = b?.entity?.position
+  if (!p || !b?.blockAt) return []
+  const set = new Set<string>()
+  const px = Math.floor(p.x)
+  const py = Math.floor(p.y)
+  const pz = Math.floor(p.z)
+  for (let dx = -radius; dx <= radius; dx++) {
+    for (let dz = -radius; dz <= radius; dz++) {
+      for (let dy = -1; dy <= 2; dy++) {
+        try {
+          const blk = b.blockAt(new Vec3(px + dx, py + dy, pz + dz)) as { name?: string } | null
+          if (blk?.name && blk.name !== 'air') set.add(blk.name)
+        } catch { /* 越界/未加载：跳过 */ }
+      }
+    }
+  }
+  return [...set]
+}
+
+/** 能力布尔（jev-craft 同款）：分类器问的是"我有没有这档工具"，不是"背包里有什么"。 */
+export function capabilityFlags(items: Array<{ name?: string }>): {
+  /** 有该材质层级的**任意**工具（注意：不是"有镐有剑"；镐/剑各有独立布尔） */
+  hasWoodenTier: boolean; hasStoneTier: boolean; hasIronTier: boolean; hasDiamondTier: boolean
+  hasPickaxe: boolean; hasSword: boolean; hasAxe: boolean; hasCraftingTable: boolean; hasFurnace: boolean
+} {
+  const names = items.map((i) => (i?.name ?? '').replace(/^minecraft:/, ''))
+  const tier = (t: string): boolean => names.some((n) => n.startsWith(`${t}_`))
+  return {
+    hasWoodenTier: tier('wooden'),
+    hasStoneTier: tier('stone'),
+    hasIronTier: tier('iron'),
+    hasDiamondTier: tier('diamond') || tier('netherite'),
+    hasPickaxe: names.some((n) => n.endsWith('_pickaxe')),
+    hasSword: names.some((n) => n.endsWith('_sword')),
+    hasAxe: names.some((n) => n.endsWith('_axe')),
+    hasCraftingTable: names.includes('crafting_table'),
+    hasFurnace: names.includes('furnace'),
+  }
+}
+
+/** 背包 name→count（紧凑型；比 {name,count} 列表省 token，jev-craft 同款）。 */
+export function inventoryCounts(items: Array<{ name?: string; count?: number }>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const it of items) {
+    const n = (it?.name ?? '').replace(/^minecraft:/, '')
+    if (!n) continue
+    out[n] = (out[n] ?? 0) + (Number(it.count) || 0)
+  }
+  return out
+}
+
+/**
+ * 给**分类器**的裁剪状态（jev-craft `cleanState` 同款思路：只留问题需要的那部分）。
+ * 注意：**不含 bot 对象**（demo 把 `_bot` 塞进 state 是反面教材——状态必须可序列化）。
+ */
+export interface ClassifierStateInput {
+  wm: WorldModel
+  hostiles: Array<{ name: string; x: number; y: number; z: number }>
+  others?: Array<{ name: string; x: number; y: number; z: number }>
+  items: Array<{ name?: string }>
+  hasFood: boolean
+  currentGoal?: string
+  /** 目标跑了多久 / 连续失败次数 / 卡在哪（jev-craft 的 progressContext 会给模型这些） */
+  goalAgeMs?: number
+  failures?: number
+  stuckOn?: string[]
+  recent?: string[]
+  /** 可选情绪层（jev-craft 有 fear/satisfaction/curiosity/urgency；我们暂未实现，留位） */
+  emotions?: Record<string, number>
+}
+
+export function classificationState(input: ClassifierStateInput): Record<string, unknown> {
+  const wm = input.wm
+  const top = (arr: Array<{ name: string; x: number; y: number; z: number }>, n: number): Array<Record<string, unknown>> =>
+    arr
+      .map((e) => ({ name: e.name, distance: Math.round(Math.hypot(e.x - wm.self.pos.x, e.z - wm.self.pos.z) * 10) / 10, direction: relDir8(e.x - wm.self.pos.x, e.z - wm.self.pos.z) }))
+      .sort((a, b) => (a.distance as number) - (b.distance as number))
+      .slice(0, n)
+  const distinct = (arr: Array<{ name: string }>): number => new Set(arr.map((e) => e.name)).size
+  return {
+    player: { health: wm.self.hp, food: wm.self.food, position: wm.self.pos, dimension: wm.self.dim },
+    time_of_day: dayPhase(wm.self.tod ?? 0),
+    is_night: wm.self.isNight,
+    nearby_hostiles: top(input.hostiles, 3),
+    hostile_kinds: distinct(input.hostiles),
+    threat: { raw: wm.threat.raw, actionable: wm.threat.actionable, nearest: wm.threat.nearest, creeper_distance: wm.threat.creeperDist, ranged: wm.threat.rangedThreat },
+    nearby_others: top(input.others ?? [], 3),
+    has_food: input.hasFood,
+    stock: { rations: wm.stock.rations, empty_slots: wm.stock.emptySlots, picks: wm.stock.picks, tier: wm.stock.tier, iron: wm.stock.ironForArmor },
+    defense: wm.defense,
+    capabilities: capabilityFlags(input.items),
+    in_death_zone: wm.zone.insideDeathZone,
+    stalled_ms: wm.paralysis.stalledMs,
+    current_goal: input.currentGoal ?? null,
+    goal_age_ms: input.goalAgeMs ?? null,
+    failures: input.failures ?? 0,
+    stuck_on: input.stuckOn ?? [],
+    recent_actions: (input.recent ?? []).slice(-8),
+    ...(input.emotions ? { emotions: input.emotions } : {}),
   }
 }

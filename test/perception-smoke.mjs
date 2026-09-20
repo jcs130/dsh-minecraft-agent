@@ -10,6 +10,8 @@ import { createPerception, sensesSnapshot, HOSTILE_TYPES, gameClock, weatherOf, 
   deriveWorldModel, renderWorldModel, stockFrom, defenseFrom, threatBreakdown, freshnessReport, ObservationLedger,
   bagStamp, worldStamp, createReadoutGate, isEdibleName, collectHostiles } from '../src/mc-perception.ts'
 import { createVisionGuard, readVisionSentinel, writeVisionSentinel, clearVisionSentinel } from '../src/mc-camera.ts'
+import { validateAnswers, isFresh, decideFresh, DECIDER_THRESHOLDS, pickChoice } from '../src/mc-decider.ts'
+import { dayPhase, terrainStatusOf, terrainProbe, nearbyBlockNames, capabilityFlags, inventoryCounts, classificationState } from '../src/mc-perception.ts'
 
 let pass = 0
 let fail = 0
@@ -400,6 +402,143 @@ console.log('\n[14] 注入预算与去重不变量（复审后锁定）')
   const a = p.status()
   const b = p.status()
   ok((a.match(/♥生命/g) ?? []).length === 1 && (b.match(/♥生命/g) ?? []).length === 0, '危险行边沿触发：变化时报、随后不重复')
+}
+
+console.log('\n[15] decider 客户端纯逻辑：严格校验 / 保鲜门 / 退避')
+{
+  const spec = {
+    action: { type: 'choice', instructions: 'what to do', criteria: { fight: 'when able', flee: 'when outmatched', eat: 'when hungry' } },
+    threat: { type: 'score', instructions: 'how dangerous', criteria: ['safe', 'caution', 'high'] },
+    eatNow: { type: 'noul', instructions: 'eat?', criteria: { 'true': 'yes', 'false': 'no' } },
+  }
+  const good = {
+    answers: {
+      action: { type: 'choice', choice: 'fight', confidence: 0.5, probabilities: { fight: 0.5, flee: 0.2, eat: 0.3 } },
+      threat: { type: 'score', score: 1.2, confidence: 0.4, probabilities: { '0': 0.1, '1': 0.6, '2': 0.3 } },
+      eatNow: { type: 'noul', noul: 0.2 },
+    },
+    usage: { input_tokens: 100 },
+  }
+  ok(validateAnswers(good, spec).answers.action.type === 'choice', '合法答案通过校验')
+  const bad = (mut, label, expect) => {
+    const copy = JSON.parse(JSON.stringify(good))
+    mut(copy)
+    let msg = ''
+    try { validateAnswers(copy, spec) } catch (e) { msg = e.message }
+    ok(expect.test(msg), label + '（拒因：' + (msg || '未拒绝') + '）')
+  }
+  bad((c) => { delete c.answers.eatNow }, '缺答案 → 拒', /缺少答案/)
+  bad((c) => { c.answers.action.type = 'noul' }, '类型不符 → 拒', /类型不符/)
+  bad((c) => { c.answers.action.choice = 'dance' }, '选项不在允许集 → 拒', /不在允许集/)
+  bad((c) => { c.answers.action.probabilities.eat = 0.5 }, '概率和偏离 1 → 拒', /偏离 1/)
+  bad((c) => { delete c.answers.action.probabilities.flee }, '缺概率键 → 拒（并指名缺哪个）', /缺少概率键 flee/)
+  bad((c) => { c.answers.action.probabilities.dance = 0.3 }, '多出无关键 → 拒（覆盖检查）', /概率键与允许集不符/)
+  bad((c) => { c.answers.threat.score = 9 }, 'score 越档 → 拒', /超出档位/)
+  bad((c) => { c.answers.eatNow.noul = 1.4 }, 'noul 越界 → 拒', /不在 \[0,1\]/)
+
+  ok(isFresh({ x: 0, y: 0, z: 0 }, { x: 0.5, y: 0, z: 0 }, 1000) === true, '保鲜：1s 内、位移 0.5 格 → 新鲜')
+  ok(isFresh({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, 6000) === false, '保鲜：超过 5s → 陈旧（demo 同款判据）')
+  ok(isFresh({ x: 0, y: 0, z: 0 }, { x: 1.5, y: 0, z: 0 }, 1000) === false, '保鲜：位移 ≥0.8 格 → 陈旧')
+  ok(DECIDER_THRESHOLDS.fleeConfidence < DECIDER_THRESHOLDS.fightConfidence, '阈值按后果分开：逃走线低于打架线')
+
+  // decideFresh：陈旧 → 重观察（不重放）；服务错误 → 退避重试后抛错且不执行
+  let observed = 0
+  let discarded = 0
+  const pos = { x: 0, y: 64, z: 0 }
+  let throws = ''
+  try {
+    await decideFresh({
+      observe: () => { observed++; return { at: { ...pos } } },
+      decide: async () => ({ kind: 'act' }),
+      positionOf: (s) => s.at,
+      position: () => ({ x: pos.x + 5, y: pos.y, z: pos.z }),   // 世界一直在动 → 永远陈旧
+      onDiscard: () => { discarded++ },
+      now: () => 0,
+      maxAttempts: 3,
+      wait: async () => {},
+    })
+  } catch (e) { throws = e.message }
+  ok(observed === 3 && discarded === 3, `陈旧三连：每次重新观察（观察 ${observed} 次 / 丢弃 ${discarded} 次）`)
+  ok(/一个都没执行/.test(throws), '陈旧三连后抛错，且明确"未执行任何动作"')
+
+  let serviceErrors = 0
+  let observed2 = 0
+  try {
+    await decideFresh({
+      observe: () => { observed2++; return { at: { x: 0, y: 0, z: 0 } } },
+      decide: async () => { const e = new Error('down'); e.status = 503; throw e },
+      positionOf: (s) => s.at,
+      position: () => ({ x: 0, y: 0, z: 0 }),
+      onServiceError: (i) => { serviceErrors++; if (i.attempt === 1) throw new Error('retry-first') },
+      maxAttempts: 2,
+      wait: async () => {},
+    })
+  } catch (e) { /* 预期 */ }
+  ok(serviceErrors >= 1, '服务错误走 onServiceError（供审计：分得清"服务故障"与"代码错"）')
+  let observed3 = 0
+  try {
+    await decideFresh({
+      observe: () => { observed3++; return { at: { x: 0, y: 0, z: 0 } } },
+      decide: async () => { const e = new Error('bad request'); e.status = 400; throw e },
+      positionOf: (s) => s.at,
+      position: () => ({ x: 0, y: 0, z: 0 }),
+      maxAttempts: 3,
+    })
+  } catch { /* 预期 */ }
+  ok(observed3 === 1, '不可重试的错误（400）不重试，直接抛出')
+}
+
+console.log('\n[16] 解释层：分类器要的小枚举（地形/时间/能力/裁剪状态）')
+{
+  ok(dayPhase(1000) === 'morning' && dayPhase(8000) === 'afternoon' && dayPhase(12500) === 'dusk' && dayPhase(15000) === 'night' && dayPhase(23000) === 'dawn', '一天五段枚举边界正确')
+  const air = { name: 'air', boundingBox: 'empty' }
+  const grass = { name: 'grass_block', boundingBox: 'block' }
+  const stone = { name: 'stone', boundingBox: 'block' }
+  ok(terrainStatusOf([null, null, null, null]) === 'unknown', '有未加载方块 → unknown（不猜）')
+  ok(terrainStatusOf([grass, air, air, air]) === 'clear', '脚下有地、身前通透 → clear')
+  ok(terrainStatusOf([grass, air, stone, air]) === 'blocked', '头前被挡 → blocked')
+  ok(terrainStatusOf([grass, stone, air, air]) === 'one_block_rise', '抬一格能过 → one_block_rise')
+  ok(terrainStatusOf([air, air, air, air]) === 'drop_or_no_floor', '脚下没地 → drop_or_no_floor')
+  ok(terrainStatusOf([{ name: 'lava', boundingBox: 'empty' }, air, air, air]) === 'hazard', '岩浆 → hazard')
+
+  // 四方向 × 四距离
+  const probeBot = {
+    entity: { position: { x: 0.5, y: 64, z: 0.5 }, yaw: 0 },
+    blockAt: () => ({ name: 'grass_block', boundingBox: 'block' }),
+  }
+  const probe = terrainProbe(probeBot)
+  ok(probe.forward.length === 4 && probe.behind.length === 4, '四方向各探 4 格')
+  ok(probe.forward.every((c) => c.status === 'blocked' || c.status === 'one_block_rise'), '全实心世界 → 前方非通即抬一格（不会误报 clear）')
+  ok(nearbyBlockNames(probeBot).includes('grass_block'), '附近方块集合含草方块')
+  ok(inventoryCounts([{ name: 'oak_log', count: 3 }, { name: 'oak_log', count: 2 }, { name: 'stone', count: 1 }]).oak_log === 5, '背包 name→count 合并同类')
+
+  const caps = capabilityFlags([{ name: 'stone_pickaxe' }, { name: 'iron_sword' }, { name: 'crafting_table' }])
+  ok(caps.hasStoneTier && caps.hasIronTier && caps.hasSword && caps.hasPickaxe && caps.hasCraftingTable, '能力布尔：石层级✓ 铁层级✓(铁剑) 有石镐 有工作台')
+  ok(capabilityFlags([{ name: 'wooden_axe' }]).hasIronTier === false, '无铁件时 hasIronTier 为假（名字不夸大）')
+
+  // 裁剪状态：只留问题需要的 + 必须可序列化（不塞 bot 对象——那是 demo 的反面教材）
+  const wm = deriveWorldModel({
+    now: 1, hp: 15, food: 9, pos: { x: 0, y: 64, z: 0 }, isNight: true, tod: 15000,
+    items: [{ name: 'oak_log', count: 4 }], slotsTotal: 36, slotsUsed: 8,
+    equipment: [null, null, null, null, null], held: { name: 'stone_sword' },
+    hostiles: [{ name: 'zombie', x: 3, y: 64, z: 0 }, { name: 'creeper', x: 0, y: 64, z: 5 }],
+  })
+  const cs = classificationState({
+    wm,
+    hostiles: [{ name: 'zombie', x: 3, y: 64, z: 0 }, { name: 'creeper', x: 0, y: 64, z: 5 }],
+    items: [{ name: 'oak_log' }],
+    hasFood: false,
+    currentGoal: 'craft_tools',
+    goalAgeMs: 30000,
+    failures: 1,
+    stuckOn: ['need planks'],
+    recent: ['move', 'dig'],
+  })
+  ok(cs.time_of_day === 'night' && cs.current_goal === 'craft_tools' && cs.failures === 1, '裁剪状态含 day-phase 枚举 / 目标 / 失败数')
+  ok(Array.isArray(cs.nearby_hostiles) && cs.nearby_hostiles.length <= 3, '敌对实体裁剪到 top-3')
+  ok(typeof cs.threat.creeper_distance === 'number', '含苦力怕距离（决策关键量）')
+  const roundTrip = JSON.parse(JSON.stringify(cs))
+  ok(roundTrip.current_goal === 'craft_tools' && roundTrip.recent_actions.length === 2, '裁剪状态可完整序列化（状态里不许有 bot 对象）')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

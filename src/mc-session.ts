@@ -37,6 +37,7 @@ import { dirname, join, resolve } from 'node:path'
 import { createBotService, type BotService } from './mc-bot'
 import { CONNECTION_FILE, loadOverrides } from './mc-connection'
 import { createPerception } from './mc-perception'
+import { prewarm } from './mc-decider'
 import type { McBotEntry } from './mc-bots'
 import type { MemoryProvider } from './memory-provider'
 import type { McStoreService } from './mc-store'
@@ -127,6 +128,8 @@ export interface Config {
   maxTokens?: number
   /** 是否自动启动自主循环（arm goal）：false = 只创建/恢复，等用户在控制端手动开始。默认 true。 */
   autoSteer?: boolean
+  /** 启动时是否预热本地快决策服务（默认 true；关掉可省一次启动请求）。 */
+  deciderPrewarm?: boolean
   /** 人格（穿越者前世档案）；不传用内置 isekai 默认人格。 */
   persona?: string
   /** 世界规则 + 当前目标 + 工具使用指引。 */
@@ -1257,6 +1260,14 @@ async function spawnTransmigrator(
       } catch { return [] }
     },
   })
+
+  // 快决策（本地 System One / Jev 系）预热：冷启 ~2.5s，暖态 ~200ms。
+  // 现在只预热、不接决策（反射层是下一轮的事）；服务不在线就报一声，不影响别的。
+  if (config.deciderPrewarm !== false) {
+    void prewarm({ ...{ baseUrl: process.env.MC_DECIDER_URL ?? 'http://127.0.0.1:8000', model: process.env.MC_DECIDER_MODEL ?? 'decider-dev', timeoutMs: 8000, maxAttempts: 1, dataDir } })
+      .then((ms) => log(ms >= 0 ? `快决策已预热（${ms}ms）` : '快决策服务未就绪（不影响感知与目标循环）'))
+      .catch(() => { /* 预热失败无所谓 */ })
+  }
 
   // 每步注入（system prompt 组装时求值）：感知文本由感知层产出，本包装另负责
   // ①社交/死亡监听武装（幂等）②指导块缓存更新（mc:guidance 读缓存）。
