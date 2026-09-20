@@ -107,3 +107,7 @@ _test_*.mjs
 _test_out*.txt
 _syntax_check.mjs
 _commitmsg.txt
+_decider_probe.json
+_vision_probe.out.txt
+_report_out*.txt
+_test_out*.txt
