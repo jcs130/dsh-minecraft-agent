@@ -18,7 +18,7 @@ import { createGuidanceQueue } from '../src/mc-guidance.ts'
 import {
   deriveExpect, matchItemName, readExpectation, baselineFor, classifyOutcome, zhErrorText, blockedSourceOf,
   summarizeOutput, describeExpect, verdictNote, shortVerdict, createBlockedLedger, precheckAction,
-  resolveUntil, untilUnknownNote, createExecutionLayer,
+  resolveUntil, untilUnknownNote, createExecutionLayer, looksLikeToolError,
 } from '../src/mc-execution.ts'
 import { createBodyLease, bodyUtilityScore, UTILITY_WEIGHTS, BODY_PREEMPT_MARGIN, REFLEX_SAFETY_MIN } from '../src/mc-body-lease.ts'
 import { MODES, DANGER_LEVELS, createModeMachine, heuristicMode, tickFor, renderMode, buildModeQuestions, decideMode } from '../src/mc-mode.ts'
@@ -1054,6 +1054,27 @@ console.log('\n[23] 反射层 L0：只做保命、不与 LLM 拔河、每次插�
   })
   ok(j3.grabbed === true && /被水流冲走/.test(j3.reason ?? ''), '反射动作失败也要留痕（原因照记）')
   ok(REFLEXES.every((r) => r.maxMs <= 3000), '每条反射都有最长持续（≤3s，不许长期占身体）')
+}
+
+console.log('\n[24] 真跑发现的两条（锁进回归）')
+{
+  // ① 参数名认全：mc_collect 用的是 blockType（真跑：collected 0 spruce_log 被漏检成 done）
+  const e1 = deriveExpect('mc_collect', { blockType: 'spruce_log', count: 4 })
+  ok(e1 && e1.kind === 'has' && e1.item === 'spruce_log' && e1.count === 4, 'mc_collect 的参数是 blockType —— 必须推得出期望')
+  ok(deriveExpect('mc_dig', { blockType: 'stone' })?.kind === 'has', 'mc_dig 带 blockType 时也推期望')
+  // 于是"collected 0"能被判成 noop（而不是 done）
+  const ctx0 = { countItem: () => 0, held: () => null, position: () => null, blockNameAt: () => null }
+  const v0 = readExpectation(e1, ctx0, 0)
+  ok(classifyOutcome({ expect: e1, verdict: v0 }) === 'noop', '"collected 0"（工具说成功、世界没变）判为 noop')
+
+  // ② 工具自己报的失败要算 blocked（真跑：mc_see 超时返回 "tool error: …" 却记成 done）
+  ok(looksLikeToolError('tool error: mc_see unavailable — 视觉操作超时（>15000ms）') === true, '识别工具把失败写进返回串')
+  ok(looksLikeToolError('ERROR: 没找到目标') === true, '识别 ERROR: 前缀')
+  ok(looksLikeToolError('reached (-539, 65, 871) — now at (-538, 65, 872)') === false, '正常成功结果不算失败')
+  ok(looksLikeToolError({ message: 'tool error: mc_see unavailable — 视觉操作超时（>15000ms）', images: null }) === true, '对象结果（mc_see 的 {message,images}）里的失败也要认出来')
+  ok(looksLikeToolError({ message: '已拍摄第一人称画面（见下方图像）。' }) === false, '对象结果的正常文案不算失败')
+  ok(classifyOutcome({ toolSaidError: true }) === 'blocked', '工具自报失败 → 终态 blocked（不是 done）')
+  ok(classifyOutcome({ threw: false, toolSaidError: false, expect: e1, verdict: { met: true, actual: '', measured: '4' } }) === 'done', '真做成 → done 不受影响')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

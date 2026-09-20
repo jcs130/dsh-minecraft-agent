@@ -1166,10 +1166,14 @@ export function apply(ctx: Context, config: Config = {}) {
   // 身体租约由**本插件创建并 provide 成服务**：mc-session 的反射层要拿同一份实例
   //（跨插件共享必须走 cordis provide/get —— 每个插件独立 bundle，模块级变量是各自的副本）
   const bodyLease = createBodyLease({
+    // dataDir 同样惰性取（EPISODIC_DIR 在 apply 后段才赋值）
     emit: (e) => { try { appendJsonl(EPISODIC_DIR, 'body-lease.jsonl', e) } catch { /* 审计失败不影响仲裁 */ } },
   })
   try { (ctx as unknown as { provide?: (k: string, v: unknown) => void }).provide?.('mcBodyLease', bodyLease) } catch { /* 已提供 */ }
-  const execution = createExecutionLayer({ dataDir: EPISODIC_DIR, lease: bodyLease })
+  // ⚠️ dataDir 传**函数**：EPISODIC_DIR 在本插件 apply 后段才被赋成 profile data 目录，
+  // 这里若是直接取值就会拿到默认的工作区目录（真跑踩过：回执写到别处去了）。
+  const execution = createExecutionLayer({ dataDir: () => EPISODIC_DIR, lease: bodyLease })
+  log('执行层已接线（工具将过：身体租约 → 前置闸 → 执行 → 回读核验 → 回执 → 受阻账）')
   const itemsOf = (bot: Bot): Array<{ name?: string; count?: number }> => {
     try { return bot.inventory.items() as Array<{ name?: string; count?: number }> } catch { return [] }
   }

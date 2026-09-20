@@ -28,7 +28,14 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 // 官方人格段身份（与 dsh-persona 插件同一段名/序号，官方互操作契约）：
 // 穿越者档案库（data/transmigrators/*.persona.md）在此段覆盖部署级缺省。
-import { PERSONA_SECTION, PERSONA_ORDER } from '@deepseek-ai/dsh-system-prompt'
+// dsh 0.1.5 把人格从「单段」拆成「前缀段 + 后缀段」，PERSONA_SECTION/PERSONA_ORDER 已被删除。
+// 用**命名空间导入 + 运行时回退**：官方再改名也只降级这一处，不会让整个插件加载失败
+//（2026-09-20 真跑就是被这个缺失导出拦住的：dsh web 直接起不来）。
+import * as dshSystemPromptMod from '@deepseek-ai/dsh-system-prompt'
+const PERSONA_SECTION_NAME: string =
+  ((dshSystemPromptMod as Record<string, unknown>).PERSONA_PREFIX_SECTION as string | undefined)
+  ?? ((dshSystemPromptMod as Record<string, unknown>).PERSONA_SECTION as string | undefined)
+  ?? 'deployment:persona-prefix'
 import type { Bot } from 'mineflayer'
 import Vec3 from 'vec3'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, watchFile, unwatchFile } from 'node:fs'
@@ -1595,8 +1602,9 @@ async function spawnTransmigrator(
         // 官方人格段：persona 正文来自档案文件（见上方人格优先级），
         // 段名/序号用官方常量——与 dsh-persona 插件同一身份，天然互操作。
         agentCtx.systemPrompt.section({
-          name: PERSONA_SECTION,
-          order: PERSONA_ORDER,
+          name: PERSONA_SECTION_NAME,
+          // 段序问官方要（拿不到就回退 0 = 人格在最前）
+          order: agentCtx.systemPrompt.getSectionOrder?.('DEPLOYMENT_PERSONA_PREFIX') ?? 0,
           text: persona,
         })
         agentCtx.systemPrompt.section({

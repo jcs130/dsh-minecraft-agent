@@ -143,9 +143,15 @@ const num = (v: unknown, d = 1): number => (typeof v === 'number' && Number.isFi
  * 其余（dig/place/attack/smelt/eat/pickup/sleep/tunnel…）参数语义不足以断言，一律返回 null。
  */
 export function deriveExpect(action: string, args: Record<string, unknown>): Expectation | null {
-  const item = typeof args.item === 'string' ? args.item : typeof args.block === 'string' ? args.block : ''
+  // ⚠️ 参数名要认全：真跑发现 mc_collect 用的是 `blockType`（不是 item/block），
+  // 认漏的后果是"collected 0"这种完美 noop 案例被漏检 —— 旗舰功能白做。
+  const item = typeof args.item === 'string' ? args.item
+    : typeof args.blockType === 'string' ? args.blockType
+      : typeof args.block === 'string' ? args.block : ''
   switch (action) {
     case 'mc_collect':
+      return item ? { kind: 'has', item, count: num(args.count, 1) } : null
+    case 'mc_dig':
       return item ? { kind: 'has', item, count: num(args.count, 1) } : null
     case 'mc_craft':
       return item ? { kind: 'has', item, count: num(args.count, 1) } : null
@@ -204,16 +210,40 @@ export function baselineFor(e: Expectation | null, ctx: ExpectContext): number |
 }
 
 /** 终态判定：期望达成 → done；有增量但没到量 → partial；完全没变 → **noop**。 */
+/**
+ * 工具结果里「自己说失败」的特征（工具不抛错、而是把错误写进返回内容）。
+ * 真跑证据：mc_see 成功时返回 `{message, images}`（图块对象），失败时返回
+ * `{message: "tool error: mc_see unavailable — 视觉操作超时…"}` —— 只认字符串会把后者记成 done ✗。
+ */
+export function looksLikeToolError(result: unknown): boolean {
+  const probe = (): string => {
+    if (typeof result === 'string') return result
+    if (result && typeof result === 'object') {
+      const m = (result as { message?: unknown }).message
+      if (typeof m === 'string') return m
+      const s = (result as { text?: unknown }).text
+      if (typeof s === 'string') return s
+    }
+    return ''
+  }
+  const raw = probe().trim()
+  if (!raw) return false
+  if (raw.startsWith('tool error:') || raw.startsWith('ERROR:')) return true
+  return /unavailable|not connected|尚未|失败|超时|timeout/i.test(raw.slice(0, 120)) && raw.length < 400
+}
+
 export function classifyOutcome(input: {
   threw?: boolean
   timedOut?: boolean
   interrupted?: boolean
+  /** 工具没抛错、但返回串里自己说失败（真跑：mc_see 超时返回 "tool error: …"） */
+  toolSaidError?: boolean
   expect?: Expectation | null
   verdict?: ExpectVerdict | null
 }): ActionOutcome {
   if (input.timedOut) return 'timeout'
   if (input.interrupted) return 'interrupted'
-  if (input.threw) return 'blocked'
+  if (input.threw || input.toolSaidError) return 'blocked'
   if (!input.expect || !input.verdict) return 'done'
   if (input.verdict.met) return 'done'
   return input.verdict.gain ? 'partial' : 'noop'
@@ -379,7 +409,11 @@ export interface RunContext {
 export interface RunResult { result: unknown; receipt: ActionReceipt; notes: string[] }
 
 export interface ExecutionLayerOptions {
-  dataDir?: string
+  /**
+   * 回执落盘目录。**可以是函数**：插件里 dataDir 常在 apply 后段才赋值，
+   * 闭包创建时就捕获会拿到赋值前的默认值（2026-09-20 真跑踩过：回执写丢了）。
+   */
+  dataDir?: string | (() => string)
   lease?: ReturnType<typeof createBodyLease>
   ledger?: ReturnType<typeof createBlockedLedger>
   now?: () => number
@@ -409,7 +443,8 @@ export function createExecutionLayer(opts: ExecutionLayerOptions = {}) {
       const finish = (r: ActionReceipt, result: unknown): RunResult => {
         ledger.record(r)
         try { ctx.onReceipt?.(r) } catch { /* 回调失败不影响动作 */ }
-        if (opts.dataDir) appendJsonl(opts.dataDir, 'execution.jsonl', r)
+        const dir = typeof opts.dataDir === 'function' ? opts.dataDir() : opts.dataDir
+        if (dir) appendJsonl(dir, 'execution.jsonl', r)
         return { result, receipt: r, notes }
       }
 
@@ -464,10 +499,12 @@ export function createExecutionLayer(opts: ExecutionLayerOptions = {}) {
         if (expect && !threw) {
           try { verdict = readExpectation(expect, ctx.expectCtx, baseline) } catch { verdict = null }
         }
-        const outcome = classifyOutcome({ threw: !!threw, expect, verdict })
+        const toolSaidError = !threw && looksLikeToolError(result)
+        const outcome = classifyOutcome({ threw: !!threw, toolSaidError, expect, verdict })
         let why: string | undefined
         const note = verdict && expect ? verdictNote(expect, verdict) : ''
         if (threw) why = zhErrorText(threw instanceof Error ? threw.message : String(threw))
+        else if (toolSaidError) why = `工具自己报了失败：${summarizeOutput(result, 120)}`
         else if (outcome === 'noop') why = `工具说做完了，但世界没变${note ? `（${note}）` : ''}`
         else if (outcome === 'partial') why = note || undefined
 
