@@ -122,3 +122,27 @@ bodyLease = { owner: 'goal' | 'reflex' | 'queue' | null, by, at, ttlMs }
 2. **`expect` 由谁声明**：工具自己推导（像 Cortico 的 `deriveExpect`，零改动）还是让模型在调用时显式给（更准但要改提示）？我建议**先推导、后显式**。
 3. **受阻账落哪**：`mc-store` 单库新表 vs JSONL（我建议 JSONL 追加 + 头名统计在内存，理由：高频写、不需要 SQL 聚合）。
 4. **`until` 的默认早停名单**：我建议默认带 `lava/water/fire` 与"脚下悬空"，其余按需。
+
+---
+
+## 6. 实现状态（E1–E4 已落地，2026-09-20）
+
+| 阶段 | 落地物 | 验证 |
+|---|---|---|
+| **E1** 回执 + 回读核验 | `mc-execution.ts`：`ActionReceipt`（终态 `done/partial/blocked/noop/interrupted/timeout`）、`deriveExpect`（只推确知的动作）、`readExpectation`（回读世界 + **本步增量**）、`shortVerdict`（≤10 字核验标记） | 测试 [20] 段：达成/未到量/无增量三态、`noop` 抓取、`readAt` 时刻 |
+| **E2** 受阻账 + 先验记忆 | `createBlockedLedger`：`priorFailure`（15min 窗口）、`headline`（1h/≥5 次起报）、`streak`（连击 → 喂指引） | 测试：窗口内/外、门槛内不出声、连击计数 |
+| **E3** 前置闸 + 早停 | `precheckAction`（**hard 优先 soft、只报否定**：包满→hard，包将满/工具快坏/缺物→soft）、`resolveUntil`（**认不出的名字要点名**）、`UNtilTravelRadius/UntilDigRadius` 常量照抄 | 测试：hard 拒执行、soft 只提醒、未知早停名点名 |
+| **E4** 身体租约 | `mc-body-lease.ts`：效用评分（权重照抄）、租约 2.5s、**抢占需超 4 分**（0..10 量纲）、代次/到期失效、`reason` 与事件流、**反射层仅安全类可抢** | 测试 [21] 段：acquire/renew/hysteresis/preempt/reflex-not-safety/换代次/释放 |
+
+**接线**：mc-tools 的 23 处 `ctx.tools.register(defineTool(...))` 统一改走 `reg()`，
+一个咽喉点完成 闸→执行→核验→回执→账本；**非字符串结果（`mc_see` 的图块对象）原样透传**，一个字符都不加。
+
+### 取长补短时踩到并记下的一件事（量纲）
+Cortico 的 `BODY_PREEMPT_MARGIN = 4` 反推出它们的效用因子是 **0..10 量纲**：
+权重和只有 0.84，若因子取 0..1，满分 0.84 **永远够不到 4**，抢占将永不触发。
+我们照抄常量并**在代码注释里写明这个量纲约定**（这是从常量反推出来的隐含契约，不写下来后人必踩）。
+
+### 本轮有意没做的
+- **因果闸**（`causalNeeds`）：我们一次一动作、没有跨步计划，闸无处可施 —— 等有了 `mc_plan` 再上（写下来免得被当成漏项）
+- **工具内部的 `until` 巡检**：契约与解析已就绪，但"行军每段扫 16 格 / 挖通道每格扫 4 格"要改到 `mc_goto/mc_tunnel/mc_collect` 的执行循环里；本轮先把**声明与点名**做好
+- **反射层作为竞争者**：租约已接线但当前无竞争者 ⇒ 不会拒绝任何动作；等 L0 落地，抢占与 `by` 留痕自动生效

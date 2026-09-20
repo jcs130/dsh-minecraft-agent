@@ -15,6 +15,12 @@ import { dayPhase, terrainStatusOf, terrainProbe, nearbyBlockNames, capabilityFl
 import { createAudienceChannel, normalizeDanmaku, salienceOf, judgeInfluence, renderInfluence, noteInfluenceAdopted,
   profileGrantsInfluence, AUDIENCE_INVARIANTS, INFLUENCE_LABEL } from '../src/mc-audience.ts'
 import { createGuidanceQueue } from '../src/mc-guidance.ts'
+import {
+  deriveExpect, matchItemName, readExpectation, baselineFor, classifyOutcome, zhErrorText, blockedSourceOf,
+  summarizeOutput, describeExpect, verdictNote, shortVerdict, createBlockedLedger, precheckAction,
+  resolveUntil, untilUnknownNote, createExecutionLayer,
+} from '../src/mc-execution.ts'
+import { createBodyLease, bodyUtilityScore, UTILITY_WEIGHTS, BODY_PREEMPT_MARGIN, REFLEX_SAFETY_MIN } from '../src/mc-body-lease.ts'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -772,6 +778,168 @@ console.log('\n[19] 指引信息队列：弹幕只是指引的一个生产者')
   ok(/\[指引·神谕·请求·L3\]/.test(q4.render(T)), '神谕也是指引（同一抽象，不同生产者）')
   const st = q4.stats(T)
   ok(st.total === 1 && st.transient === 1, '统计：限时 1 条')
+}
+
+console.log('\n[20] 执行层：期望推导 / 回读核验 / 终态判定 / 前置闸 / 早停 / 受阻账')
+{
+  // 期望推导：只推确知的（不猜）
+  ok(deriveExpect('mc_collect', { item: 'oak_log', count: 4 })?.kind === 'has', 'mc_collect → 进包期望')
+  ok(deriveExpect('mc_equip', { item: 'stone_pickaxe' })?.kind === 'holding', 'mc_equip → 手持期望')
+  ok(deriveExpect('mc_goto', { x: 1, y: 2, z: 3 })?.kind === 'near', 'mc_goto → 到位期望')
+  ok(deriveExpect('mc_dig', { x: 1 }) === null && deriveExpect('mc_sleep', {}) === null, '参数不足以断言的（dig/sleep）→ 不推期望（不猜）')
+  ok(matchItemName('iron_ingot', 'minecraft:iron_ingot') && matchItemName('oak_log', 'oak_log'), '物品名匹配兼容命名空间')
+
+  // 回读核验 + 增量（**已有存量不能证明本步产出**）
+  let bag = { oak_log: 2 }
+  const ctx = {
+    countItem: (n) => bag[n] ?? 0,
+    held: () => 'stone_pickaxe',
+    position: () => ({ x: 0, y: 64, z: 0 }),
+    blockNameAt: () => 'air',
+  }
+  const exp = { kind: 'has', item: 'oak_log', count: 4 }
+  const base = baselineFor(exp, ctx)
+  bag = { oak_log: 3 }
+  const v1 = readExpectation(exp, ctx, base)
+  ok(v1.met === false && v1.gain === true && v1.measured === '3', `未到量但有增量 → partial 依据（实测 ${v1.measured}）`)
+  bag = { oak_log: 5 }
+  const v2 = readExpectation(exp, ctx, base)
+  ok(v2.met === true && v2.gain === true, '到量 → 达成')
+  bag = { oak_log: 2 }
+  const v3 = readExpectation(exp, ctx, base)
+  ok(v3.met === false && v3.gain === false, '没动 → 无增量（存量 2 不能算本步产出）')
+  ok(shortVerdict(exp, v2) === '核验✓ oak_log×5', `成功时的极短核验标记：${shortVerdict(exp, v2)}`)
+  ok(/达成/.test(verdictNote(exp, v2, '12:03')) && /读于 12:03/.test(verdictNote(exp, v2, '12:03')), '核验句带实测值与实测时刻')
+
+  // 终态判定矩阵
+  ok(classifyOutcome({ threw: true }) === 'blocked', '抛错 → blocked')
+  ok(classifyOutcome({ timedOut: true }) === 'timeout', '超时 → timeout')
+  ok(classifyOutcome({ expect: exp, verdict: v2 }) === 'done', '达成 → done')
+  ok(classifyOutcome({ expect: exp, verdict: v1 }) === 'partial', '有增量未到量 → partial')
+  ok(classifyOutcome({ expect: exp, verdict: v3 }) === 'noop', '**世界没变 → noop**（工具说成功也不能算做成）')
+  ok(classifyOutcome({}) === 'done', '没有期望 → 不判死（保持原语义）')
+
+  // 报错中文化：认得出的翻译，认不出的**原样保留**
+  ok(zhErrorText('Path was stopped by another goal') === '寻路半途被叫停', '已知报错 → 中文短句')
+  ok(zhErrorText('weird internal glitch 0x9') === 'weird internal glitch 0x9', '未知报错 → 原样保留（不编）')
+  ok(blockedSourceOf({ source: 'server' }) === 'server' && blockedSourceOf(new Error('x')) === 'local', '受阻归属：服务端 vs 我们自己的问题')
+
+  const long = 'x'.repeat(800)
+  ok(/省略 \d+ 字/.test(summarizeOutput(long, 250)), '输出摘要：前后各截并写明省略多少')
+
+  // 前置闸：hard 优先、只报否定
+  ok(precheckAction('mc_collect', { item: 'oak_log' }, { emptySlots: 0, heldDurabilityRatio: 1, hasItem: () => true })?.severity === 'hard', '包一个空位都没有 + 要装东西 → hard（不动手）')
+  ok(precheckAction('mc_collect', { item: 'oak_log' }, { emptySlots: 3, heldDurabilityRatio: 1, hasItem: () => true })?.severity === 'soft', '只剩 3 格 → soft（只提醒）')
+  ok(precheckAction('mc_dig', {}, { emptySlots: 30, heldDurabilityRatio: 0.1, hasItem: () => true })?.severity === 'soft', '工具快坏了 → soft')
+  ok(precheckAction('mc_equip', { item: 'diamond_sword' }, { emptySlots: 30, heldDurabilityRatio: 1, hasItem: () => false })?.severity === 'soft', '包里没这件 → soft')
+  ok(precheckAction('mc_sleep', {}, { emptySlots: 0, heldDurabilityRatio: 1, hasItem: () => false }) === null, '无事可报 → 不出声（只报否定）')
+
+  // 早停：认不出的名字要点名
+  const until = resolveUntil(['lava', 'iron_ore', '不存在的方块'], (n) => n === 'lava' || n === 'iron_ore')
+  ok(until.names.length === 2 && until.unknown.length === 1, '早停名单解析：认得出的进名单、认不出的单独列出')
+  ok(/认不出来/.test(untilUnknownNote(until.unknown)), '认不出的名字要报出来（不许静默吃掉参数）')
+
+  // 受阻账：先验记忆 + 头名统计（门槛内不出声）+ 连击
+  const led = createBlockedLedger({ priorWindowMs: 1000, headlineWindowMs: 1000, headlineMin: 3 })
+  ok(led.priorFailure('mc_dig', 0) === null, '没栽过 → 不提醒')
+  for (let i = 0; i < 3; i++) led.record({ id: 'x', action: 'mc_dig', at: 0, ms: 1, outcome: 'blocked', why: '走不过去' })
+  ok(led.priorFailure('mc_dig', 10)?.count === 3, '同类近期栽过 3 次 → 可提醒')
+  ok(led.priorFailure('mc_dig', 5000) === null, '超出窗口 → 不再提醒')
+  ok(led.headline(10).length === 1 && led.headline(10)[0].count === 3, '头名统计：达到门槛才起报')
+  ok(led.streak('mc_dig', 10) === 3, '连击计数（喂指引：这招不管用）')
+  ok(led.headline(10)[0].why === '走不过去', '头名保留原话（不改写、不归因）')
+}
+
+console.log('\n[21] 执行门面 + 身体租约（E4）')
+{
+  const mkCtx = (bag, pos = { x: 0, y: 64, z: 0 }) => ({
+    countItem: (n) => bag[n] ?? 0,
+    held: () => null,
+    position: () => pos,
+    blockNameAt: () => 'air',
+  })
+  const facts = { emptySlots: 20, heldDurabilityRatio: 1 }
+
+  // ① 正常：期望达成
+  {
+    const bag = { oak_log: 1 }
+    const ex = createExecutionLayer({ now: () => 1000 })
+    const r = await ex.run({
+      action: 'mc_collect', args: { item: 'oak_log', count: 2 }, expectCtx: mkCtx(bag), facts,
+      exec: async () => { bag.oak_log = 3; return '采集完成' },
+    })
+    ok(r.receipt.outcome === 'done' && r.receipt.verdict?.met === true, '达成 → done，回执带核验结论')
+    ok(shortVerdict(r.receipt.expect, r.receipt.verdict) === '核验✓ oak_log×3', '回执能给出极短核验标记')
+  }
+  // ② 旗舰功能：noop（工具说成功、世界没变）
+  {
+    const bag = { oak_log: 1 }
+    const ex = createExecutionLayer({ now: () => 1000 })
+    const r = await ex.run({
+      action: 'mc_collect', args: { item: 'oak_log', count: 2 }, expectCtx: mkCtx(bag), facts,
+      exec: async () => '采集完成',   // 说成功，但包没变
+    })
+    ok(r.receipt.outcome === 'noop' && /世界没变/.test(r.receipt.why ?? ''), `**noop 被抓出来**：${r.receipt.why}`)
+  }
+  // ③ 抛错 → blocked + 归属 + 中文化
+  {
+    const ex = createExecutionLayer({ now: () => 1000 })
+    const r = await ex.run({
+      action: 'mc_goto', args: { x: 1, y: 2, z: 3 }, expectCtx: mkCtx({}), facts,
+      exec: async () => { throw new Error('Path was stopped by another goal') },
+    })
+    ok(r.receipt.outcome === 'blocked' && r.receipt.source === 'local' && r.receipt.why === '寻路半途被叫停', `抛错 → blocked（${r.receipt.why}）`)
+  }
+  // ④ hard 前置闸 → 根本不执行
+  {
+    let ran = false
+    const ex = createExecutionLayer({ now: () => 1000 })
+    const r = await ex.run({
+      action: 'mc_collect', args: { item: 'oak_log' }, expectCtx: mkCtx({}), facts: { ...facts, emptySlots: 0 },
+      exec: async () => { ran = true; return 'x' },
+    })
+    ok(ran === false && r.receipt.outcome === 'blocked' && /空位/.test(r.receipt.why ?? ''), 'hard 前置闸：动手之前就拒，附具名理由')
+  }
+  // ⑤ soft 前置闸 → 照常执行 + 只报事实
+  {
+    const ex = createExecutionLayer({ now: () => 1000 })
+    const r = await ex.run({
+      action: 'mc_collect', args: { item: 'oak_log' }, expectCtx: mkCtx({ oak_log: 5 }), facts: { ...facts, emptySlots: 3 },
+      exec: async () => 'ok',
+    })
+    ok(r.receipt.outcome === 'done' && r.notes.some((s) => /先提醒/.test(s) && /空位/.test(s)), 'soft 前置闸：只报事实、不拦动作')
+  }
+  // ⑥ 早停名单的未知名字进提示
+  {
+    const ex = createExecutionLayer({ now: () => 1000 })
+    const r = await ex.run({
+      action: 'mc_goto', args: { x: 1, y: 2, z: 3 }, expectCtx: mkCtx({}), facts,
+      until: ['lava', '外星方块'], knownBlock: (n) => n === 'lava',
+      exec: async () => 'ok',
+    })
+    ok(r.notes.some((s) => /认不出来/.test(s)), '早停名单里认不出的名字要点名（不许静默吃掉）')
+  }
+
+  // ⑦ 身体租约：效用评分 + 迟滞余量 + 反射只能为安全抢
+  const scoreTool = { survival: 2, urgency: 3, feasibility: 10, progress: 5, continuity: 4, disruption: 1 }
+  ok(Math.abs(bodyUtilityScore({ survival: 10 }) - 10 * UTILITY_WEIGHTS.survival) < 1e-9, '效用评分：单一因子×权重')
+  ok(UTILITY_WEIGHTS.disruption < 0, '破坏性是负权重（会打断别人的动作要扣分）')
+
+  const lease = createBodyLease({ now: () => 1000, leaseMs: 2500, preemptMargin: BODY_PREEMPT_MARGIN })
+  const a = {}, b = {}
+  ok(lease.propose({ owner: a, ownerKind: 'goal', intent: 'A 干活', utility: scoreTool }).reason === 'acquire', '无人持有 → 直接 acquire')
+  ok(lease.propose({ owner: a, ownerKind: 'goal', intent: 'A 继续', utility: scoreTool }).reason === 'renew', '同一实例 → renew')
+  const weak = lease.propose({ owner: b, ownerKind: 'goal', intent: 'B 想插队', utility: { ...scoreTool, survival: 1, urgency: 1, feasibility: 1, disruption: 10 } })
+  ok(weak.granted === false && weak.reason === 'hysteresis', `差距不够 → hysteresis 拒绝（迟滞余量 ${BODY_PREEMPT_MARGIN} 分）`)
+  const strong = lease.propose({ owner: b, ownerKind: 'goal', intent: 'B 高优先级', utility: { ...scoreTool, survival: 10, urgency: 10, feasibility: 10, disruption: 0 } })
+  ok(strong.granted === true && strong.reason === 'preempt', '超出余量 → preempt 接管')
+  const reflexWeak = lease.propose({ owner: {}, ownerKind: 'reflex', intent: '反射想抢', utility: { survival: REFLEX_SAFETY_MIN - 1, feasibility: 10 } })
+  ok(reflexWeak.granted === false && reflexWeak.reason === 'reflex-not-safety', '反射层非安全理由 → 拒绝抢身体（我们的额外纪律）')
+  lease.setGeneration(2)
+  ok(lease.current() === null, '换连接代次 → 旧租约作废')
+  ok(lease.propose({ owner: a, ownerKind: 'goal', intent: '新连接', utility: scoreTool }).granted === true, '新代次可重新取得')
+  lease.release(a)
+  ok(lease.current() === null, '释放后无人持有')
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`)

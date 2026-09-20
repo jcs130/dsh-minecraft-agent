@@ -1,4 +1,4 @@
-import type { Context } from '@deepseek-ai/cordis'
+﻿import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Bot, Chest, Dispenser, EnchantmentTable, EquipmentDestination, Furnace, Villager } from 'mineflayer'
@@ -15,7 +15,9 @@ import type { McStoreService } from './mc-store'
 import { captureFirstPerson, captureLookaround } from './mc-camera'
 import { botFor } from './mc-bots'
 
-import { sensesSnapshot, isUnloadedBlock, bagStamp, worldStamp, createReadoutGate } from './mc-perception'
+import { sensesSnapshot, isUnloadedBlock, bagStamp, worldStamp, createReadoutGate, durabilityOf } from './mc-perception'
+import { createExecutionLayer, shortVerdict, matchItemName, type ExpectContext } from './mc-execution'
+import { createBodyLease } from './mc-body-lease'
 import { readVisionSentinel, visionHealth } from './mc-camera'
 
 // 读数闸（Cortico readouts.ts）：同一份读数在窗口内重复问 → 回一句「已答过」。
@@ -1157,6 +1159,49 @@ async function tunnelStep(bot: Bot, dirX: number, dirZ: number): Promise<string>
 
 export function apply(ctx: Context, config: Config = {}) {
   const log = (msg: string) => console.log(`[mc-tools] ${msg}`)
+
+  // ── 执行层（E1–E4）：所有工具过这一个咽喉点 ────────────────────────────────
+  // 闸（租约/前置）→ 执行（计时+输出摘要）→ **回读核验**（期望 vs 实际）→ 回执 → 受阻账。
+  // 纪律：**不改动作语义**；`noop`（工具说成功、世界没变）与 `by`（谁打断的）是一等信号。
+  const execution = createExecutionLayer({ dataDir: EPISODIC_DIR, lease: createBodyLease({}) })
+  const itemsOf = (bot: Bot): Array<{ name?: string; count?: number }> => {
+    try { return bot.inventory.items() as Array<{ name?: string; count?: number }> } catch { return [] }
+  }
+  const reg = (tool: any): unknown => {
+    const inner = tool?.execute
+    if (typeof inner !== 'function' || !tool?.name) return ctx.tools.register(tool)
+    tool.execute = async (args: any, exec: any) => {
+      const bot = ((): Bot | null => { try { return resolveBot(exec) } catch { return null } })()
+      if (!bot?.entity) return inner(args, exec)   // 没身体：交给原逻辑报错，执行层不插手
+      const expectCtx: ExpectContext = {
+        countItem: (n) => itemsOf(bot).filter((i) => matchItemName(n, i.name)).reduce((s2, i) => s2 + (Number(i.count) || 0), 0),
+        held: () => bot.heldItem?.name ?? null,
+        position: () => bot.entity?.position ?? null,
+        blockNameAt: (x, y, z) => { try { return bot.blockAt(new Vec3(x, y, z))?.name ?? null } catch { return null } },
+      }
+      const slots = (bot.inventory as unknown as { slots?: unknown[] }).slots
+      const heldDur = durabilityOf(bot.heldItem)
+      const r = await execution.run({
+        action: String(tool.name),
+        args: args ?? {},
+        expectCtx,
+        facts: {
+          emptySlots: Array.isArray(slots) ? slots.filter((x) => x == null).length : 99,
+          heldDurabilityRatio: heldDur ? heldDur.ratio : null,
+        },
+        exec: () => inner(args, exec),
+      })
+      // 非字符串结果（如 mc_see 的图块对象）**原样透传**，一个字符都不加
+      if (typeof r.result !== 'string') return r.result
+      const parts: string[] = [r.result]
+      const mark = shortVerdict(r.receipt.expect, r.receipt.verdict)
+      if (mark) parts.push(mark)
+      parts.push(...r.notes)
+      if (r.receipt.outcome !== 'done' && r.receipt.why) parts.push(`(${r.receipt.why})`)
+      return parts.join(r.result.includes('\n') ? '\n' : '　')
+    }
+    return ctx.tools.register(tool)
+  }
   pluginCtx = ctx
   // 统一数据层：经 cordis 服务拿同一份 SQLite 读写口（inject 已声明 'mcStore'，
   // 正常必有；?. 容错防 profile 缺载时 episodic 静默降级为 no-op）。
@@ -1172,7 +1217,7 @@ export function apply(ctx: Context, config: Config = {}) {
   log(`dataDir=${EPISODIC_DIR}`)
 
   // ── Observe: position / health / food / held item / inventory ────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_status',
     description:
       '自查全身状态（按需档的具身快照，比每步自动感知更全）：本体（坐标/面朝/站立/速度/睡眠）、内感（生命/饱食/饱和/氧气/经验/药水效果）、'
@@ -1203,7 +1248,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Move: pathfind to coordinates ─────────────────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_goto',
     description: 'Pathfind to the given coordinates (e.g. a chest, bed or mining spot).',
     parameters: {
@@ -1240,7 +1285,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Escape: deterministic horizontal tunnel (jump-free) ───────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_tunnel',
     description:
       '沿指定方向挖一条水平的 2 格高通道并逐格前进（默认 8 格）——脱困专用：纯平地行走、完全不依赖跳跃，坑底/地下/被方块围住/寻路反复失败时，一次调用就取得确定进展。' +
@@ -1283,7 +1328,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Gather: collect blocks of a given type ────────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_collect',
     description:
       'Collect blocks of a type (e.g. "oak_log", "coal_ore", "cobblestone"). The bot walks to the nearest one, mines it and picks up the drops. Returns how many were collected.',
@@ -1355,7 +1400,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Dig: break the block at exact coordinates ────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_dig',
     description:
       'Dig (break) the block at the EXACT given coordinates, then pick up nearby drops. The escape primitive when stuck: dig the block above your head or beside you (use mc_scan first to find the blocking coordinates). Warning: digging straight down below your own feet can drop you into caves or lava.',
@@ -1370,7 +1415,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Build: place a block at coordinates ───────────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_place',
     description:
       'Place a block from the inventory at the given coordinates. The bot stands next to it and places it against an adjacent solid block.',
@@ -1423,7 +1468,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Fight: attack the nearest mob of a type ───────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_attack',
     description:
       'Attack the nearest mob of a type (e.g. "zombie", "creeper", "skeleton"). Optionally keep attacking until it dies.',
@@ -1473,7 +1518,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Pick up nearby dropped items ──────────────────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_pickup',
     description: 'Walk to and pick up dropped items near the bot.',
     parameters: {},
@@ -1485,7 +1530,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Craft: make an item, using a crafting table if needed ─────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_craft',
     description:
       'Craft an item (e.g. "wooden_pickaxe", "crafting_table", "stick", "oak_planks", "stone_pickaxe"). If the recipe needs a crafting table, the bot walks to the nearest one. Reports what was crafted or which ingredients are missing.',
@@ -1505,7 +1550,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Equip: put an item into the hand or an armor slot ────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_equip',
     description:
       'Equip an item from the inventory, e.g. "wooden_pickaxe" or "stone_axe". Default destination is the hand; armor goes to head/torso/legs/feet.',
@@ -1529,7 +1574,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Eat: consume food to restore hunger (and usually health) ──────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_eat',
     description:
       'Eat a food item to restore hunger and (over time) health. The bot equips the food and consumes it. Omit itemType to auto-pick the most filling food available.',
@@ -1573,7 +1618,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Chat: speak to the world (reply to players / narrate) ────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_chat',
     description:
       '全服公屏广播（整个世界都听见的大喇叭）——重大宣告才用，如自我介绍、重要发现、集结呼喊。' +
@@ -1603,7 +1648,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Storage: list what's inside a chest/barrel ────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_view_chest',
     description:
       'Look inside a chest or barrel and list its contents. If x/y/z are given, opens that exact block; otherwise opens the nearest one within range.',
@@ -1619,7 +1664,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Storage: deposit items from inventory into a chest ────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_put_chest',
     description:
       'Deposit items from the bot\'s inventory into a chest or barrel. If x/y/z are given, targets that chest; otherwise the nearest one. Deposits "count" of itemType (default: all of that type).',
@@ -1637,7 +1682,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Storage: withdraw items from a chest into inventory ───────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_take_chest',
     description:
       'Withdraw items from a chest or barrel into the bot\'s inventory. If x/y/z are given, targets that chest; otherwise the nearest one. Withdraws "count" of itemType (default: all available).',
@@ -1655,7 +1700,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Furnace: smelt items in furnace / blast furnace / smoker ──────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_smelt',
     description:
       'Smelt items (e.g. raw_iron -> iron_ingot, raw food -> cooked food) in the nearest furnace, blast furnace or smoker. Loads input + fuel, waits, and collects the finished output into inventory. Max 6 items per call; call again for more. Also collects any finished output first.',
@@ -1674,7 +1719,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Furnace: look inside a furnace ────────────────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_view_furnace',
     description:
       'Look inside the nearest furnace / blast furnace / smoker: input, fuel, output and remaining smelt time. Does not take anything (mc_smelt collects output).',
@@ -1690,7 +1735,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Enchanting: enchant an item at the nearest enchanting table ───────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_enchant',
     description:
       'Enchant a held item at the nearest enchanting table. Costs 1-3 lapis_lazuli and experience levels. Without choice, auto-picks the strongest offer you can afford; with choice (0/1/2), takes that specific offer.',
@@ -1704,7 +1749,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Trade: interact with the nearest villager ─────────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_trade',
     description:
       'Trade with the nearest villager. Without tradeIndex, lists the available trades. With tradeIndex, executes that trade "count" times (default 1).',
@@ -1724,7 +1769,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Sleep: find a bed and sleep through the night ─────────────────────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_sleep',
     description:
       '在天黑或雷雨时找到附近的床并躺下睡觉，一觉睡到天亮，安全跳过危险的黑夜。白天不能睡。如果附近没有床，先想办法弄一张（放一张床，或祈愿天神赐一张床）。',
@@ -1752,7 +1797,7 @@ export function apply(ctx: Context, config: Config = {}) {
   }))
 
   // ── Scan (A)：文字版环境雷达，重点暴露「头顶出口」等自救关键信息 ────
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_scan',
     description:
       '环顾四周的文字扫描雷达（纯文字、不产生画面）：面向什么、眼前方块、头顶有没有露天出口（卡坑自救关键）、四面环境、脚下地质、附近水/岩浆等危险、附近实体。极快，零画面成本。这只是粗略方向线索——想真正看清眼前挡路的是树是山还是路，用 mc_see 睁眼截真实画面（会附实体标注）。迷路、卡住、进入陌生地形时先用它快速定位。',
@@ -1879,7 +1924,7 @@ export function apply(ctx: Context, config: Config = {}) {
   // 纯 mineflayer 只读查询、零画面成本：扫一个以 bot 为中心的正方形网格，把每格
   // 「想站上去会踩到/撞到啥」归类成符号，画一张北在上方的 ASCII 俯视图。比 mc_see
   // 便宜（不用相机/视觉模型），比 mc_scan 空间感强（能看出路口/山谷/水塘/树林格局）。
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_map',
     description:
       '俯视地形图（纯文字 ASCII，北在上方）：扫描你周围一格正方形区域的地表，画成符号地图并标注附近水/岩浆/悬崖。让你看清「四面八方是个什么地形格局」——哪边是树林、哪边是水塘、哪边是石山/路口、哪边能走。比 mc_see 便宜（不拍画面）、比 mc_scan 更有空间感（看懂整体走向）。探索新地形、找方向、找水源/木材、判断能否通行时用它；需要眼前具体方块细节再用 mc_see。',
@@ -1964,7 +2009,7 @@ export function apply(ctx: Context, config: Config = {}) {
   // 官方附件服务（attachments.saveImage）持久化成 image block 作为工具结果
   // 返回——模型调用后下一次推理直接看见，正是 dsh 工具原生能力（对齐官方
   // read_image 工具模式：execute 返回 canonical 对象 + render 转 image block）。
-  ctx.tools.register(defineTool({
+  reg(defineTool({
     name: 'mc_see',
     description:
       '睁开眼睛：截取你第一人称视角的真实游戏画面（800x512），画面会立即随工具结果返回、被你亲眼看见。画面自动叠加实体标注框——黄框=玩家、红框=敌对生物、绿框=友善生物/NPC、橙框=掉落物，框上标签写清类型与距离（如「zombie 5格」），底部有汇总条，一眼看懂「谁在哪、多远」。默认只拍当前朝向一张；想环顾四周查威胁/找路时传 look=around（视觉模型单次最多看 2 张图，环顾只回传前、右两向）。耗时约 1-4 秒。',
@@ -2037,3 +2082,4 @@ export function apply(ctx: Context, config: Config = {}) {
     }),
   }))
 }
+
