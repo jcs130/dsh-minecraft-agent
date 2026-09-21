@@ -27,7 +27,7 @@
  */
 import type { Bot } from 'mineflayer'
 import Vec3 from 'vec3'
-import { appendFileSync, mkdirSync, statSync } from 'node:fs'
+import { appendFileSync, mkdirSync, statSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -592,7 +592,17 @@ export function createPerception(deps: PerceptionDeps): Perception {
   let pendingProgress = ''
   // 停滞判定：以"有进展"为基准（逐格位置 / 背包构成 / 区段 任一变化都算进展），
   // 而不是"区段没变"——后者会把"在同一个区块里挖矿/盖房 8 分钟"误判成卡死。
-  let lastProgressAt = 0
+  // 无进展基准从盘上读回：否则每次重启清零 ⇒ 解卡反射永远到不了门槛（2026-09-20 真跑）
+  let lastProgressAt = ((): number => {
+    try {
+      if (!deps.dataDir) return 0
+      const raw = readFileSync(join(deps.dataDir, 'progress-anchor.json'), 'utf-8')
+      const v = Number((JSON.parse(raw) as { lastProgressAt?: number }).lastProgressAt ?? 0)
+      return Number.isFinite(v) && v > 0 && v <= Date.now() ? v : 0
+    } catch { return 0 }
+  })()
+  /** 落盘节流：无进展基准要跨重启存活，但不必每次变化都写盘 */
+  let progressWrittenAt = 0
   let lastPosBlock = ''
   let lastInvKinds = -1
   let lastInvTotal = -1
@@ -852,6 +862,12 @@ export function createPerception(deps: PerceptionDeps): Perception {
     const progressed = regionChanged || posBlock !== lastPosBlock || invKinds !== lastInvKinds || invTotal !== lastInvTotal
     if (progressed) {
       lastProgressAt = Date.now()
+      // 落盘（≥60s 一次）：让基准跨重启存活
+      if (deps.dataDir && Date.now() - progressWrittenAt > 60_000) {
+        progressWrittenAt = Date.now()
+        appendJsonl(deps.dataDir, 'progress-anchor.jsonl', { lastProgressAt, at: new Date().toISOString() })
+        try { writeFileSync(join(deps.dataDir, 'progress-anchor.json'), JSON.stringify({ lastProgressAt })) } catch { /* 写不动就算了 */ }
+      }
       lastPosBlock = posBlock
       lastInvKinds = invKinds
       lastInvTotal = invTotal

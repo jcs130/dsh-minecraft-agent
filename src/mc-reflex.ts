@@ -269,6 +269,16 @@ export async function actUnstick(bot: unknown, ms: number): Promise<void> {
     try { await b.dig(below) } catch { /* 挖不动，退化为迈步 */ }
     return
   }
+  // ⚠️ 迈步前先判险：脱困动作不许把人带进水里/岩浆/悬崖（真跑：这一步可能把爱德华带进了水）
+  const ahead = ((): { name?: string } | null => {
+    try { return b.blockAt!(new Vec3(Math.floor(p.x + 1), Math.floor(p.y), Math.floor(p.z + 1))) as { name?: string } | null } catch { return null }
+  })()
+  const aheadBelow = ((): { name?: string } | null => {
+    try { return b.blockAt!(new Vec3(Math.floor(p.x + 1), Math.floor(p.y) - 1, Math.floor(p.z + 1))) as { name?: string } | null } catch { return null }
+  })()
+  const unsafe = (x: { name?: string } | null): boolean => !!x?.name && /lava|water|fire|cactus|powder_snow/i.test(x.name)
+  const noFloor = !aheadBelow?.name || aheadBelow.name === 'air'
+  if (unsafe(ahead) || unsafe(aheadBelow) || noFloor) return   // 前方是水/岩浆/悬空 → 这次只挖不迈
   const yaw = b.entity?.yaw ?? 0
   try { await b.look?.(yaw, 0, true) } catch { /* 转向失败照常走 */ }
   b.setControlState('forward', true)

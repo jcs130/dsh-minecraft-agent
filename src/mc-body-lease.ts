@@ -52,6 +52,13 @@ export const BODY_LEASE_MS = 2_500
 export const BODY_PREEMPT_MARGIN = 4
 /** 反射层抢占的生存分下限（0..10 量纲，即 5/10；我们的额外纪律：不许拿"紧急"当借口抢身体）。 */
 export const REFLEX_SAFETY_MIN = 5
+/**
+ * **安全类**门槛（0..10 量纲，即 9/10）：到这个分就**立即抢占、不受 `BODY_PREEMPT_MARGIN` 限制**。
+ * 为什么单独开一条：迟滞余量是为了防"平级竞争抖动"，而安全反射（如溺水/贴脸苦力怕）在分数上
+ * 天然压不过正在跑的普通工具调用（实测 5.82 对 3.98，差 1.84 < 余量 4）⇒ 若不越权，
+ * 我写的"安全：立即抢占"就是一句空话（2026-09-20 真跑：爱德华溺水时反射反复 grabbed:false）。
+ */
+export const SAFETY_PREEMPT_SURVIVAL = 9
 
 export function bodyUtilityScore(u: Partial<BodyUtilityFactors>): number {
   const full: BodyUtilityFactors = {
@@ -158,8 +165,9 @@ export function createBodyLease(opts: BodyLeaseOptions = {}) {
         emit({ at, type: 'renewed', ownerKind: p.ownerKind, intent: p.intent, reason: 'renew' })
         return { at, granted: true, reason: 'renew', score, lease: active.token }
       }
-      // 不同实例：要超过在位者 + 迟滞余量才允许抢占
-      if (score > active.score + margin) {
+      // 不同实例：①**安全类直接抢**（不受余量限制）②否则要超在位者 + 迟滞余量
+      const safetyOverride = (p.utility.survival ?? 0) >= SAFETY_PREEMPT_SURVIVAL
+      if (safetyOverride || score > active.score + margin) {
         const prev = active.token
         const token: BodyLeaseToken = { leaseId: ++leaseSeq, generation, owner: p.owner, ownerKind: p.ownerKind, intent: p.intent, grantedAt: at, expiresAt: at + leaseMs }
         active = { token, score }
