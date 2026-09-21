@@ -111,3 +111,9 @@ _decider_probe.json
 _vision_probe.out.txt
 _report_out*.txt
 _test_out*.txt
+_*.py
+_*.mjs
+_*.cjs
+_*.txt
+_*.json
+_*.log

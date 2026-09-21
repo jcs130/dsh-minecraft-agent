@@ -1290,7 +1290,7 @@ async function spawnTransmigrator(
   // ── 弹幕（观众）感知通道：目标环要的那一路 ─────────────────────────────
   // 与"玩家聊天"分开：弹幕是高频、多说话者、大量重复的短消息流，
   // 按窗口聚合 + 显著度挑选 + 发言预算，每步最多一行（详见 mc-audience.ts 头部的三条铁律）。
-  const audienceCfg = defaultDeciderConfig()
+  const audienceCfg = defaultDeciderConfig(dataDir)   // 官方 Jev 优先（key 从 dataDir/decider-key.txt 读）
   audienceCfg.dataDir = dataDir
   const audience = createAudienceChannel(
     {
@@ -1358,10 +1358,27 @@ async function spawnTransmigrator(
   let modeText = ''
   let lastMode = { mode: 'idle' as const, danger: 0 as 0 | 1 | 2 | 3 | 4, stalled: false, tickMs: 2000 }
   let modeTimer: ReturnType<typeof setTimeout> | null = null
+  /** 模式分类的状态指纹与上次询问时刻（省钱：局面没变不重复问官方 API） */
+  let lastModeFp = ''
+  let lastModeAskAt = 0
   let agentBusy = false          // dsh 的 agent/status：LLM 那一步是否正在跑
   const refreshMode = async (): Promise<void> => {
     try {
-      const wm = perception.lastWorldModel()
+const wm = perception.lastWorldModel()
+      // ── 状态指纹闸 ──────────────────────────────────────────────────────
+      // 官方 API 按 token 计费，而模式分类原先每 1.5–2s 一问 ⇒ 局面没变就是白花钱。
+      // 规则：指纹变了立刻问；没变则最多每 30s 问一次（时间流逝型变化也能被发现）。
+      const fp = wm ? [wm.self.hp, wm.self.food, wm.self.isNight ? 'N' : 'D', wm.threat.actionable,
+        wm.threat.nearest, wm.threat.creeperDist, wm.stock.slotsUsed, wm.paralysis.starving ? 'S' : '-',
+        wm.paralysis.longStall ? 'L' : '-', Math.round(wm.self.pos.x / 16), Math.round(wm.self.pos.z / 16),
+        activeGoal.slice(0, 24)].join('|') : 'nobody'
+      const nowMs = Date.now()
+      if (fp === lastModeFp && nowMs - lastModeAskAt < 30_000) {
+        modeTimer = setTimeout(() => { void refreshMode() }, Math.max(400, lastMode.tickMs))
+        return
+      }
+      lastModeFp = fp
+      lastModeAskAt = nowMs
       if (wm) {
         const s: ModeStateInput = {
           hp: wm.self.hp, food: wm.self.food, oxygen: 20, isNight: wm.self.isNight,

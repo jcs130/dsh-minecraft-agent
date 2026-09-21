@@ -18,6 +18,8 @@
  *   它是把 B（保鲜门）/C（严格校验）/E（命名阈值）/F（审计）四件**先做成可测的积木**。
  */
 import { appendJsonl } from './mc-perception'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 /** 阈值按**后果**分别校准，不共享一个"置信度"闸（官方纪律；jev-craft 同款命名）。 */
 export const DECIDER_THRESHOLDS = {
@@ -57,17 +59,38 @@ export interface SystemOneResponse {
 export interface DeciderConfig {
   baseUrl: string
   model: string
+  /** 官方（TypeSafe System One）key：`Authorization: Bearer <key>`。本地服务不需要。 */
+  apiKey?: string
+  /** 官方不可用时的降级端点（协议完全相同，所以降级是免费的）——默认本地 :8000。 */
+  fallbackBaseUrl?: string
   /** 单次请求超时（暖态 ~200ms，冷启 ~2.5s，故留足） */
   timeoutMs: number
   maxAttempts: number
   dataDir?: string
 }
 
-export function defaultDeciderConfig(): DeciderConfig {
+/**
+ * 默认配置：**官方 Jev 优先**（TypeSafe System One），官方不通则降级到本地 decider。
+ * key 来源：`MC_DECIDER_KEY` 环境变量 → `<dataDir>/decider-key.txt`（key **绝不进仓库**）。
+ */
+export function defaultDeciderConfig(dataDir?: string): DeciderConfig {
+  // ⚠️ 不能用 require()：插件产物是 ESM，require 不存在，异常还会被 catch 吞掉
+  //    ⇒ key 读不到、静默回落到本地端点（2026-09-20 真跑踩到：日志里 model 一直是 decider-dev）
+  const fromFile = ((): string => {
+    if (!dataDir) return ''
+    try { return readFileSync(join(dataDir, 'decider-key.txt'), 'utf-8').trim() } catch { return '' }
+  })()
+  const apiKey = (process.env.MC_DECIDER_KEY ?? fromFile).trim()
+  const official = 'https://api.typesafe.ai'
   return {
-    baseUrl: process.env.MC_DECIDER_URL ?? 'http://127.0.0.1:8000',
-    model: process.env.MC_DECIDER_MODEL ?? 'decider-dev',
-    timeoutMs: 8000,
+    // 有 key 就走官方；没有就还是本地
+    baseUrl: process.env.MC_DECIDER_URL ?? (apiKey ? official : 'http://127.0.0.1:8000'),
+    model: process.env.MC_DECIDER_MODEL ?? (apiKey ? 'jev-latest' : 'decider-dev'),
+    ...(apiKey ? { apiKey } : {}),
+    // 官方失败时的退路：本地 decider（同一套协议）
+    fallbackBaseUrl: process.env.MC_DECIDER_FALLBACK_URL
+      ?? (apiKey && (process.env.MC_DECIDER_URL ?? official) !== 'http://127.0.0.1:8000' ? 'http://127.0.0.1:8000' : undefined),
+    timeoutMs: 20000,
     maxAttempts: 2,
   }
 }
@@ -228,7 +251,11 @@ export async function callSystemOne(
       try {
         res = await fetchImpl(`${cfg.baseUrl}/v1/systemone`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            // 官方 TypeSafe 用 Bearer；本地 decider 不校验，带了也无害
+            ...(cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}),
+          },
           body: JSON.stringify(request),
           signal: ctrl.signal,
         })
@@ -268,6 +295,12 @@ export async function callSystemOne(
       if (!retryable || attempt >= cfg.maxAttempts) break
       await new Promise<void>((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)))
     }
+  }
+  // 官方整套尝试都失败 → 退到本地端点（同一协议）；再失败才抛
+  if (cfg.fallbackBaseUrl) {
+    try {
+      return await callSystemOne(state, questions, { ...cfg, baseUrl: cfg.fallbackBaseUrl, fallbackBaseUrl: undefined, apiKey: undefined }, fetchImpl)
+    } catch { /* 落到下面抛原始错误 */ }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
 }
