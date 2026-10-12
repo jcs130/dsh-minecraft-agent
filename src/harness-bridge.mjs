@@ -63,6 +63,18 @@ export function renderReceipt(value) {
     ...(value.isError ? { isError: true } : {}) }) }, ...extra];
 }
 
+/** Completing a goal stops its continuation, not the connected agent's event inbox. */
+export function wakeForMinecraftEvents(agent, goal, paused, events, createMessage) {
+  if (paused || agent.status !== 'idle' || !events?.length) return false;
+  // Paused/blocked goals and a lifecycle-disarmed active goal still need human resumption.
+  if (goal?.activation === 'disarmed' && goal.phase !== 'complete') return false;
+  agent.steer(createMessage({
+    content: [{ type: 'text', text: `游戏收到 ${events.length} 条新事件。读取请求尾部当前事实、事件及原始回执后决定。` }],
+    source: { kind: 'mc-harness', form: 'notice', summary: 'Minecraft events' },
+  }));
+  return true;
+}
+
 /** Retire only our volatile sections through durable DSH surface replacements. */
 export function retireFacts(session, createMessage) {
   const nodes = [...session.surface.nodes], messages = session.deriveMessages();
