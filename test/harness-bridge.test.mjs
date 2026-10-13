@@ -43,12 +43,12 @@ test('DSH disjoint input and cache counters convert without losing billed tokens
 
 test('operator follow-up is remembered only after durable flush and is not replayed on restart', async () => {
   let last = null; const calls = [];
-  const delivery = { lastId: () => last, steer: r => calls.push(['steer', r.id]),
+  const delivery = { lastId: () => last, prepare: () => calls.push(['prepare']), steer: r => calls.push(['steer', r.id]),
     flush: async () => calls.push(['flush']), remember: id => { calls.push(['remember']); last = id; } };
   const request = { id: 'operator-1', text: 'Continue the authorized test' };
   assert.equal(await deliverOperatorRequest(request, delivery), true);
   assert.equal(await deliverOperatorRequest(request, delivery), false);
-  assert.deepEqual(calls.map(c => c[0]), ['steer', 'flush', 'remember']);
+  assert.deepEqual(calls.map(c => c[0]), ['prepare', 'steer', 'flush', 'remember']);
   await assert.rejects(deliverOperatorRequest({ ...request, id: 'operator-2' }, { ...delivery, flush: async () => { throw Error('disk'); } }), /disk/);
   assert.equal(last, 'operator-1');
 });

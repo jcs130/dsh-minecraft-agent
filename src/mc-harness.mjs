@@ -180,6 +180,14 @@ export async function apply(ctx, options = {}) {
   const delivered = join(dataDir, 'operator-request-id.txt');
   await deliverOperatorRequest(config.operatorRequest, {
     lastId: () => existsSync(delivered) ? readFileSync(delivered, 'utf8').trim() : null,
+    prepare: request => {
+      // Only explicit local operator configuration may create a follow-up goal.
+      // Game events retain notice authority and cannot grant themselves a goal.
+      if (!request.goal) return;
+      const current = ctx.goals.get(handle.agent);
+      if (current && current.phase !== 'complete') throw Error('Finish or explicitly handle the current goal before adding an operator goal');
+      ctx.goals.create(handle.agent, { objective: request.goal, maxGoalRounds: config.maxGoalRounds ?? 300 });
+    },
     steer: request => handle.agent.steer(createUserMessage({ content: [{ type: 'text', text: request.text }],
       source: { kind: 'mc-harness', form: 'notice', summary: `Operator request ${request.id}` } })),
     flush: () => ctx.sessions.flush(handle.agent.session),

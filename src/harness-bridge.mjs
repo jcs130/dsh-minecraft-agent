@@ -89,6 +89,7 @@ export class MinecraftEventInbox {
 
 export async function deliverOperatorRequest(request, delivery) {
   if (!request?.id || !request?.text || delivery.lastId() === request.id) return false;
+  await delivery.prepare?.(request);
   delivery.steer(request);
   await delivery.flush();
   delivery.remember(request.id);
