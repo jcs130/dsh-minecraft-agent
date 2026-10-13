@@ -28,6 +28,10 @@
 
 主调用输出上限用 `maxTokens`。可通过 `compaction.thresholdRatio` 提前整理历史、`compaction.retainTokens` 设置保留近期上下文的预算、`compaction.maxTokens` 限制摘要输出；这些属于 DSH 宿主配置，模型及游戏核心不变。整理后原始日志仍可查询，不能靠裁剪抹掉未完成目标。
 
+操作员明确需要下一阶段工作时，可配置 `operatorRequest: {id,text}`；宿主向同一会话投递一次并保存已投递 ID，重启不重复投递，也不把旧目标改回未完成。新指令必须来自操作员授权，不能由巡检凭空生成任务。
+
+Qwen 的 `chatTemplateKwargs.enable_thinking: false` 单独配置并不会发包：当前 pi-ai 要求 `thinkingFormat: chat-template` 且模型声明支持推理（例如 `reasoningEfforts: {off: null, low: low}`）。关闭推理由该格式下明确的 `enable_thinking: false` 控制；不要用 `reasoningEfforts: false` 期待服务端自动停思考。建议用本地模拟端点检查实际请求。摘要上限独立于主调用；出现 `incomplete checkpoint` 时摘要没有成功，不能宣称历史已压缩。
+
 目标完成后停止该目标的自动续跑，已连接且未暂停的 Agent 仍可被新的聊天或任务结果唤醒。事件通知保留 `mc-harness` 来源，不冒充人类，也不重建或重新激活已完成目标。暂停、阻塞、生命周期解除激活的未完成目标仍保留原来的恢复约束。
 
 ## 旧数据

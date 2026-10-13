@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HarnessBridge, normalizeUsage, abortableDelay } from '../src/harness-bridge.mjs';
+import { HarnessBridge, normalizeUsage, abortableDelay, deliverOperatorRequest } from '../src/harness-bridge.mjs';
 
 test('multiple RPCs stay in the same DSH turn; accepted task is not completion', async () => {
   const calls = [];
@@ -39,4 +39,16 @@ test('DSH disjoint input and cache counters convert without losing billed tokens
   assert.deepEqual(normalizeUsage({ inputTokens: 100, outputTokens: 25, cacheReadTokens: 80, cacheWriteTokens: 20 }),
     { inputTokens: 200, outputTokens: 25, cachedTokens: 80 });
   assert.deepEqual(normalizeUsage(undefined), {});
+});
+
+test('operator follow-up is remembered only after durable flush and is not replayed on restart', async () => {
+  let last = null; const calls = [];
+  const delivery = { lastId: () => last, steer: r => calls.push(['steer', r.id]),
+    flush: async () => calls.push(['flush']), remember: id => { calls.push(['remember']); last = id; } };
+  const request = { id: 'operator-1', text: 'Continue the authorized test' };
+  assert.equal(await deliverOperatorRequest(request, delivery), true);
+  assert.equal(await deliverOperatorRequest(request, delivery), false);
+  assert.deepEqual(calls.map(c => c[0]), ['steer', 'flush', 'remember']);
+  await assert.rejects(deliverOperatorRequest({ ...request, id: 'operator-2' }, { ...delivery, flush: async () => { throw Error('disk'); } }), /disk/);
+  assert.equal(last, 'operator-1');
 });

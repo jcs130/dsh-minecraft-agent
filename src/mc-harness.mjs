@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } from 'agent-mc-world/client';
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
-import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, MinecraftEventInbox } from './harness-bridge.mjs';
+import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest } from './harness-bridge.mjs';
 
 export const name = 'mc-harness';
 export const inject = ['agents', 'agentLoop', 'tools', 'systemPrompt', 'goals', 'sessionPersistence', 'sessions', 'tokenMeter'];
@@ -176,6 +176,15 @@ export async function apply(ctx, options = {}) {
   const goal = ctx.goals.get(handle.agent);
   if (!goal && config.goal) ctx.goals.create(handle.agent, { objective: config.goal, maxGoalRounds: config.maxGoalRounds ?? 2000 });
   else if (goal?.phase === 'active') ctx.goals.resume(handle.agent, { id: goal.id, revision: goal.revision });
+  // Explicit operator follow-ups are consumed once; never reset a completed goal on restart.
+  const delivered = join(dataDir, 'operator-request-id.txt');
+  await deliverOperatorRequest(config.operatorRequest, {
+    lastId: () => existsSync(delivered) ? readFileSync(delivered, 'utf8').trim() : null,
+    steer: request => handle.agent.steer(createUserMessage({ content: [{ type: 'text', text: request.text }],
+      source: { kind: 'mc-harness', form: 'notice', summary: `Operator request ${request.id}` } })),
+    flush: () => ctx.sessions.flush(handle.agent.session),
+    remember: id => writeFileSync(delivered, id),
+  });
   const poll = async () => {
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
@@ -185,7 +194,8 @@ export async function apply(ctx, options = {}) {
       inbox.add(important ?? []);
       inbox.flush(handle.agent, ctx.goals.get(handle.agent), paused || lifetime.signal.aborted, createUserMessage);
       status({ state: handle.agent.status, goal: ctx.goals.get(handle.agent), console: consoleServer?.url });
-    } catch (error) { if (!lifetime.signal.aborted) status({ state: 'poll-error', error: error.name }); }
+    } catch (error) { if (!lifetime.signal.aborted) status(paused
+      ? { state: 'paused', goal: ctx.goals.get(handle.agent) } : { state: 'poll-error', error: error.name }); }
     finally { if (!lifetime.signal.aborted) timer = setTimeout(poll, 1000); }
   };
   void poll();
