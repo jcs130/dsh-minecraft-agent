@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { retireFacts, renderReceipt, measuredStream, wakeForMinecraftEvents } from '../src/harness-bridge.mjs';
+import { retireFacts, renderReceipt, measuredStream, wakeForMinecraftEvents, MinecraftEventInbox } from '../src/harness-bridge.mjs';
 const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.json'));
 const { Session } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-session')).href);
 const { createUserMessage } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm')).href);
@@ -81,4 +81,20 @@ test('event notices retain the existing idle-only behavior during a live model t
   assert.equal(wakeForMinecraftEvents(agent, { phase: 'active', activation: 'armed' }, false, events, createUserMessage), true);
   assert.equal(wakeForMinecraftEvents(agent, undefined, false, events, createUserMessage), true);
   assert.equal(wakes, 2);
+});
+
+test('busy-turn events wake exactly once after idle, even when the next poll is empty', () => {
+  const inbox = new MinecraftEventInbox(); let wakes = 0;
+  const agent = { status: 'running', steer() { wakes++; } };
+  const goal = { phase: 'complete', activation: 'disarmed' };
+  inbox.add([{ type: 'mymc.chat', cursor: 20 }]);
+  assert.equal(inbox.flush(agent, goal, false, createUserMessage), false);
+  inbox.add([]); agent.status = 'idle';
+  assert.equal(inbox.flush(agent, goal, false, createUserMessage), true);
+  assert.equal(inbox.flush(agent, goal, false, createUserMessage), false);
+  assert.equal(wakes, 1);
+  inbox.add([{ type: 'mymc.chat', cursor: 21 }]);
+  assert.equal(inbox.flush(agent, goal, true, createUserMessage), false);
+  assert.equal(inbox.flush(agent, goal, false, createUserMessage), false);
+  assert.equal(wakes, 1);
 });

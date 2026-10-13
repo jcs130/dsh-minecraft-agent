@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } from 'agent-mc-world/client';
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
-import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, wakeForMinecraftEvents } from './harness-bridge.mjs';
+import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, MinecraftEventInbox } from './harness-bridge.mjs';
 
 export const name = 'mc-harness';
 export const inject = ['agents', 'agentLoop', 'tools', 'systemPrompt', 'goals', 'sessionPersistence', 'sessions', 'tokenMeter'];
@@ -61,6 +61,7 @@ export async function apply(ctx, options = {}) {
   const sessionFile = join(dataDir, 'session-id.txt');
   const sessionId = existsSync(sessionFile) ? readFileSync(sessionFile, 'utf8').trim() : randomUUID();
   let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = false;
+  const inbox = new MinecraftEventInbox();
   const statusFile = join(dataDir, 'status.json');
   const status = extra => writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
     name: config.name, sessionId, model: config.model, phase: runtime.status().phase,
@@ -84,7 +85,7 @@ export async function apply(ctx, options = {}) {
     metrics: runtime.metrics, status: () => runtime.status(),
     operatorAction: async action => {
       if (action === 'disconnect') {
-        paused = true;
+        paused = true; inbox.clear();
         if (handle) { ctx.goals.disarm(handle.agent); handle.agent.cancel({ kind: 'user', reason: 'Operator disconnected Minecraft' });
           await handle.agent.whenIdle(); await ctx.sessions.flush(handle.agent.session); }
         await bridge.boundary; bridge.turnId = null;
@@ -142,8 +143,9 @@ export async function apply(ctx, options = {}) {
       return decision;
     });
     const compaction = await import('@deepseek-ai/dsh-compaction-basic');
-    await agentCtx.plugin(compaction.default, { auto: true, maxTokens: config.maxTokens ?? 1800,
-      headroomTokens: 12000, thresholdRatio: 0.7, retainRatio: 0.2 }).await();
+    await agentCtx.plugin(compaction.default, { auto: true, maxTokens: config.compaction?.maxTokens ?? config.maxTokens ?? 1800,
+      headroomTokens: 12000, thresholdRatio: config.compaction?.thresholdRatio ?? 0.7,
+      ...(config.compaction?.retainTokens !== undefined ? { retainTokens: config.compaction.retainTokens } : { retainRatio: 0.2 }) }).await();
     agentCtx.on('session/event', (_session, event) => {
       if (event.type === 'turn/end') void bridge.ended(sessionId, event.data.turn).catch(() => {
         status({ state: 'boundary-error' }); handle?.agent.cancel({ kind: 'hook', reason: 'Minecraft turn boundary failed' });
@@ -180,8 +182,8 @@ export async function apply(ctx, options = {}) {
       eventCursor = events.nextCursor;
       if (events.events?.length) recentEvents = [...recentEvents, ...events.events].slice(-24);
       const important = events.events?.filter(e => /chat|damage|death|task|completed|failed|login|disconnect/i.test(e.type));
-      wakeForMinecraftEvents(handle.agent, ctx.goals.get(handle.agent), paused || lifetime.signal.aborted,
-        important, createUserMessage);
+      inbox.add(important ?? []);
+      inbox.flush(handle.agent, ctx.goals.get(handle.agent), paused || lifetime.signal.aborted, createUserMessage);
       status({ state: handle.agent.status, goal: ctx.goals.get(handle.agent), console: consoleServer?.url });
     } catch (error) { if (!lifetime.signal.aborted) status({ state: 'poll-error', error: error.name }); }
     finally { if (!lifetime.signal.aborted) timer = setTimeout(poll, 1000); }
