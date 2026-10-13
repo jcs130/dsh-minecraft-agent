@@ -2,6 +2,10 @@
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
+## 核心归属
+
+`agent-mc-world` 的唯一源码在 [minecraft-ai-friend/packages/agent-mc-world](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world)。本插件直接依赖其版本化安装包；构建无需 Cortico World 源码。核心升级先用候选包通过宿主测试，再独立切换部署。
+
 ## 当前版本
 
 0.2.0 本地试运行候选，基于 DSH 0.2.0-rc.2、核心 0.4.0，尚未发布到 npm。安装候选 tgz 时必须同时安装配套核心和服务器包，registry 版本尚不可用。
