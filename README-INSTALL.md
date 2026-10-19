@@ -1,69 +1,19 @@
-# 一键安装（已有 dsh 的用户）
+# 安装当前 Harness 候选版
 
-dsh-minecraft-agent 是一个 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 组合包（bundle）。
-它让你的 AI 以"穿越者"身份进入任意 Minecraft Java 服务器（1.21.x）自主生存——挖矿、建造、社交、
-施法、睡觉、记日记，全程零 RCON、零服务器端修改。
+需要 Node.js 24、DSH 0.2.0-rc.2，以及同一次验收的适配器、核心和可选服务器包 tgz。当前核心/服务器候选未发布到 npm，直接 Git 或 registry 安装不能代替准备配套候选。
 
-## 前置要求
-
-- 已安装 dsh CLI（含 pnpm）
-- Node.js ≥ 22
-- 一个 MC Java 服务器地址（正版或离线模式均可）
-- 一个 OpenAI 兼容的本地/远程模型端点（vLLM / Ollama / 云 API 都行）
-
-## 安装
-
-### 方式 A：git 直装（推荐，零构建脚本）
+在独立部署目录同时安装经过校验的候选，避免 npm 去 registry 寻找尚未发布的核心：
 
 ```sh
-dsh plugin --profile mc add github:jcs130/dsh-minecraft-agent
+npm install ./agent-mc-world-0.5.7-rc.42.tgz ./agent-mc-qiandengji-0.5.0-dev.20261019.5.tgz ./dsh-minecraft-agent-0.3.0-rc.2.tgz @deepseek-ai/dsh@0.2.0-rc.2
 ```
 
-lib/ 预构建产物已随仓库分发（无 prepare 脚本、无原生编译依赖），
-pnpm ≥10/11 无需任何 allowBuilds 配置，直接装完。
+只有需要千灯纪服务器协议时才配置 `serverPack: qiandengji`。普通服务器使用 `none`，不启用服务器专用规则。核心和适配器不需要 Cortico 主项目。
 
-> 可选：视觉栈（mc-camera 第一人称截图）依赖 node-canvas-webgl + canvas，
-> 缺失时自动降级（不影响工具/记忆/咏唱等主功能）。需要的话自行
-> `pnpm add node-canvas-webgl canvas`（Windows 需预编译版，Linux 可源码编译）。
+按 DSH bundle 流程将本包加载到独立 profile，再把该 profile 中 `mc-harness.config.configFile` 设为自己的私有 Agent JSON 绝对路径。参考 [Agent JSON](examples/harness/agent.json) 和 [DeepSeek provider](examples/harness/deepseek.patch.yml)，将路径、账号、主机、环境变量改成自己的。示例默认 `enabled: false`，填写完成再启用。
 
-### 方式 B：tarball（离线分发）
+DeepSeek 官方云端的密钥只放本机环境变量，Agent JSON 使用 `reasoningEffort: off` 显式关闭思考。不要把凭据放进提示词、聊天或仓库。服务器登录密码也应使用该服务器/账号专属的私有配置。
 
-作者侧 `npm pack` 产出 `dsh-minecraft-agent-0.1.0.tgz`（已含 lib/ 预构建产物）：
+游戏版本设为 `1.21.1`，优先使用配套核心的内置 viewer 资源。确认账号与 viewer 的世界绑定一致后，再开启自主目标。安装、编译成功均不等于在线登录或目标达成，需分别核验连接就绪、工具终态和实际进展。
 
-```sh
-dsh plugin --profile mc add ./dsh-minecraft-agent-0.1.0.tgz
-```
-
-### 方式 C：npm 发布后（最顺滑）
-
-```sh
-dsh plugin --profile mc add dsh-minecraft-agent
-```
-
-## 启动一个穿越者
-
-安装后，组合包 `cordis.patch.yml` 会把穿越者侧插件注入 dsh 主进程。启动
-`dsh --profile mc "<任务>"` 即得一个 Minecraft 穿越者 agent（默认用户名
-`HarnessBot`）。
-
-在 profile 的 `cordis.patch.yml` 里覆盖 `mc-session` 的配置即可定制（名字 /
-人设 / 目标 / 模型 / 心跳间隔 / 服务器地址）：
-
-```yaml
-- insert:
-    - id: mc-session
-      name: 'dsh-minecraft-agent/lib/plugins/mc-session.mjs'
-      config:
-        username: 'Kirito'
-        goal: '砍树、挖矿、活下去，别死。'
-```
-
-控制面板（MC 面板）以会话视图 tab 内嵌在 dsh web 里（与「对话」「轨迹」同行），
-显示实时状态 / 3D 游戏视角（第三人称 / 第一人称 / 俯视地图）/ 编年史 / 击杀 /
-wiki / 缺陷流，并可在页面直接改服务器连接地址。
-
-## 卸载
-
-```sh
-dsh plugin --profile mc remove dsh-minecraft-agent
-```
+升级前备份私有配置、profile、原会话目录与游戏数据。继续使用原 `session-id.txt`，不要覆盖目标、记忆或账本；保持一个账号只有一个身体。回滚时停止本次部署，恢复旧依赖和配置，然后从原会话恢复。详细生命周期见 [迁移指南](docs/harness-migration.md)。

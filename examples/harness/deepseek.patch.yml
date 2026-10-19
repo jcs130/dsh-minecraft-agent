@@ -1,0 +1,12 @@
+# DSH base already loads this native provider; do not redeclare it in llm-pi-ai.
+- id: mc-harness
+  config:
+    configFile: /absolute/private/agent.json
+- id: llm-deepseek
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+    reasoningEffort: off
+    maxTokens: 6000
+# Agent JSON selects provider: deepseek-official and model: deepseek-flash.
+# Endpoint, catalog, native Messages replay, usage and stable session headers
+# are owned by DSH's built-in DeepSeek provider.

@@ -1,0 +1,28 @@
+{
+  "name": "Minecraft Agent",
+  "enabled": false,
+  "dataDir": "./private/data",
+  "personaFile": "./private/persona.md",
+  "serverPack": "none",
+  "provider": "deepseek-official",
+  "model": "deepseek-flash",
+  "reasoningEffort": "off",
+  "contextTokens": 262144,
+  "maxTokens": 2000,
+  "minStepIntervalMs": 250,
+  "consolePort": 17851,
+  "minecraft": {
+    "host": "localhost",
+    "port": 25565,
+    "username": "ExampleAgent",
+    "version": "1.21.1",
+    "viewerPort": 17852
+  },
+  "compaction": {
+    "summarizationProvider": "deepseek-official",
+    "summarizationModel": "deepseek-flash",
+    "retainTokens": 16000,
+    "maxTokens": 6000,
+    "thresholdRatio": 0.25
+  }
+}

@@ -1,15 +1,20 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } from 'agent-mc-world/client';
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
-import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest } from './harness-bridge.mjs';
+import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, compactionOptions, modelToolSchema } from './harness-bridge.mjs';
+
+const require = createRequire(import.meta.url);
+const { version: coreVersion } = require('agent-mc-world/package.json');
+const { version: adapterVersion } = require('dsh-minecraft-agent/package.json');
 
 export const name = 'mc-harness';
-export const inject = ['agents', 'agentLoop', 'tools', 'systemPrompt', 'goals', 'sessionPersistence', 'sessions', 'tokenMeter'];
+export const inject = ['agents', 'agentLoop', 'tools', 'systemPrompt', 'goals', 'sessionPersistence', 'sessionQuery', 'sessions', 'tokenMeter'];
 const merge = (a, b) => Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map(k =>
   [k, a[k] && b[k] && typeof a[k] === 'object' && typeof b[k] === 'object' && !Array.isArray(b[k])
     ? merge(a[k], b[k]) : b[k] ?? a[k]]));
@@ -19,6 +24,7 @@ export async function apply(ctx, options = {}) {
   if (!options.configFile) return; // Installation alone never opens a game/model connection.
   const config = JSON.parse(readFileSync(resolve(options.configFile), 'utf8'));
   if (config.enabled !== true) return;
+  const agentOptions = agentModelOptions(config), summaryOptions = compactionOptions(config);
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true });
   const nativeLog = ctx.logger('mc-harness');
@@ -50,8 +56,8 @@ export async function apply(ctx, options = {}) {
     runtime = new MinecraftAgentClient({ ...runtimeOptions, cfg });
   } else throw Error('Unknown explicit Minecraft server pack');
   const lifetime = new AbortController();
-  const server = createMinecraftMcpServer(runtime, '0.4.0');
-  const client = new Client({ name: 'dsh-minecraft-agent', version: '0.2.0' });
+  const server = createMinecraftMcpServer(runtime, coreVersion);
+  const client = new Client({ name: 'dsh-minecraft-agent', version: adapterVersion });
   const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport); await client.connect(clientTransport);
   const bridge = new HarnessBridge(runtime, client);
@@ -64,7 +70,8 @@ export async function apply(ctx, options = {}) {
   const inbox = new MinecraftEventInbox();
   const statusFile = join(dataDir, 'status.json');
   const status = extra => writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
-    name: config.name, sessionId, model: config.model, phase: runtime.status().phase,
+    name: config.name, sessionId, model: config.model, coreVersion, adapterVersion,
+    reasoningEffort: config.reasoningEffort ?? null, phase: runtime.status().phase,
     stopped: lifetime.signal.aborted, ...extra }, null, 2));
   ctx.effect(() => async () => {
     lifetime.abort(); clearTimeout(timer);
@@ -108,7 +115,7 @@ export async function apply(ctx, options = {}) {
       text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: recentEvents }) });
     for (const spec of tools) {
       if (spec.name.endsWith('_trace')) continue; // Only measured host instrumentation writes model traces.
-      const parameters = structuredClone(spec.inputSchema);
+      const parameters = modelToolSchema(spec.inputSchema);
       if (spec.name.endsWith('_protocol')) parameters.properties.action.enum = ['task', 'facts', 'archive', 'archive_runs', 'prepare_context', 'cancel'];
       if (spec.name.endsWith('_connection')) parameters.properties.action.enum = ['status', 'environment'];
       agentCtx.tools.register({ name: spec.name, description: spec.description, parameters,
@@ -136,23 +143,24 @@ export async function apply(ctx, options = {}) {
     agentCtx.on('agent/pre-step', async (payload, next) => {
       if (paused) throw Error('Minecraft is paused');
       await waitReady(payload.signal);
-      retireFacts(payload.agent.session, createUserMessage);
+      const surface = await ctx.sessionQuery.readSurface(sessionId);
+      retireFacts(payload.agent.session, createUserMessage, surface.events);
       await abortableDelay(Math.max(0, (config.minStepIntervalMs ?? 3000) - (Date.now() - lastStep)), payload.signal);
       const decision = await next();
-      if (decision.kind === 'enter') { await bridge.enter(sessionId, payload.turn); lastStep = Date.now(); }
+      if (decision.kind === 'enter') { await bridge.enter(sessionId, payload.turn, payload.step); lastStep = Date.now(); }
       return decision;
     });
     const compaction = await import('@deepseek-ai/dsh-compaction-basic');
-    await agentCtx.plugin(compaction.default, { auto: true, maxTokens: config.compaction?.maxTokens ?? config.maxTokens ?? 1800,
-      headroomTokens: 12000, thresholdRatio: config.compaction?.thresholdRatio ?? 0.7,
-      ...(config.compaction?.retainTokens !== undefined ? { retainTokens: config.compaction.retainTokens } : { retainRatio: 0.2 }) }).await();
+    await agentCtx.plugin(compaction.default, summaryOptions).await();
     agentCtx.on('session/event', (_session, event) => {
       if (event.type === 'turn/end') void bridge.ended(sessionId, event.data.turn).catch(() => {
         status({ state: 'boundary-error' }); handle?.agent.cancel({ kind: 'hook', reason: 'Minecraft turn boundary failed' });
       });
     });
-    // Observe the exact request, including tool schemas and all retained history; no silent truncation.
-    agentCtx.on('llm/stream', async function* (request, next) {
+  };
+  // LLM service events are service-scoped, not agent-scoped. Filter the real session explicitly.
+  ctx.on('llm/stream', async function* (request, next) {
+      if (request.sessionId !== sessionId) { yield* next(); return; }
       const meter = ctx.tokenMeter;
       const estimate = request.purpose
         ? request.messages.reduce((sum, message) => sum + meter.estimateMessage(message), 0)
@@ -161,10 +169,8 @@ export async function apply(ctx, options = {}) {
       if (estimate + (request.maxTokens ?? config.maxTokens ?? 1800) > config.contextTokens)
         throw Error('Minecraft request exceeds model context including tool definitions and reserved output.');
       yield* measuredStream(request, next, runtime.metrics, request.model ?? config.model);
-    });
-  };
+  });
   // No silent new session on resume failure: preserve the identity and surface the failure.
-  const agentOptions = { provider: config.provider, model: config.model, maxTokens: config.maxTokens ?? 1800 };
   const stablePersonaFile = join(dataDir, 'persona-with-environment.txt');
   // Keep the source persona independent; the assembled prompt also contains the neutral tool protocol.
   // Render static instructions once; never insert timestamps, counters or current state here.

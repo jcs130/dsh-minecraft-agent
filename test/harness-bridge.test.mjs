@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HarnessBridge, normalizeUsage, abortableDelay, deliverOperatorRequest } from '../src/harness-bridge.mjs';
+import { HarnessBridge, normalizeUsage, abortableDelay, deliverOperatorRequest, agentModelOptions, compactionOptions, modelToolSchema } from '../src/harness-bridge.mjs';
 
 test('multiple RPCs stay in the same DSH turn; accepted task is not completion', async () => {
   const calls = [];
@@ -51,4 +51,58 @@ test('operator follow-up is remembered only after durable flush and is not repla
   assert.deepEqual(calls.map(c => c[0]), ['prepare', 'steer', 'flush', 'remember']);
   await assert.rejects(deliverOperatorRequest({ ...request, id: 'operator-2' }, { ...delivery, flush: async () => { throw Error('disk'); } }), /disk/);
   assert.equal(last, 'operator-1');
+});
+
+test('native model options preserve an explicit thinking choice on creation and resumption', () => {
+  const config = { provider: 'official', model: 'deepseek-v4-flash', maxTokens: 2000 };
+  assert.deepEqual(agentModelOptions(config), config);
+  for (const reasoningEffort of ['off', 'low', 'high', 'max'])
+    assert.deepEqual(agentModelOptions({ ...config, reasoningEffort }), { ...config, reasoningEffort });
+  for (const reasoningEffort of ['', ' ', null, false])
+    assert.throws(() => agentModelOptions({ ...config, reasoningEffort }), /reasoningEffort/);
+});
+
+test('MCP attributes actual DSH session and step without inventing a learned policy', async () => {
+  const calls = [];
+  const bridge = new HarnessBridge({ journal: { run: 'body-run' }, beginTurn() {}, async endTurn() {} },
+    { async callTool(params) { calls.push(params); return {}; } });
+  await bridge.enter('persistent-session', 3, 0);
+  await bridge.call('mc_action', {}, { id: 'tool-a' });
+  await bridge.enter('persistent-session', 3, 1);
+  await bridge.call('mc_action', {}, { id: 'tool-b' });
+  await assert.rejects(bridge.enter('wrong-session', 4, 0), /terminal boundary/);
+  await bridge.call('mc_action', {}, { id: 'tool-c' });
+  const meta = calls.map(c => c._meta['agent-mc/v1']);
+  assert.deepEqual(meta[0], { requestId: 'body-run:tool-a', turnId: 'persistent-session:3',
+    attribution: { controller: 'system2', sessionId: 'persistent-session', decisionId: 'persistent-session:3:0' } });
+  assert.equal(meta[1].attribution.decisionId, 'persistent-session:3:1');
+  assert.deepEqual(meta[2].attribution, meta[1].attribution);
+  assert.equal(meta[0].attribution.policy, undefined);
+  await bridge.ended('persistent-session', 3);
+  await bridge.call('mc_status', {}, { id: 'outside-turn' });
+  assert.equal(calls.at(-1)._meta['agent-mc/v1'].attribution, undefined);
+});
+
+test('explicit compaction route survives model migration without silently reusing the old route', () => {
+  const options = compactionOptions({ maxTokens: 2000, compaction: { retainTokens: 16000, maxTokens: 6000,
+    summarizationProvider: 'deepseek-official', summarizationModel: 'deepseek-v4-flash' } });
+  assert.equal(options.summarizationProvider, 'deepseek-official');
+  assert.equal(options.summarizationModel, 'deepseek-v4-flash');
+  assert.equal(options.retainTokens, 16000); assert.equal(options.maxTokens, 6000);
+  assert.equal(compactionOptions({}).summarizationProvider, undefined);
+  assert.throws(() => compactionOptions({ compaction: { summarizationProvider: 'official' } }), /together/);
+  assert.throws(() => compactionOptions({ compaction: { summarizationModel: 'flash' } }), /together/);
+});
+
+test('model schema translation preserves tuple limits and leaves examples and source untouched', () => {
+  const schema = { type: 'object', properties: { angles: { type: 'array', minItems: 3,
+    items: [{ type: 'number', minimum: -90, maximum: 90 }, { type: 'number' }, { type: 'number', exclusiveMinimum: 0 }],
+    additionalItems: false } }, examples: [{ items: ['literal', 'data'] }] };
+  const translated = modelToolSchema(schema);
+  assert.equal(translated.properties.angles.maxItems, 3);
+  assert.deepEqual(translated.properties.angles.prefixItems, schema.properties.angles.items);
+  assert.deepEqual(translated.properties.angles.items, {});
+  assert.equal(translated.properties.angles.additionalItems, undefined);
+  assert.deepEqual(translated.examples, schema.examples);
+  assert.equal(Array.isArray(schema.properties.angles.items), true);
 });
