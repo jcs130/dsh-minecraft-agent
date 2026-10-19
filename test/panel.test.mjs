@@ -41,17 +41,35 @@ test('late DSH Web service binds the real port and authenticates the matching pa
   const ctx={inject(deps,fn){assert.deepEqual(deps,['connection','webServer']);ready=fn;}};
   const panel=await openHostConsole(ctx,async origins=>{created.push([...origins]);return{url:'http://127.0.0.1:17851/',close:async()=>{closed++;}};},'owned');
   assert.deepEqual(created,[[]]);assert.equal(panel.url,'http://127.0.0.1:17851/');
-  await ready({webServer:{port:17850},connection:{rpc:{handle(c,h){channel=c;handler=h;}}}});
-  assert.deepEqual(created,[[],['http://127.0.0.1:17850']]);assert.equal(closed,1);assert.equal(channel,'/mc-harness');
-  assert.equal((await handler('panel',{sessionId:'owned'})).ok,true);
-  assert.equal((await handler('panel',{sessionId:'other'})).ok,false);
+  await ready({webServer:{port:17850},connection:{fetch:{register(route){channel=route.path;handler=route.fetch;}}}});
+  assert.deepEqual(created,[[],['http://127.0.0.1:17850']]);assert.equal(closed,1);assert.equal(channel,'/api/mc-harness/panel');
+  const request=id=>new Request('http://localhost/api/mc-harness/panel',{method:'POST',body:JSON.stringify({type:'client-request',rpcId:'fixture-rpc',method:'mc-harness/panel',payload:{sessionId:id}})});
+  assert.equal((await(await handler(request('owned'))).json()).result.ok,true);
+  assert.equal((await(await handler(request('other'))).json()).result.ok,false);
   await panel.close();await panel.close();assert.equal(closed,2);assert.equal(panel.url,undefined);
 });
 test('headless console closes normally and a disposed host cannot reopen it on a late service',async()=>{
   let ready,count=0,closed=0,registered=0;
   const panel=await openHostConsole({inject(_deps,fn){ready=fn;}},async()=>{count++;return{url:'http://127.0.0.1:17851/',close:async()=>{closed++;}};},'owned');
-  await panel.close();await ready({webServer:{port:17850},connection:{rpc:{handle(){registered++;}}}});
+  await panel.close();await ready({webServer:{port:17850},connection:{fetch:{register(){registered++;}}}});
   assert.equal(count,1);assert.equal(closed,1);assert.equal(registered,0);
+});
+test('native separated service providers register and dispose the authenticated exact route',async()=>{
+  const req=createRequire(new URL('../package.json',import.meta.url));
+  const {Context}=await import(pathToFileURL(req.resolve('@deepseek-ai/cordis')));
+  const {HostConnectionService}=await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-client-connection')));
+  const root=new Context();
+  const web=await root.plugin({name:'fixture-web',apply(ctx){ctx.provide('webServer',{port:17850});}}).await();
+  const connection=await root.plugin({name:'fixture-connection',apply(ctx){new HostConnectionService(ctx,[],{isAuthenticated:()=>true});}}).await();
+  let fiber;const panel=await openHostConsole({inject:(deps,fn)=>(fiber=root.inject(deps,fn))},async()=>({url:'http://127.0.0.1:17851/',close:async()=>{}}),'owned');
+  try{
+    await fiber.await();
+    const handler=root.get('connection').createSharedFetchHandler('/api');
+    const make=()=>new Request('http://localhost/api/mc-harness/panel',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:'native-rpc',method:'mc-harness/panel',payload:{sessionId:'owned'}})});
+    assert.equal((await(await handler.fetch(make())).json()).result.value.sessionId,'owned');
+    await panel.close();await fiber.dispose();
+    assert.equal((await handler.fetch(make())).status,404);
+  }finally{await panel.close();await fiber.dispose();await connection.dispose();await web.dispose();}
 });
 test('native DSH patch composition keeps one configured body and a passive frontend entry',async()=>{
   const req=createRequire(new URL('../package.json',import.meta.url));

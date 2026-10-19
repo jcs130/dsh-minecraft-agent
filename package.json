@@ -59,6 +59,7 @@
     "agent-mc-world": "0.5.7-rc.43"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2",
     "@deepseek-ai/dsh": "^0.2.0-rc.2",
     "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2",
     "@deepseek-ai/dsh-llm": "^0.2.0-rc.2",

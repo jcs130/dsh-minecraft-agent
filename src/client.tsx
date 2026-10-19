@@ -16,7 +16,7 @@ export function apply(ctx: any) {
       const refresh = async () => {
         setState(undefined);
         try {
-          const result = await ctx.connection.rpc.call('/mc-harness', 'panel', {sessionId}, controller.signal);
+          const result = await ctx.connection.rpc.call('/api', 'mc-harness/panel', {sessionId}, controller.signal);
           if (controller.signal.aborted) return;
           const url = result.ok && result.value.sessionId === sessionId && localPanelUrl(result.value.url);
           setState(url ? {sessionId,url} : {sessionId,error:result.ok ? '面板地址不可用。' : result.error.message});

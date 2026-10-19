@@ -4,7 +4,7 @@
 
 ## DSH 内置面板
 
-发行包声明 `dsh.client` 并包含浏览器入口。会话中的 Minecraft 标签通过 DSH 已认证的 `/mc-harness` 通道读取本会话的面板地址，内嵌核心自带的共享前端。其他会话不会取得该身体的控制入口；旧的 mc-store / mc-panel 数据源不再启用，也不启动第二个身体或观察者账号。
+发行包声明 `dsh.client` 并包含浏览器入口。会话中的 Minecraft 标签通过 DSH 已认证的 `/api/mc-harness/panel` 精确 Fetch 路由读取本会话的面板地址，内嵌核心自带的共享前端。该路由不占用框架的共享 RPC 拦截器，也避免 0.2.0-rc.2 自定义通道在分离服务作用域中的 shadow-context 问题。其他会话不会取得该身体的控制入口；旧的 mc-store / mc-panel 数据源不再启用，也不启动第二个身体或观察者账号。
 
 组合包中的 `mc-frontend` 裸包入口只负责浏览器注册，`configFile` 保持为空；`mc-harness` 通过公开子路径挂载唯一身体，私有配置仍只覆盖这个 ID。Web 服务及认证通道就绪后再绑定内嵌许可和 RPC；headless 的独立控制台仍可用。两行是同一个插件包的前后端，不创建第二个 Agent 或身体。
 

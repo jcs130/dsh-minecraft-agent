@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { clientRequestSchema } from '@deepseek-ai/dsh-client-connection';
 
 /** Explicit operator connection intent survives restart. Corrupt state fails closed. */
 export function connectionPreference(file, startPaused = false) {
@@ -34,9 +35,15 @@ export async function openHostConsole(ctx, createConsole, sessionId) {
       if (!closed) server = await createConsole([origin]);
     });
     await binding;
-    if (!closed) scoped.connection.rpc.handle('/mc-harness', async (endpoint, payload) => endpoint === 'panel'
-      ? panelDescriptor(sessionId, payload?.sessionId, server?.url)
-      : {ok:false,error:{code:'not-found',message:'Unknown Minecraft panel endpoint',details:{}}});
+    // Exact Fetch routes inherit Connection's authentication/Origin fence and do
+    // not capture the provider's shadow context through the custom RPC getter.
+    if (!closed) scoped.connection.fetch.register({path:'/api/mc-harness/panel',methods:['POST'],requestBody:'buffered',fetch:async request=>{
+      let body;try{body=await request.json();}catch{return new Response('Invalid request',{status:400});}
+      const parsed=clientRequestSchema.safeParse(body);
+      if(!parsed.success||parsed.data.method!=='mc-harness/panel')return new Response('Invalid panel envelope',{status:400});
+      return Response.json({type:'server-response',rpcId:parsed.data.rpcId,
+        result:panelDescriptor(sessionId,parsed.data.payload?.sessionId,server?.url)},{headers:{'cache-control':'no-store'}});
+    }});
   });
   return { get url() { return server?.url; }, async close() {
     if (closed) return;
