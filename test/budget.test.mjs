@@ -183,3 +183,17 @@ test('chat guard refunds a line whose call was rejected', async () => {
   t = 1000; assert.equal(g.check('mc_do', say), null); assert.equal(g.sent, 1);
   g.refund(); g.refund(); assert.equal(g.sent, 0);
 });
+
+test('guard counts repeated look-arounds; compactFacts fallback matches core when available', async () => {
+  const { GoalProgressGuard, MovementProgressFallback, compactFactsFallback } = await import('../src/harness-budget.mjs');
+  const guard = new GoalProgressGuard({ progress: new MovementProgressFallback(), closeAfter: 8 });
+  const goal = { id: 'g', phase: 'active' }; const out = [];
+  for (let i = 0; i < 9; i++) out.push(guard.observe(goal, `[00:0${i}] 附近: 村民 3 at (${i}, 64, 2)`));
+  assert.deepEqual(out.slice(0, 6), [{}, {}, {}, {}, {}, {}]);
+  assert.match(out[6].notice, /宿主提示/); assert.match(out[8].close, /movement-only/);
+  const facts = { run: 'r', decisionStability: {}, observation: { at: 'T', position: { x: 1.26, y: 2, z: 3 }, health: 20 },
+    parts: [{ key: 'clock', text: '{"n":1}', revision: 'x', original: 'y' }, { key: 'life', text: '' }] };
+  assert.deepEqual(compactFactsFallback(facts), { run: 'r', at: 'T', position: [1.3, 2, 3], health: 20, clock: { n: 1 } });
+  const core = await import('agent-mc-world/client');
+  if (core.compactFacts) assert.deepEqual(core.compactFacts(facts), compactFactsFallback(facts));
+});

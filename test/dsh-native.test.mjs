@@ -230,3 +230,18 @@ test('busy-turn events wake exactly once after idle, even when the next poll is 
   assert.equal(inbox.flush(agent, goal, false, createUserMessage), false);
   assert.equal(wakes, 1);
 });
+
+test('superseded snapshots drop sections a newer snapshot restates', async () => {
+  const { retireFacts } = await import('../src/harness-bridge.mjs');
+  const session = Session.create('restated');
+  const snap = text => createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'runtime-context', form: 'snapshot', sections: [
+    { name: 'minecraft:current-facts', text: 'facts ' + text }, { name: 'sandbox:policy', text: 'policy ' + text }, ...(text === 'old' ? [{ name: 'once:only', text: 'once only' }] : [])] } });
+  const old = session.append('user/message', snap('old'), { surfaceOp: 'append' });
+  const fresh = session.append('user/message', snap('new'), { surfaceOp: 'append' });
+  assert.equal(retireFacts(session, createUserMessage, [old, fresh]), 2);
+  const visible = JSON.stringify(session.deriveMessages());
+  assert.ok(visible.includes('once only'));
+  assert.equal(visible.includes('policy old'), false);
+  assert.equal(visible.includes('facts new'), false);
+  assert.ok(visible.includes('policy new'));
+});
