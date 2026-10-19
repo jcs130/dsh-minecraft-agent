@@ -190,10 +190,31 @@ test('guard counts repeated look-arounds; compactFacts fallback matches core whe
   const goal = { id: 'g', phase: 'active' }; const out = [];
   for (let i = 0; i < 9; i++) out.push(guard.observe(goal, `[00:0${i}] 附近: 村民 3 at (${i}, 64, 2)`));
   assert.deepEqual(out.slice(0, 6), [{}, {}, {}, {}, {}, {}]);
-  assert.match(out[6].notice, /宿主提示/); assert.match(out[8].close, /movement-only/);
+  assert.match(out[6].notice, /宿主提示/); assert.match(out[8].close, /look-arounds/);
   const facts = { run: 'r', decisionStability: {}, observation: { at: 'T', position: { x: 1.26, y: 2, z: 3 }, health: 20 },
     parts: [{ key: 'clock', text: '{"n":1}', revision: 'x', original: 'y' }, { key: 'life', text: '' }] };
   assert.deepEqual(compactFactsFallback(facts), { run: 'r', at: 'T', position: [1.3, 2, 3], health: 20, clock: { n: 1 } });
   const core = await import('agent-mc-world/client');
   if (core.compactFacts) assert.deepEqual(core.compactFacts(facts), compactFactsFallback(facts));
+});
+
+test('event condenser fallback hides server noise and since() shows mostly new events', async () => {
+  const { EventCondenser } = await import('../src/event-condenser-fallback.mjs');
+  let cursor = 0; const ev = (text, type = 'mymc.chat') => ({ cursor: ++cursor, ts: '2026-10-20T00:45:05+08:00', type, text });
+  const c = new EventCondenser();
+  c.push([ev('[MC 登录消息] [MC_AUTH_LOGIN] 请先登录：/login 密码。'), ev('[MC 插件] [照片] 用 /mycli photo menu 选角度。'),
+    ev('[Minecraft] ☾ 星灯夜巡 | 2:15 状态条进度为 75%。', 'mymc.event'), ev('[Minecraft] ☾ 星灯夜巡 | 1:30 状态条进度为 50%。', 'mymc.event'),
+    ev('[MC 系统] MC_STATUS {"adventurerRank":"青铜 III","nextCommand":"/mycli guild join","downed":false}'), ev('[MC] ag_CorMy: 你好 Jojo')]);
+  assert.deepEqual(c.view().map(e => e.text), ['[Minecraft] ☾ 星灯夜巡 | 1:30 状态条进度为 50%。', '[服务器状态] 青铜 III；下一步 /mycli guild join', '[MC] ag_CorMy: 你好 Jojo']);
+  assert.deepEqual(c.since(6, 1).map(e => e.cursor), [6]);
+  const core = await import('agent-mc-world/client');
+  if (core.EventCondenser) { const k = new core.EventCondenser(); k.push(c.view()); assert.equal(k.view().length, 3); }
+});
+
+test('guard wording distinguishes repeated look-arounds from wandering', async () => {
+  const { GoalProgressGuard, MovementProgressFallback } = await import('../src/harness-budget.mjs');
+  const guard = new GoalProgressGuard({ progress: new MovementProgressFallback(), closeAfter: 8 });
+  const goal = { id: 'g', phase: 'active' }; let last;
+  for (let i = 0; i < 9; i++) last = guard.observe(goal, 'same view ' + i) ?? last;
+  assert.match(last.close, /look-arounds/);
 });

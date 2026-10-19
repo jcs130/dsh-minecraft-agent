@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { EventCondenser as EventCondenserFallback } from './event-condenser-fallback.mjs';
 import * as coreClient from 'agent-mc-world/client';
 const { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } = coreClient;
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
@@ -99,6 +100,13 @@ export async function apply(ctx, options = {}) {
   const guard = new GoalProgressGuard({ progress: new Progress(progressConfig), maxCalls: config.maxGoalCalls ?? 30, closeAfter: progressConfig.closeAfter ?? 12,
     digest: coreClient.observationDigest ?? observationDigestFallback });
   const progressStats = { nudges: 0, closedBy: null };
+  // Model-facing event list: server noise condensed (raw journal untouched); each step shows mostly new events.
+  const eventsConfig = config.events ?? {};
+  const condenser = new (coreClient.EventCondenser ?? EventCondenserFallback)({ window: eventsConfig.window ?? 24,
+    disable: eventsConfig.disable ?? [],
+    rules: (eventsConfig.rules ?? []).map(rule => ({ id: rule.id, action: rule.action, match: new RegExp(rule.match, rule.flags ?? '') })) });
+  let shownCursor = 0, renderedCursor = 0;
+  const eventTail = eventsConfig.tail ?? 2;
   let wrapUpSteps = 1;
   const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|blocked|risk|hear|attention)$/;
   const gameToolNames = new Set(tools.map(t => t.name));
@@ -203,7 +211,10 @@ export async function apply(ctx, options = {}) {
     agentCtx.systemPrompt.context({ name: 'minecraft:current-facts', order: 9990,
       text: () => JSON.stringify((coreClient.compactFacts ?? compactFactsFallback)(runtime.currentFacts())) });
     agentCtx.systemPrompt.context({ name: 'minecraft:events', order: 9991,
-      text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: (coreClient.compactEvents ?? compactEvents)(recentEvents, view.events, view.eventChars) }) });
+      text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: (() => {
+        const list = (coreClient.compactEvents ?? compactEvents)(condenser.since(shownCursor, eventTail), view.events, view.eventChars);
+        renderedCursor = Math.max(renderedCursor, ...list.map(e => e.cursor ?? 0)); return list;
+      })() }) });
     const gameTools = new Set(tools.map(tool => tool.name));
     agentCtx.on('tools/post-execute', (exec, result, next) =>
       gameTools.has(exec.name) ? mcpResultDecision(exec, result, next) : next());
@@ -232,7 +243,7 @@ export async function apply(ctx, options = {}) {
             : guard.action(currentGoal(), args?.steps);
           if (verdict.close) { progressStats.closedBy = verdict.close; closeSessionGoal(verdict.close); }
           if (verdict.notice) progressStats.nudges++;
-          return withNotice(value, verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因原地打转将在本轮结束时自动完成，请简短收尾，不要再移动。` : undefined));
+          return withNotice(value, verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因长时间没有进展将在本轮结束时自动完成，请简短收尾，不要再移动。` : undefined));
         },
       });
     }
@@ -264,6 +275,7 @@ export async function apply(ctx, options = {}) {
       const decision = await next();
       if (decision.kind === 'enter') {
         await bridge.enter(sessionId, payload.turn, payload.step); lastStep = Date.now();
+        shownCursor = renderedCursor; // the previous snapshot was read; this step's list starts after it
         const over = guard.step(currentGoal());
         if (over && !pendingGoalClose) { progressStats.closedBy = over; closeSessionGoal(over); }
       }
@@ -358,7 +370,7 @@ export async function apply(ctx, options = {}) {
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
       eventCursor = events.nextCursor;
-      if (events.events?.length) recentEvents = [...recentEvents, ...events.events].slice(-24);
+      if (events.events?.length) { recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
       // Wake only for events a person would interrupt for; everything else rides the next snapshot.
       const goalNow = currentGoal();
       const wakeOn = config.wake?.on ?? (goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle);
@@ -368,7 +380,7 @@ export async function apply(ctx, options = {}) {
       wakeStats.seen += events.events?.length ?? 0; wakeStats.woken += important.length;
       inbox.add(important);
       inbox.flush(handle.agent, currentGoal(), paused || lifetime.signal.aborted, createUserMessage);
-      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls }, coreBudget });
+      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls }, events: condenser.stats, coreBudget });
     } catch (error) { if (!lifetime.signal.aborted && !shuttingDown) {
       if (!paused) lifecycle.failed('poll', error);
       status(paused ? { state: 'paused', goal: currentGoal() }

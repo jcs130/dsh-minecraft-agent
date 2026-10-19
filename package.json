@@ -47,6 +47,7 @@
     "lib/plugins/harness-lifecycle.mjs",
     "lib/plugins/harness-goal.mjs",
     "lib/plugins/harness-budget.mjs",
+    "lib/plugins/event-condenser-fallback.mjs",
     "lib/client.js",
     "docs/harness-migration.md",
     "examples/harness",
