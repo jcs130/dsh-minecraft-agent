@@ -1,6 +1,6 @@
 {
   "name": "dsh-minecraft-agent",
-  "version": "0.3.0-rc.5",
+  "version": "0.3.0-rc.6",
   "type": "module",
   "description": "DeepSeek Harness host adapter for the independent Minecraft SDK, with shared visualization and optional server capability packs.",
   "keywords": [
@@ -61,21 +61,23 @@
     "agent-mc-world": "0.5.7-rc.46"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh-llm": "^0.2.0-rc.2",
-    "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2"
+    "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-llm": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2 || ^0.2.1-rc.2"
   },
   "peerDependenciesMeta": {},
   "devDependencies": {
-    "@deepseek-ai/dsh-session": "0.2.0-rc.2",
+    "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.2",
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-dev.20261019.5"
+    "agent-mc-qiandengji": "0.5.0-dev.20261019.7"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=24",
+    "dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2"
   }
 }

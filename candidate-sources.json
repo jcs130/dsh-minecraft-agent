@@ -1,7 +1,14 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.5",
+  "adapterVersion": "0.3.0-rc.6",
   "published": false,
+  "dsh": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "tag": "dsh-v0.2.1-rc.2",
+    "commit": "687f282e8625c6b8d11ff58211a90524be2e4317",
+    "version": "0.2.1-rc.2",
+    "previousVersion": "0.2.0-rc.2"
+  },
   "candidates": [
     {
       "role": "core",
@@ -16,10 +23,10 @@
       "role": "serverPack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "c4bd4065d0869156bb5c8638c894843770e4295f",
-      "file": "vendor/agent-mc-qiandengji-0.5.0-dev.20261019.5.tgz",
-      "sha256": "f3c6522388d17d89b1777d86a9183a3c98da0c2f89cde5e757d4c266f2771050",
-      "integrity": "sha512-N8oT/oF+afSH0BOx9L0hx3GF7XJxCkBThB7sLrDbcX2a/YJ7hWtvPE2Du161otxADipsjA8t9xrBKphAPI95pA=="
+      "commit": "4889e114bb42c049732e3dbb39e97ce1f09da3a3",
+      "file": "vendor/agent-mc-qiandengji-0.5.0-dev.20261019.7.tgz",
+      "sha256": "0083dfc261629f301704181b11b33802bf8c42fc3c46fcc776b3ae198ad77fad",
+      "integrity": "sha512-138VeSUftriph9K0kL6u9od6NkUB5s1l9u/sZcIOdkKiCGIj3UNR92GaP7+UukLNGWXL9Ro2HDuPxj9RrGk1Fw=="
     }
   ],
   "coreSourceFilesSha256": "20d2c251d296d437a5ca5c8d568cd0b8aa37e4881fb71eae7b615da9500b701f",

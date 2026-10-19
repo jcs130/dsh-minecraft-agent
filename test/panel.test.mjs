@@ -55,7 +55,7 @@ test('headless console closes normally and a disposed host cannot reopen it on a
   assert.equal(count,1);assert.equal(closed,1);assert.equal(registered,0);
 });
 test('native separated service providers register and dispose the authenticated exact route',async()=>{
-  const req=createRequire(new URL('../package.json',import.meta.url));
+  const req=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));
   const {Context}=await import(pathToFileURL(req.resolve('@deepseek-ai/cordis')));
   const {HostConnectionService}=await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-client-connection')));
   const root=new Context();
@@ -66,13 +66,16 @@ test('native separated service providers register and dispose the authenticated 
     await fiber.await();
     const handler=root.get('connection').createSharedFetchHandler('/api');
     const make=()=>new Request('http://localhost/api/mc-harness/panel',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:'native-rpc',method:'mc-harness/panel',payload:{sessionId:'owned'}})});
-    assert.equal((await(await handler.fetch(make())).json()).result.value.sessionId,'owned');
+    const owner={principal:{kind:'owner'}};
+    assert.equal((await(await handler.fetch(make(),owner)).json()).result.value.sessionId,'owned');
+    if(req('@deepseek-ai/dsh/package.json').version==='0.2.1-rc.2')
+      assert.equal((await handler.fetch(make(),{principal:{kind:'delegate'}})).status,403);
     await panel.close();await fiber.dispose();
-    assert.equal((await handler.fetch(make())).status,404);
+    assert.equal((await handler.fetch(make(),owner)).status,404);
   }finally{await panel.close();await fiber.dispose();await connection.dispose();await web.dispose();}
 });
 test('native DSH patch composition keeps one configured body and a passive frontend entry',async()=>{
-  const req=createRequire(new URL('../package.json',import.meta.url));
+  const req=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));
   const {loadOverlayPatches}=await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-app-boot')));
   const {applyEntryPatches}=await import(pathToFileURL(req.resolve('@deepseek-ai/cordis-plugin-include')));
   const patches=loadOverlayPatches('offline',fileURLToPath(new URL('../cordis.patch.yml',import.meta.url)));
