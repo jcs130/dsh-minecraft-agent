@@ -7,17 +7,18 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } from 'agent-mc-world/client';
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
-import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, compactionOptions, modelToolSchema } from './harness-bridge.mjs';
+import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, modelToolSchema } from './harness-bridge.mjs';
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { applyGoalControl } from './harness-goal.mjs';
+import { compactionForBudget, overflowFinish, selectTools, slimSchema, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS } from './harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
 const { version: coreVersion } = require('agent-mc-world/package.json');
 const { version: adapterVersion } = require('@jcs130/dsh-minecraft-agent/package.json');
 
 export const name = 'mc-harness';
-export const inject = ['agents', 'agentLoop', 'tools', 'systemPrompt', 'goals', 'sessionPersistence', 'sessionQuery', 'sessions', 'tokenMeter'];
+export const inject = ['llm', 'agents', 'agentLoop', 'tools', 'systemPrompt', 'goals', 'sessionPersistence', 'sessionQuery', 'sessions', 'tokenMeter'];
 const merge = (a, b) => Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map(k =>
   [k, a[k] && b[k] && typeof a[k] === 'object' && typeof b[k] === 'object' && !Array.isArray(b[k])
     ? merge(a[k], b[k]) : b[k] ?? a[k]]));
@@ -27,7 +28,16 @@ export async function apply(ctx, options = {}) {
   if (!options.configFile) return; // Installation alone never opens a game/model connection.
   const config = JSON.parse(readFileSync(resolve(options.configFile), 'utf8'));
   if (config.enabled !== true) return;
-  const agentOptions = agentModelOptions(config), summaryOptions = compactionOptions(config);
+  config.contextTokens ??= DEFAULT_CONTEXT_TOKENS;
+  const agentOptions = agentModelOptions(config);
+  // Validate the budget against the real model window at startup, before any connection.
+  const modelInfo = await ctx.llm.resolveModelInfo(config.provider, config.model);
+  const budget = compactionForBudget(config, modelInfo?.context?.contextWindow);
+  const summaryOptions = budget.options;
+  const chat = new ChatGuard(config.chat ?? {});
+  const view = { receiptChars: config.context?.receiptChars ?? 1500, events: config.context?.events ?? 10,
+    eventChars: config.context?.eventChars ?? 200, descriptionChars: config.tools?.descriptionChars ?? 300,
+    parameterChars: config.tools?.parameterChars ?? 80 };
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true });
   const nativeLog = ctx.logger('mc-harness');
@@ -74,10 +84,47 @@ export async function apply(ctx, options = {}) {
   const connectionIntent = connectionPreference(join(dataDir,'connection-state.json'), config.startPaused);
   let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
   const setPaused = value => { connectionIntent.set(value); paused = value; };
+  let lastTokens = 0, shuttingDown, pendingGoalClose = null;
+  const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|blocked|risk|hear|attention)$/;
+  const gameToolNames = new Set(tools.map(t => t.name));
+  const noop = new NoopRounds(config.noopRoundLimit ?? 3, name => gameToolNames.has(name) && !quiet.test(name));
+  // Goal mutations are applied between turns, never inside a running tool call or event dispatch.
+  const closeSessionGoal = reason => { pendingGoalClose ??= reason; };
+  const settleGoalClose = () => {
+    const reason = pendingGoalClose; pendingGoalClose = null;
+    const goal = reason && handle && ctx.goals.get(handle.agent);
+    if (!goal || goal.phase !== 'active') return;
+    try { ctx.goals.complete(handle.agent, { id: goal.id, revision: goal.revision }); log.info('Session goal completed: %s', reason); }
+    catch (error) { log.warn('Could not complete session goal (%s): %s', reason, error.message); }
+  };
+  const shutdown = reason => shuttingDown ??= (async () => {
+    clearTimeout(timer);
+    try {
+      if (handle) try { ctx.goals.disarm(handle.agent); } catch {}
+      if (handle) try { handle.agent.cancel({ kind: 'user', reason: `Minecraft host stopping: ${reason}` });
+        await Promise.race([handle.agent.whenIdle(), abortableDelay(5000)]); } catch {}
+      const bye = runtime.status().phase === 'started' ? chat.takeGoodbye() : null;
+      if (bye) {
+        await client.callTool({ name: `${runtime.toolPrefix}_do`, arguments: { steps: [{ skill: 'chat', text: bye }] } },
+          undefined, { timeout: 10000 }).catch(error => log.warn('Goodbye failed: %s', error.message));
+        await abortableDelay(1500);
+      }
+      await runtime.disconnect();
+    } catch (error) { log.warn('Minecraft shutdown: %s', error.message); }
+    finally { try { status({ state: 'stopped', stopped: true, reason }); } catch {} }
+  })();
+  const signals = config.handleSignals === false ? [] : ['SIGINT', 'SIGTERM'];
+  const onSignal = signal => { void shutdown(signal).finally(() => {
+    // Re-raise only when nobody else (e.g. the DSH CLI) handles the signal.
+    if (process.listenerCount(signal) === 0) process.kill(process.pid, signal);
+  }); };
+  for (const signal of signals) process.once(signal, onSignal);
   const inbox = new MinecraftEventInbox();
   const statusFile = join(dataDir, 'status.json');
+  // DSH may dispose the goal service before this plugin during shutdown; status must still be writable.
+  const currentGoal = () => { try { return handle ? ctx.goals.get(handle.agent) : undefined; } catch { return undefined; } };
   const hostLifecycle = () => lifecycle.snapshot({ paused, stopped: lifetime.signal.aborted,
-    state: handle?.agent.status, goal: handle ? ctx.goals.get(handle.agent) : undefined });
+    state: handle?.agent.status, goal: currentGoal() });
   const status = extra => writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
     name: config.name, sessionId, model: config.model, coreVersion, adapterVersion,
     reasoningEffort: config.reasoningEffort ?? null, phase: runtime.status().phase, paused,
@@ -89,11 +136,13 @@ export async function apply(ctx, options = {}) {
     if (payload.sessionId === sessionId) lifecycle.activation(payload.goal);
   });
   ctx.effect(() => async () => {
+    for (const signal of signals) process.removeListener(signal, onSignal);
+    await shutdown('dispose');
     lifetime.abort(); clearTimeout(timer);
     if (handle) { ctx.goals.disarm(handle.agent); handle.agent.cancel({ kind: 'disposed' });
       await handle.agent.whenIdle(); await ctx.sessions.flush(handle.agent.session); await handle.dispose(); }
     await bridge.stop(); await consoleServer?.close(); await server.close();
-    status({ state: 'stopped' });
+    status({ state: 'stopped', stopped: true });
   }, 'minecraft host lifetime');
   if (!paused) await runtime.connect();
   const waitReady = async signal => {
@@ -129,19 +178,28 @@ export async function apply(ctx, options = {}) {
     agentCtx.systemPrompt.context({ name: 'minecraft:current-facts', order: 9990,
       text: () => JSON.stringify(runtime.currentFacts()) });
     agentCtx.systemPrompt.context({ name: 'minecraft:events', order: 9991,
-      text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: recentEvents }) });
+      text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: compactEvents(recentEvents, view.events, view.eventChars) }) });
     const gameTools = new Set(tools.map(tool => tool.name));
     agentCtx.on('tools/post-execute', (exec, result, next) =>
       gameTools.has(exec.name) ? mcpResultDecision(exec, result, next) : next());
-    for (const spec of tools) {
-      if (spec.name.endsWith('_trace')) continue; // Only measured host instrumentation writes model traces.
-      const parameters = modelToolSchema(spec.inputSchema);
+    const helpName = tools.find(t => t.name.endsWith('_tool_help'))?.name;
+    for (const spec of selectTools(tools, config.tools)) {
+      // Exact schemas keep every constraint; prose lives behind *_tool_help to keep the fixed prompt small.
+      const parameters = config.tools?.profile === 'full' ? modelToolSchema(spec.inputSchema)
+        : slimSchema(modelToolSchema(spec.inputSchema), view.parameterChars);
       if (spec.name.endsWith('_protocol')) parameters.properties.action.enum = ['task', 'facts', 'archive', 'archive_runs', 'prepare_context', 'cancel'];
       if (spec.name.endsWith('_connection')) parameters.properties.action.enum = ['status', 'environment'];
-      agentCtx.tools.register({ name: spec.name, description: spec.description, parameters,
-        output: { schema: { type: 'object' }, render: (_args, value) => renderReceipt(value) },
+      agentCtx.tools.register({ name: spec.name, description: config.tools?.profile === 'full' ? spec.description : slimDescription(spec, helpName, view.descriptionChars), parameters,
+        output: { schema: { type: 'object' }, render: (_args, value) => capBlocks(renderReceipt(value), view.receiptChars) },
         isConcurrencySafe: () => false,
-        execute: (args, exec) => bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal)),
+        execute: async (args, exec) => {
+          noop.call(spec.name);
+          const refusal = chat.check(spec.name, args);
+          if (refusal) return { isError: true, content: [{ type: 'text', text: refusal }], structuredContent: { text: refusal, chatLimited: true } };
+          const value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal));
+          if (goalClosed(value)) closeSessionGoal('in-game goal closed');
+          return value;
+        },
       });
     }
     agentCtx.tools.register({ name: 'dsh_history', description: '查询本人的原始 DSH 会话，包括已被新现场替换或整理过的记录。offset 是日志序号。',
@@ -173,6 +231,13 @@ export async function apply(ctx, options = {}) {
     agentCtx.on('session/event', (session, event) => {
       if (session.id !== sessionId || event.type !== 'turn/end') return;
       lifecycle.ended(event.data.turn, event.data.reason);
+      const reason = event.data.reason;
+      if (reason?.kind === 'error' && /context|CONTEXT_WINDOW/i.test(`${reason.error?.code} ${reason.error?.message}`)) {
+        // Compaction could not recover: never idle in game ignoring chat. Leave cleanly.
+        log.warn('Context budget exhausted after compaction; logging out');
+        void shutdown('context-budget');
+      } else if (noop.end()) closeSessionGoal(`${noop.streak} consecutive rounds without a game action`);
+      if (pendingGoalClose) setTimeout(settleGoalClose, 0);
       void bridge.ended(sessionId, event.data.turn).catch(error => {
         lifecycle.failed('boundary', error, { turn: event.data.turn });
         status({ state: 'boundary-error' }); handle?.agent.cancel({ kind: 'hook', reason: 'Minecraft turn boundary failed' });
@@ -187,8 +252,11 @@ export async function apply(ctx, options = {}) {
         ? request.messages.reduce((sum, message) => sum + meter.estimateMessage(message), 0)
           + meter.estimateMessage(createUserMessage({ content: [{ type: 'text', text: JSON.stringify(request.tools ?? []) }] }))
         : meter.measure(handle.agent.session).totalTokens;
-      if (estimate + (request.maxTokens ?? config.maxTokens ?? 1800) > config.contextTokens)
-        throw Error('Minecraft request exceeds model context including tool definitions and reserved output.');
+      if (estimate + (request.maxTokens ?? config.maxTokens ?? 1800) > config.contextTokens) {
+        // In-band overflow lets DSH compaction summarize and retry the same turn instead of killing it.
+        lastTokens = estimate; yield overflowFinish(estimate, config.contextTokens); return;
+      }
+      lastTokens = estimate;
       yield* measuredStream(request, next, runtime.metrics, request.model ?? config.model);
   });
   // No silent new session on resume failure: preserve the identity and surface the failure.
@@ -215,7 +283,7 @@ export async function apply(ctx, options = {}) {
       renameSync(goalControlFile + '.tmp', goalControlFile); },
     flush: () => ctx.sessions.flush(handle.agent.session) });
   const goal = ctx.goals.get(handle.agent);
-  if (!goal && config.goal) ctx.goals.create(handle.agent, { objective: config.goal, maxGoalRounds: config.maxGoalRounds ?? 2000 });
+  if (!goal && config.goal) ctx.goals.create(handle.agent, { objective: config.goal, maxGoalRounds: config.maxGoalRounds ?? 40 });
   else if (goal?.phase === 'active' && goal.activation !== 'armed') ctx.goals.resume(handle.agent, { id: goal.id, revision: goal.revision });
   // Explicit operator follow-ups are consumed once; never reset a completed goal on restart.
   const delivered = join(dataDir, 'operator-request-id.txt');
@@ -227,7 +295,7 @@ export async function apply(ctx, options = {}) {
       if (!request.goal) return;
       const current = ctx.goals.get(handle.agent);
       if (current && current.phase !== 'complete') throw Error('Finish or explicitly handle the current goal before adding an operator goal');
-      ctx.goals.create(handle.agent, { objective: request.goal, maxGoalRounds: config.maxGoalRounds ?? 300 });
+      ctx.goals.create(handle.agent, { objective: request.goal, maxGoalRounds: config.maxGoalRounds ?? 40 });
     },
     steer: request => handle.agent.steer(createUserMessage({ content: [{ type: 'text', text: request.text }],
       source: { kind: 'mc-harness', form: 'notice', summary: `Operator request ${request.id}` } })),
@@ -237,20 +305,21 @@ export async function apply(ctx, options = {}) {
   };
   if (paused) ctx.goals.disarm(handle.agent); else await activate();
   const poll = async () => {
+    if (shuttingDown) return;
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
       eventCursor = events.nextCursor;
       if (events.events?.length) recentEvents = [...recentEvents, ...events.events].slice(-24);
       const important = events.events?.filter(e => /chat|damage|death|task|completed|failed|login|disconnect/i.test(e.type));
       inbox.add(important ?? []);
-      inbox.flush(handle.agent, ctx.goals.get(handle.agent), paused || lifetime.signal.aborted, createUserMessage);
-      status({ state: handle.agent.status, goal: ctx.goals.get(handle.agent), console: consoleServer?.url });
-    } catch (error) { if (!lifetime.signal.aborted) {
+      inbox.flush(handle.agent, currentGoal(), paused || lifetime.signal.aborted, createUserMessage);
+      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens });
+    } catch (error) { if (!lifetime.signal.aborted && !shuttingDown) {
       if (!paused) lifecycle.failed('poll', error);
-      status(paused ? { state: 'paused', goal: ctx.goals.get(handle.agent) }
+      status(paused ? { state: 'paused', goal: currentGoal() }
         : { state: 'poll-error', error: error.name });
     } }
-    finally { if (!lifetime.signal.aborted) timer = setTimeout(poll, 1000); }
+    finally { if (!lifetime.signal.aborted && !shuttingDown) timer = setTimeout(poll, 1000); }
   };
   void poll();
   log.info('Minecraft SDK connected for %s; DSH session %s', config.name, sessionId);
