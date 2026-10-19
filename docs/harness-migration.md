@@ -45,6 +45,8 @@ DSH 原生管理器以 pnpm 安装本地候选时，未发布的核心和原生�
 
 主调用输出上限用 `maxTokens`。可通过 `compaction.thresholdRatio` 提前整理历史、`compaction.retainTokens` 设置保留近期上下文的预算、`compaction.maxTokens` 限制摘要输出；这些属于 DSH 宿主配置，模型及游戏核心不变。整理后原始日志仍可查询，不能靠裁剪抹掉未完成目标。
 
+持续运行的示例为主调用预留 6000 token 输出；无思考并不代表每次工具参数和回答都能放进 2000 token。DSH 收到 `max-tokens` 结束原因时会解除目标的自动续跑，游戏连接仍可能在线。排查停跑时同时核对 `phase`、宿主状态和目标 `activation`；HTTP 成功、工具返回及在线状态均不能代替回答完整性。遇到截断应保留会话、增加合理输出余量并通过操作员显式续跑恢复，不循环自动重置目标或绕过原生停跑保护。部署配置变更需由该实例加载；仅修改示例文件不会改变现役 Agent。
+
 切换模型并恢复旧会话时，DSH 摘要默认可能选择旧请求的路由。需要固定摘要入口时，成对设置 `compaction.summarizationProvider` 与 `compaction.summarizationModel`，由适配器透传给官方摘要插件；不配置则保留其默认策略。内置 provider 的 `reasoningEffort: off` 也覆盖没有单独指定等级的后台摘要，避免仅主循环关闭了思考。
 
 操作员明确需要下一阶段工作时，可配置 `operatorRequest: {id,text}`；宿主向同一会话投递一次并保存已投递 ID，重启不重复投递，也不把旧目标改回未完成。新指令必须来自操作员授权，不能由巡检凭空生成任务。

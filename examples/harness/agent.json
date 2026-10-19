@@ -8,7 +8,7 @@
   "model": "deepseek-flash",
   "reasoningEffort": "off",
   "contextTokens": 262144,
-  "maxTokens": 2000,
+  "maxTokens": 6000,
   "minStepIntervalMs": 250,
   "consolePort": 17851,
   "minecraft": {
