@@ -106,8 +106,9 @@ export async function apply(ctx, options = {}) {
   const closeSessionGoal = reason => { pendingGoalClose ??= reason; };
   const settleGoalClose = () => {
     const reason = pendingGoalClose; pendingGoalClose = null; wrapUpSteps = 1;
+    // A host cancel pauses the goal first; completing from paused is a valid DSH transition.
     const goal = reason && handle && ctx.goals.get(handle.agent);
-    if (!goal || goal.phase !== 'active') return;
+    if (!goal || goal.phase === 'complete') return;
     try { ctx.goals.complete(handle.agent, { id: goal.id, revision: goal.revision }); log.info('Session goal completed: %s', reason); }
     catch (error) { log.warn('Could not complete session goal (%s): %s', reason, error.message); }
   };
@@ -219,7 +220,10 @@ export async function apply(ctx, options = {}) {
           noop.call(spec.name);
           const refusal = chat.check(spec.name, args);
           if (refusal) return { isError: true, content: [{ type: 'text', text: refusal }], structuredContent: { text: refusal, chatLimited: true } };
-          const value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal));
+          let value;
+          try { value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal)); }
+          catch (error) { chat.refund(); throw error; }
+          if (value?.isError) chat.refund();
           if (goalClosed(value)) closeSessionGoal('in-game goal closed');
           if (!spec.name.endsWith('_do') || value?.isError) return value;
           const verdict = guard.action(currentGoal(), args?.steps);

@@ -174,3 +174,12 @@ test('fallback movement detector and compact schema match the core when availabl
   const a = new core.MovementProgress(), b = new MovementProgressFallback();
   for (let i = 0; i < 9; i++) { const steps = [{ skill: 'goto', at: [i * 5 % 20, 67, i * 3 % 15] }]; assert.deepEqual(a.record(steps), b.record(steps)); }
 });
+
+test('chat guard refunds a line whose call was rejected', async () => {
+  const { ChatGuard } = await import('../src/harness-budget.mjs');
+  let t = 0; const g = new ChatGuard({ maxPublicLines: 4, minIntervalMs: 20000 }, () => t);
+  const say = { steps: [{ skill: 'chat', text: 'hi' }] };
+  assert.equal(g.check('mc_do', say), null); g.refund();
+  t = 1000; assert.equal(g.check('mc_do', say), null); assert.equal(g.sent, 1);
+  g.refund(); g.refund(); assert.equal(g.sent, 0);
+});
