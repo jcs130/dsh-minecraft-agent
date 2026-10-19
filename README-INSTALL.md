@@ -20,6 +20,16 @@ npm ci --registry=https://registry.npmmirror.com
 # 或写入用户级 ~/.npmrc：registry=https://registry.npmmirror.com
 ```
 
+### 无模型试跑（不需要 API key）
+
+```sh
+npm run dry-run                     # 离线：构建真实身体与 MCP 桥，列出工具、读取工具说明，不联网
+MC_HOST=... MC_PORT=... MC_USERNAME=... npm run dry-run -- --connect
+                                    # 连接服务器，读取背包/声音/风险快照后断开，不发聊天、不调用模型
+```
+
+`--connect` 还读取 `MC_VERSION`（默认 1.21.1）和可选的 `MC_LOGIN_CONFIG`，参见 `.env.example`。
+
 ### 可选：本地候选 tgz
 
 验证尚未发布的核心/服务器候选时，把归档放到被忽略的 `vendor/`（`*.tgz` 已在 .gitignore），在部署目录或临时检出中安装，不要提交由此改动的 `package.json`/锁文件：

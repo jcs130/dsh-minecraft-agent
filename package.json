@@ -37,7 +37,8 @@
     "build": "node scripts/build-harness.mjs",
     "prepack": "node scripts/build-harness.mjs",
     "prepublishOnly": "node scripts/build-harness.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "dry-run": "node scripts/dry-run.mjs"
   },
   "files": [
     "lib/plugins/mc-harness.mjs",
