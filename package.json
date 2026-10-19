@@ -1,5 +1,5 @@
 {
-  "name": "dsh-minecraft-agent",
+  "name": "@jcs130/dsh-minecraft-agent",
   "version": "0.3.0-rc.6",
   "type": "module",
   "description": "DeepSeek Harness host adapter for the independent Minecraft SDK, with shared visualization and optional server capability packs.",
@@ -37,7 +37,8 @@
     "build": "node scripts/build-harness.mjs",
     "prepack": "node scripts/build-harness.mjs",
     "prepublishOnly": "node scripts/build-harness.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "dry-run": "node scripts/dry-run.mjs"
   },
   "files": [
     "lib/plugins/mc-harness.mjs",
@@ -58,7 +59,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.46"
+    "agent-mc-world": "0.5.7-rc.47"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
@@ -74,7 +75,7 @@
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-dev.20261019.7"
+    "agent-mc-qiandengji": "0.5.0-rc.3"
   },
   "engines": {
     "node": ">=24",

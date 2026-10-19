@@ -14,7 +14,7 @@
     # progress。必须先于 mc-tools/mc-progress/mc-session/mc-panel 加载（它们
     # inject 依赖 'mcStore'，经 ctx.get 拿读写口）。
     - id: mc-store
-      name: 'dsh-minecraft-agent/lib/plugins/mc-store.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-store.mjs'
       config:
         dataDir: './data'
         dbFile: 'client.db'
@@ -23,7 +23,7 @@
     # dsh 的 LLM runtime（:8890，含 VL image 块 + Qwen3.8 推理档位）。必须先于
     # 任何会发起 LLM 调用的插件加载。
     - id: llm-qwen-local
-      name: 'dsh-minecraft-agent/lib/plugins/llm-qwen-local.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/llm-qwen-local.mjs'
       config:
         baseURL: 'http://127.0.0.1:8890/v1'
         apiKey: 'sk-local'
@@ -33,7 +33,7 @@
             maxTokens: 8192
 
     - id: mc-bot
-      name: 'dsh-minecraft-agent/lib/plugins/mc-bot.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-bot.mjs'
       config:
         host: 'localhost'
         port: 25565
@@ -42,30 +42,30 @@
         viewerEnabled: false
 
     - id: mc-tools
-      name: 'dsh-minecraft-agent/lib/plugins/mc-tools.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-tools.mjs'
       # episodic 记忆与截图的运行时目录；须与 mc-session/mc-panel 的 dataDir 同源
       # （默认 ./data 按 dsh 进程 cwd 解析，标准形态下即 profile data）。
       config:
         dataDir: './data'
 
     - id: mc-memory
-      name: 'dsh-minecraft-agent/lib/plugins/mc-memory.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-memory.mjs'
       config:
         memoryPath: './data/mc-memory.json'
         maxPointsPerType: 20
 
     - id: mc-transmigrator
-      name: 'dsh-minecraft-agent/lib/plugins/mc-transmigrator.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-transmigrator.mjs'
       config:
         registryPath: './data/transmigrators.json'
 
     - id: mc-identity
-      name: 'dsh-minecraft-agent/lib/plugins/mc-identity.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-identity.mjs'
 
     # 学习进度账本 + 停滞诊断（纯观测层：咏唱账本 / 魔力层级曲线 / 学习停滞告警）。
     # 必须先于 mc-mystic（mc_chant 经 ctx.get 读它）与 mc-session（状态采样）加载。
     - id: mc-progress
-      name: 'dsh-minecraft-agent/lib/plugins/mc-progress.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-progress.mjs'
       config:
         enabled: true
         dataDir: './data'
@@ -77,19 +77,19 @@
     # 注入 mcStore（persist），mc-mystic 运行时经 ctx.get('mcSpellbook') 读它做发唱前
     # 修正与咏唱后学习；mc-session 注入「可咏唱」知识块并同步层级。
     - id: mc-spellbook
-      name: 'dsh-minecraft-agent/lib/plugins/mc-spellbook.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-spellbook.mjs'
       config:
         dataDir: './data'
         maxPromptSpells: 40
 
     - id: mc-mystic
-      name: 'dsh-minecraft-agent/lib/plugins/mc-mystic.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-mystic.mjs'
 
     - id: mc-wiki
-      name: 'dsh-minecraft-agent/lib/plugins/mc-wiki.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-wiki.mjs'
 
     - id: mc-memos
-      name: 'dsh-minecraft-agent/lib/plugins/mc-memos.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-memos.mjs'
       config:
         enabled: true
         baseUrl: 'http://127.0.0.1:8002'
@@ -99,7 +99,7 @@
     # 穿越者 = 独立 dsh session agent（新形态）：创建 agent + persona 阴影，
     # 目标交给 dsh 官方 goal loop（ctx.goals）驱动持续决策。
     - id: mc-session
-      name: 'dsh-minecraft-agent/lib/plugins/mc-session.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-session.mjs'
       config:
         enabled: true
         username: 'HarnessBot'
@@ -108,10 +108,10 @@
         goal: '在这个方块世界里活出你自己的一生：自由探索、随性经历、慢慢成长，结识旅伴、见证万物。你不需要时刻「干活」——发呆、看风景、聊天、思考、休息，都是真实生活的一部分。每一轮由你自己决定此刻最想做的一件事。'
 
     - id: mc-panel
-      name: 'dsh-minecraft-agent/lib/plugins/mc-panel.mjs'
+      name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-panel.mjs'
 
     # 控制面板 = 本包 client 半（exports["./client"] → lib/client.js）。
     # 纯包名 row 触发 dsh-client-modules 扫描；`"."` main 为空壳 node half（apply 空壳），
     # 对齐官方 browser-only 插件形态（dsh-client-ui-brand-official）。
     - id: mc-client
-      name: 'dsh-minecraft-agent'
+      name: '@jcs130/dsh-minecraft-agent'

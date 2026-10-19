@@ -8,7 +8,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-0.3.0-rc.6 本地试运行候选，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.46，可选千灯纪包 0.5.0-dev.20261019.7；保留 DSH 0.2.0-rc.2 的回归覆盖，主维护版本为 Minecraft Java 1.21.1。配套核心、服务器包尚未发布到 npm，安装时须同时提供经过校验的候选 tgz，不能直接从 registry 安装此候选。
+0.3.0-rc.6 本地试运行候选，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.47，可选千灯纪包 0.5.0-rc.3；保留 DSH 0.2.0-rc.2 的回归覆盖，主维护版本为 Minecraft Java 1.21.1。配套核心 `agent-mc-world` 与服务器包 `agent-mc-qiandengji` 已发布到 npm，直接从 registry 安装即可。
 
 没有 Cortico/N.E.K.O 依赖，不迁入其他角色的人格或记忆。安装本插件不会自动连接。旧 0.1.x 身体只保留在源码及迁移资料，不进入默认构建或发行包。
 
@@ -27,7 +27,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 开发
 
-准备 `candidate-sources.json` 对应的两个候选文件到被忽略的 `vendor/`，再执行 `npm ci`。锁文件保留相对候选路径和完整性校验，不依赖维护者的绝对路径。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
+克隆后直接执行 `npm ci`（锁文件指向 registry.npmjs.org，含完整性校验）。验证未发布的本地候选 tgz 见 [安装说明](README-INSTALL.md#可选本地候选-tgz)。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
 
 主模型工具动作携带真实 session/turn/step 的 `system2` 归因；不把规则动作或影子建议冒充学习策略采用。状态文件显示实际安装的核心和适配器版本、请求的思考等级；流耗时与首字延迟不等于引擎执行耗时。
 

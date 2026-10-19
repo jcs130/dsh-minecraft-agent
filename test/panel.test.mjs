@@ -84,8 +84,8 @@ test('native DSH patch composition keeps one configured body and a passive front
   assert.equal(installed.filter(row=>row.config?.configFile).length,0);
   const configured=applyEntryPatches([],[...patches,{id:'mc-harness',config:{configFile:'offline-agent.json'}}],(...args)=>warnings.push(args));
   const bodies=configured.filter(row=>row.config?.configFile);
-  assert.equal(bodies.length,1);assert.equal(bodies[0].name,'dsh-minecraft-agent/lib/plugins/mc-harness.mjs');
+  assert.equal(bodies.length,1);assert.equal(bodies[0].name,'@jcs130/dsh-minecraft-agent/lib/plugins/mc-harness.mjs');
   assert.equal(configured.find(row=>row.id==='mc-frontend').config.configFile,'');
-  assert.equal(configured.find(row=>row.id==='mc-frontend').name,'dsh-minecraft-agent');
+  assert.equal(configured.find(row=>row.id==='mc-frontend').name,'@jcs130/dsh-minecraft-agent');
   assert.deepEqual(warnings,[]);
 });

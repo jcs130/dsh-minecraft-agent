@@ -1,8 +1,8 @@
-// 测试客户端：连 225，与 Edward 互动，验证 说话/私聊/聊天接收
+// 测试客户端：连 MC_HOST，与 Edward 互动，验证 说话/私聊/聊天接收
 const mineflayer = require('mineflayer')
 
-const HOST = '192.168.3.225'
-const PORT = 25565
+const HOST = process.env.MC_HOST ?? 'localhost'
+const PORT = Number(process.env.MC_PORT ?? 25565)
 const MYNAME = 'Tester'
 
 const bot = mineflayer.createBot({

@@ -1,12 +1,44 @@
 # 安装当前 Harness 候选版
 
-需要 Node.js 24、DSH 0.2.1-rc.2，以及同一次验收的适配器、核心和可选服务器包 tgz。当前核心/服务器候选未发布到 npm，直接 Git 或 registry 安装不能代替准备配套候选。
-
-在独立部署目录同时安装经过校验的候选，避免 npm 去 registry 寻找尚未发布的核心：
+需要 Node.js 24 和 DSH 0.2.1-rc.2。核心 `agent-mc-world@0.5.7-rc.47` 与可选服务器包 `agent-mc-qiandengji@0.5.0-rc.3` 均已发布到 npm，直接从 registry 安装：
 
 ```sh
-npm install ./agent-mc-world-0.5.7-rc.46.tgz ./agent-mc-qiandengji-0.5.0-dev.20261019.7.tgz ./dsh-minecraft-agent-0.3.0-rc.6.tgz @deepseek-ai/dsh@0.2.1-rc.2
+npm install @jcs130/dsh-minecraft-agent@0.3.0-rc.6 @deepseek-ai/dsh@0.2.1-rc.2
 ```
+
+从源码开发：
+
+```sh
+git clone https://github.com/jcs130/dsh-minecraft-agent && cd dsh-minecraft-agent
+npm ci && npm test && npm run build
+```
+
+锁文件统一指向 `https://registry.npmjs.org/`。国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：
+
+```sh
+npm ci --registry=https://registry.npmmirror.com
+# 或写入用户级 ~/.npmrc：registry=https://registry.npmmirror.com
+```
+
+### 无模型试跑（不需要 API key）
+
+```sh
+npm run dry-run                     # 离线：构建真实身体与 MCP 桥，列出工具、读取工具说明，不联网
+MC_HOST=... MC_PORT=... MC_USERNAME=... npm run dry-run -- --connect
+                                    # 连接服务器，读取背包/声音/风险快照后断开，不发聊天、不调用模型
+```
+
+`--connect` 还读取 `MC_VERSION`（默认 1.21.1）和可选的 `MC_LOGIN_CONFIG`，参见 `.env.example`。
+
+### 可选：本地候选 tgz
+
+验证尚未发布的核心/服务器候选时，把归档放到被忽略的 `vendor/`（`*.tgz` 已在 .gitignore），在部署目录或临时检出中安装，不要提交由此改动的 `package.json`/锁文件：
+
+```sh
+npm install ./vendor/agent-mc-world-<版本>.tgz ./vendor/agent-mc-qiandengji-<版本>.tgz
+```
+
+`candidate-sources.json` 记录当前 npm 版本的完整性校验，以及上一份本地候选的来源提交。
 
 只有需要千灯纪服务器协议时才配置 `serverPack: qiandengji`。普通服务器使用 `none`，不启用服务器专用规则。核心和适配器不需要 Cortico 主项目。
 
@@ -17,3 +49,16 @@ DeepSeek 官方云端的密钥只放本机环境变量，Agent JSON 使用 `reas
 游戏版本设为 `1.21.1`，优先使用配套核心的内置 viewer 资源。确认账号与 viewer 的世界绑定一致后，再开启自主目标。安装、编译成功均不等于在线登录或目标达成，需分别核验连接就绪、工具终态和实际进展。
 
 升级前备份私有配置、profile、原会话目录与游戏数据。继续使用原 `session-id.txt`，不要覆盖目标、记忆或账本；保持一个账号只有一个身体。回滚时停止本次部署，恢复旧依赖和配置，然后从原会话恢复。详细生命周期见 [迁移指南](docs/harness-migration.md)。
+
+## 包名变更（0.3.0-rc.6 起）
+
+npm 上的 `dsh-minecraft-agent` 属于其他发布者，本插件改用 `@jcs130/dsh-minecraft-agent`。DSH 按 npm 包名加载插件模块和浏览器入口，profile 中的行 id（`mc-frontend`、`mc-harness`）不变，但 `name` 需改为带作用域的路径：
+
+```yaml
+- id: mc-frontend
+  name: '@jcs130/dsh-minecraft-agent'
+- id: mc-harness
+  name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-harness.mjs'
+```
+
+已有部署升级时先卸载旧包名（`npm uninstall dsh-minecraft-agent`），再安装新包名，并把 profile 里旧的 `name` 改掉；否则会残留旧包或加载失败。
