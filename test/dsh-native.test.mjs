@@ -3,10 +3,38 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { retireFacts, retireLiveFacts, renderReceipt, measuredStream, wakeForMinecraftEvents, MinecraftEventInbox } from '../src/harness-bridge.mjs';
+import { HarnessBridge, nativeToolContext, mcpResultDecision, retireFacts, retireLiveFacts, renderReceipt, measuredStream, wakeForMinecraftEvents, MinecraftEventInbox } from '../src/harness-bridge.mjs';
 const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.json'));
 const { Session } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-session')).href);
 const { createUserMessage } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm')).href);
+
+test('real DSH tool pipeline preserves a failed action conclusion and projects ordinary MCP failures as errors', async () => {
+  const { Context } = await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
+  const { ToolRuntime } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-tools')).href);
+  const root = new Context(), boundaries = [];
+  const bridge = new HarnessBridge({ journal: { run: 'fixture-run' }, beginTurn() {},
+    endTurn: async id => boundaries.push(id) }, { callTool: async p => ({ isError: true,
+      content: [{ type: 'text', text: 'fixture failure' }], structuredContent: { text: 'fixture failure', failed: true,
+        control: { requestId: p._meta['agent-mc/v1'].requestId, endTurnRequested: p.arguments.conclude === true } } }) });
+  const prompts = await root.plugin({ name: 'fixture-prompt', apply(ctx) { ctx.provide('systemPrompt', { tools() {} }); } }).await();
+  const tools = await root.plugin({ name: 'fixture-tools', inject: ['systemPrompt'], apply(ctx) { new ToolRuntime(ctx); } }).await();
+  try {
+    root.tools.register({ name: 'mc_fixture', description: 'Offline returned action', parameters: { type: 'object' },
+      output: { schema: { type: 'object' }, render: (_args, value) => renderReceipt(value) },
+      execute: (args, exec) => bridge.call('mc_fixture', args, nativeToolContext(exec)) });
+    root.on('tools/post-execute', mcpResultDecision);
+    await bridge.enter('fixture-session', 1, 1);
+    const result = await root.tools.execute({ name: 'mc_fixture', arguments: { conclude: true }, callId: 'cast-failure', signal: new AbortController().signal });
+    assert.equal(result.concludesTurn, true);
+    assert.equal(JSON.parse(result.content[0].text).failed, true);
+    assert.equal(JSON.parse(result.content[0].text).isError, true);
+    await bridge.ended('fixture-session', 1); await bridge.enter('fixture-session', 2, 1);
+    assert.deepEqual(boundaries, ['fixture-session:1']);
+    const ordinary = await root.tools.execute({ name: 'mc_fixture', arguments: {}, callId: 'invalid-cursor', signal: new AbortController().signal });
+    assert.equal(ordinary.isError, true); assert.equal(ordinary.concludesTurn, undefined);
+    assert.equal(JSON.parse(ordinary.content[0].text).failed, true);
+  } finally { await tools.dispose(); await prompts.dispose(); }
+});
 
 test('native DSH surface replaces stale facts and preserves raw source attribution', () => {
   const session = Session.create('offline');

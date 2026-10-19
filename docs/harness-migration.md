@@ -1,6 +1,6 @@
 # 从 0.1.x 迁移到独立 Minecraft 核心
 
-当前组合为适配器 0.3.0-rc.4、DSH 0.2.0-rc.2、核心 0.5.7-rc.43、可选千灯纪包 0.5.0-dev.20261019.5。Java 1.21.1 为主维护与验收版本。核心升级包含共享导航、任务进展、工具说明、游戏记忆和学习证据机制；宿主不复制这些实现。
+当前组合为适配器 0.3.0-rc.5、DSH 0.2.0-rc.2、核心 0.5.7-rc.46、可选千灯纪包 0.5.0-dev.20261019.5。Java 1.21.1 为主维护与验收版本。核心升级包含共享导航、任务进展、工具说明、游戏记忆和学习证据机制；宿主不复制这些实现。
 
 ## DSH 内置面板
 
@@ -59,6 +59,10 @@ DSH 原生管理器以 pnpm 安装本地候选时，未发布的核心和原生�
 
 操作员明确需要下一阶段工作时，可配置 `operatorRequest: {id,text}`；宿主向同一会话投递一次并保存已投递 ID，重启不重复投递，也不把旧目标改回未完成。新指令必须来自操作员授权，不能由巡检凭空生成任务。
 如需持续目标，可同时提供 `operatorRequest.goal`，由宿主在原目标已经完成后建立。DSH 的模型工具仍要求真人回合才能创建目标；游戏事件保持 notice 身份，不提升权限。已有活动、暂停或受阻目标时此配置报错，须先明确处理原目标。
+
+已耗尽轮次的原目标可通过显式操作员配置 `goalControl: {id, action:"extend-and-resume", goalId, expectedRevision, maxGoalRounds}` 延长总预算并恢复。仅接受匹配原 ID、版本及 `round-limit` 的目标；保留已用轮次、目标、会话和账本，不清空后新建。命令先保存准备回执，分别持久化 edit/resume，完成后记录已应用 ID；重启不重复延长。暂停、错误、其他阻塞原因及已完成目标不会被此机制自动唤醒，预算仍有限。
+
+失败的游戏动作仍可能携带 `control.endTurnRequested`。适配器必须消费该控制信号并让 DSH 落下原生轮次边界，再进入下一轮；不能因 `isError` 忽略。原生执行方法通过闭包保留原始执行对象，不能在复制后的 `exec` 上调用依赖 `this` 的 `concludeTurn()`。DSH rc.2 的原生错误分支不保留 conclude，因此这种回执保留为“已返回的失败动作”，完整 `failed/isError/control` 仍在内容中，不能算成功动作。其余 MCP 错误通过原生错误分支返回完整回执，包括事件游标的明确恢复读法；适配器不猜测 run，不自动重置或重放操作。
 
 Qwen 的 `chatTemplateKwargs.enable_thinking: false` 单独配置并不会发包：当前 pi-ai 要求 `thinkingFormat: chat-template` 且模型声明支持推理（例如 `reasoningEfforts: {off: null, low: low}`）。关闭推理由该格式下明确的 `enable_thinking: false` 控制；不要用 `reasoningEfforts: false` 期待服务端自动停思考。建议用本地模拟端点检查实际请求。摘要上限独立于主调用；出现 `incomplete checkpoint` 时摘要没有成功，不能宣称历史已压缩。
 

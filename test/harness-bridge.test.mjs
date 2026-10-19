@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HarnessBridge, normalizeUsage, abortableDelay, deliverOperatorRequest, agentModelOptions, compactionOptions, modelToolSchema } from '../src/harness-bridge.mjs';
+import { HarnessBridge, mcpResultDecision, normalizeUsage, abortableDelay, deliverOperatorRequest, agentModelOptions, compactionOptions, modelToolSchema } from '../src/harness-bridge.mjs';
 
 test('multiple RPCs stay in the same DSH turn; accepted task is not completion', async () => {
   const calls = [];
@@ -33,6 +33,32 @@ test('cancellation is forwarded and stop cannot reopen a turn', async () => {
   ctrl.abort(Error('cancelled'));
   await assert.rejects(pending, /cancelled/); assert.equal(signal, ctrl.signal);
   await bridge.stop(); await assert.rejects(bridge.enter('s', 1), /stopped/);
+});
+
+test('failed action control still concludes the native turn before another planner request', async () => {
+  let concludes = 0, ends = 0, acknowledgements = 0;
+  const value = { isError: true, structuredContent: { failed: true, text: 'cooldown',
+    control: { requestId: 'run:cast', barrierAfter: true, endTurnRequested: true } } };
+  const bridge = new HarnessBridge({ journal: { run: 'run' }, beginTurn() {},
+    acknowledgeBarrier: () => acknowledgements++, endTurn: async () => ends++ }, { callTool: async () => value });
+  await bridge.enter('original-session', 1, 1);
+  assert.equal(await bridge.call('mc_cast', {}, { id: 'cast', concludeTurn: () => concludes++ }), value);
+  assert.equal(concludes, 1); assert.equal(acknowledgements, 1); assert.equal(ends, 0);
+  await bridge.ended('original-session', 1); await bridge.enter('original-session', 2, 1);
+  assert.equal(ends, 1);
+});
+
+test('native error projection preserves original MCP receipts without stripping a requested conclusion', async () => {
+  const value = { isError: true, content: [{ type: 'text', text: 'invalid event cursor' }],
+    structuredContent: { failed: true, text: 'invalid event cursor', meta: { code: 'EVENT_RUN_REQUIRED' } } };
+  let accepted = 0;
+  const next = async () => { accepted++; return { kind: 'accept' }; };
+  const decision = await mcpResultDecision({}, { isError: false, value }, next);
+  assert.equal(decision.kind, 'block'); assert.equal(accepted, 0);
+  assert.equal(JSON.parse(decision.feedback[0].text).meta.code, 'EVENT_RUN_REQUIRED');
+  value.structuredContent.control = { endTurnRequested: true };
+  assert.deepEqual(await mcpResultDecision({}, { isError: false, value }, next), { kind: 'accept' });
+  assert.equal(accepted, 1); assert.equal(value.isError, true);
 });
 
 test('DSH disjoint input and cache counters convert without losing billed tokens', () => {

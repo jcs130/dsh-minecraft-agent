@@ -2,6 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 export const PROTOCOL = 'agent-mc/v1';
 
+/** Native execution methods retain their owner; spreading exec changes their this. */
+export function nativeToolContext(exec, lifetimeSignal) {
+  return { id: exec.callId, signal: lifetimeSignal ? AbortSignal.any([lifetimeSignal, exec.signal]) : exec.signal,
+    concludeTurn: () => exec.concludeTurn() };
+}
+
 /** A host turn spans any number of RPCs. Only a durable host boundary closes it. */
 export class HarnessBridge {
   constructor(runtime, transport) {
@@ -38,7 +44,9 @@ export class HarnessBridge {
     // Preserve control, task identity, raw receipts and archive references in the durable value.
     const control = result.structuredContent?.control;
     if (control?.barrierAfter) this.runtime.acknowledgeBarrier(control.requestId);
-    if (!result.isError && control?.endTurnRequested) exec.concludeTurn();
+    // A failed game action can still yield control (cooldown, pending observation,
+    // etc.). The native boundary must land before any next planner request.
+    if (control?.endTurnRequested) exec.concludeTurn();
     return result;
   }
   async stop() {
@@ -46,6 +54,17 @@ export class HarnessBridge {
     await this.runtime.disconnect();
     await this.transport.close();
   }
+}
+
+/** DSH distinguishes a failed transport/tool from a returned failed game action.
+ * Keep a concluding receipt intact: DSH rc.2 drops conclusion on its error arm.
+ * Other MCP errors must enter the native error arm, retaining the full receipt.
+ */
+export async function mcpResultDecision(exec, result, next) {
+  const value = result.value;
+  if (!result.isError && value?.isError === true && !value.structuredContent?.control?.endTurnRequested)
+    return { kind: 'block', feedback: renderReceipt(value) };
+  return next();
 }
 
 /** DSH binds the explicit request options on both session creation and resumption. */

@@ -28,6 +28,10 @@ test('online active but disarmed goals are not reported as continuing play', () 
   assert.equal(lifecycle.snapshot({ paused: true, state: 'running', goal }).continuation, 'paused');
   assert.equal(lifecycle.snapshot({ stopped: true, goal }).continuation, 'stopped');
   assert.equal(goal.activation, 'armed');
+  goal.phase = 'blocked'; goal.activation = 'disarmed'; goal.roundsStarted = 300; goal.maxGoalRounds = 300;
+  goal.blockedReason = { code: 'round-limit', message: 'private operator objective must not be included' };
+  assert.deepEqual(lifecycle.snapshot({ goal }).goalRounds, { started: 300, limit: 300, remaining: 0, blockedCode: 'round-limit' });
+  assert.equal(JSON.stringify(lifecycle.snapshot({ goal })).includes('private operator'), false);
 }));
 
 test('stop metadata survives resume without persisting arbitrary error, goal or conversation text', () => fixture(options => {

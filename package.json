@@ -1,6 +1,6 @@
 {
   "name": "dsh-minecraft-agent",
-  "version": "0.3.0-rc.4",
+  "version": "0.3.0-rc.5",
   "type": "module",
   "description": "DeepSeek Harness host adapter for the independent Minecraft SDK, with shared visualization and optional server capability packs.",
   "keywords": [
@@ -44,6 +44,7 @@
     "lib/plugins/harness-bridge.mjs",
     "lib/plugins/harness-panel.mjs",
     "lib/plugins/harness-lifecycle.mjs",
+    "lib/plugins/harness-goal.mjs",
     "lib/client.js",
     "docs/harness-migration.md",
     "examples/harness",
@@ -57,7 +58,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.43"
+    "agent-mc-world": "0.5.7-rc.46"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2",
