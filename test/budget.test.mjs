@@ -139,3 +139,38 @@ test('fallback wake classifier matches the core when the installed core provides
   for (const event of [{ type: 'mymc.chat', text: '[MC] a: hi Jojo', meta: { uname: 'a' } }, { type: 'mymc.event', text: '濒死', trigger: 'flush' }])
     assert.deepEqual(classifyWakeFallback(event, { selfNames: ['Jojo'] }), core.classifyWake(event, { selfNames: ['Jojo'] }));
 });
+
+test('goal progress guard nudges, then closes, on wandering in one plaza; resets per goal; enforces call budget', async () => {
+  const { GoalProgressGuard, MovementProgressFallback, withNotice } = await import('../src/harness-budget.mjs');
+  const guard = new GoalProgressGuard({ progress: new MovementProgressFallback(), maxCalls: 3, closeAfter: 8 });
+  const goal = { id: 'g1', phase: 'active' };
+  const results = [];
+  for (let i = 0; i < 8; i++) results.push(guard.action(goal, [{ skill: 'goto', at: [-536 + (i % 3) * 6, 67, -450 + (i % 2) * 6] }]));
+  assert.deepEqual(results.slice(0, 5), [{}, {}, {}, {}, {}]);
+  assert.match(results[5].notice, /update_goal/);
+  assert.match(results[7].close, /8 movement-only actions/);
+  assert.deepEqual(guard.action({ phase: 'complete' }, [{ skill: 'goto', at: [0, 0, 0] }]), {});
+  assert.equal(guard.step(goal), null); guard.step(goal); guard.step(goal);
+  assert.match(guard.step(goal), /call budget \(3\)/);
+  assert.equal(guard.step({ id: 'g2', phase: 'active' }), null);
+  assert.equal(withNotice({ structuredContent: { text: 'ok' } }, 'n').structuredContent.hostNotice, 'n');
+  assert.deepEqual(withNotice({ content: [] }, 'n').content, [{ type: 'text', text: 'n' }]);
+});
+
+test('local compact schema collapses deep wide unions (goal verify conditions)', async () => {
+  const { slimToolSchema } = await import('../src/harness-budget.mjs');
+  const props = { source: { type: 'string', enum: ['block', 'inventory'] }, ...Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`k${i}`, { type: 'string' }])) };
+  const schema = { type: 'object', properties: { add: { type: 'object', properties: { plan: { type: 'array', items: { type: 'object',
+    properties: { do: { type: 'string' }, verify: { type: ['object', 'array', 'null'], required: ['source'], properties: props, items: { type: 'object', required: ['source'], properties: props } } } } } } } } };
+  const verify = slimToolSchema(schema).properties.add.properties.plan.items.properties.verify;
+  const collapsed = { type: 'object', properties: { source: props.source }, required: ['source'], additionalProperties: true };
+  assert.deepEqual(verify, { ...collapsed, type: ['object', 'array', 'null'], items: collapsed });
+});
+
+test('fallback movement detector and compact schema match the core when available', async t => {
+  const core = await import('agent-mc-world/client');
+  if (typeof core.MovementProgress !== 'function') return t.skip('installed agent-mc-world predates MovementProgress');
+  const { MovementProgressFallback } = await import('../src/harness-budget.mjs');
+  const a = new core.MovementProgress(), b = new MovementProgressFallback();
+  for (let i = 0; i < 9; i++) { const steps = [{ skill: 'goto', at: [i * 5 % 20, 67, i * 3 % 15] }]; assert.deepEqual(a.record(steps), b.record(steps)); }
+});

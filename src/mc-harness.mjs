@@ -12,7 +12,7 @@ import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, ret
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { applyGoalControl } from './harness-goal.mjs';
-import { compactionForBudget, overflowFinish, selectTools, slimSchema, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL } from './harness-budget.mjs';
+import { compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice } from './harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
 // Prefer the core's context helpers (agent-mc-world > 0.5.7-rc.47); fall back to identical local copies.
@@ -91,16 +91,21 @@ export async function apply(ctx, options = {}) {
   const connectionIntent = connectionPreference(join(dataDir,'connection-state.json'), config.startPaused);
   let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
   const setPaused = value => { connectionIntent.set(value); paused = value; };
-  let lastTokens = 0, shuttingDown, pendingGoalClose = null;
+  let lastTokens = 0, shuttingDown, pendingGoalClose = null, goalClosedAt = 0;
   const wakeNames = [config.minecraft?.username, config.name, ...(config.wake?.names ?? [])].filter(Boolean);
-  const wakeStats = { seen: 0, woken: 0 };
+  const wakeStats = { seen: 0, woken: 0, droppedAfterGoal: 0 };
+  const progressConfig = config.progress ?? {};
+  const Progress = coreClient.MovementProgress ?? MovementProgressFallback;
+  const guard = new GoalProgressGuard({ progress: new Progress(progressConfig), maxCalls: config.maxGoalCalls ?? 30, closeAfter: progressConfig.closeAfter ?? 12 });
+  const progressStats = { nudges: 0, closedBy: null };
+  let wrapUpSteps = 1;
   const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|blocked|risk|hear|attention)$/;
   const gameToolNames = new Set(tools.map(t => t.name));
   const noop = new NoopRounds(config.noopRoundLimit ?? 3, name => gameToolNames.has(name) && !quiet.test(name));
   // Goal mutations are applied between turns, never inside a running tool call or event dispatch.
   const closeSessionGoal = reason => { pendingGoalClose ??= reason; };
   const settleGoalClose = () => {
-    const reason = pendingGoalClose; pendingGoalClose = null;
+    const reason = pendingGoalClose; pendingGoalClose = null; wrapUpSteps = 1;
     const goal = reason && handle && ctx.goals.get(handle.agent);
     if (!goal || goal.phase !== 'active') return;
     try { ctx.goals.complete(handle.agent, { id: goal.id, revision: goal.revision }); log.info('Session goal completed: %s', reason); }
@@ -114,8 +119,15 @@ export async function apply(ctx, options = {}) {
         await Promise.race([handle.agent.whenIdle(), abortableDelay(5000)]); } catch {}
       const bye = runtime.status().phase === 'started' ? chat.takeGoodbye() : null;
       if (bye) {
-        await client.callTool({ name: `${runtime.toolPrefix}_do`, arguments: { steps: [{ skill: 'chat', text: bye }] } },
-          undefined, { timeout: 10000 }).catch(error => log.warn('Goodbye failed: %s', error.message));
+        const goodbye = { text: bye, at: new Date().toISOString(), sent: false };
+        try {
+          const result = await client.callTool({ name: `${runtime.toolPrefix}_do`, arguments: { steps: [{ skill: 'chat', text: bye }] } },
+            undefined, { timeout: 10000 });
+          goodbye.sent = !result?.isError;
+          goodbye.receipt = String(result?.structuredContent?.text ?? result?.content?.[0]?.text ?? '').slice(0, 200);
+        } catch (error) { goodbye.error = error.message; }
+        (goodbye.sent ? log.info : log.warn)('Goodbye %s: %s', goodbye.sent ? 'sent' : 'failed', goodbye.receipt ?? goodbye.error);
+        try { status({ goodbye }); } catch {}
         await abortableDelay(1500);
       }
       await runtime.disconnect();
@@ -134,10 +146,12 @@ export async function apply(ctx, options = {}) {
   const currentGoal = () => { try { return handle ? ctx.goals.get(handle.agent) : undefined; } catch { return undefined; } };
   const hostLifecycle = () => lifecycle.snapshot({ paused, stopped: lifetime.signal.aborted,
     state: handle?.agent.status, goal: currentGoal() });
+  // Merge: later writes (e.g. shutdown) must not erase wake/progress counters or the goodbye result.
+  let statusExtra = {};
   const status = extra => writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
     name: config.name, sessionId, model: config.model, coreVersion, adapterVersion,
     reasoningEffort: config.reasoningEffort ?? null, phase: runtime.status().phase, paused,
-    stopped: lifetime.signal.aborted, ...extra, lifecycle: hostLifecycle() }, null, 2));
+    stopped: lifetime.signal.aborted, ...(statusExtra = { ...statusExtra, error: undefined, ...extra }), lifecycle: hostLifecycle() }, null, 2));
   ctx.on('agent/error', payload => {
     if (payload.agent?.id === sessionId) lifecycle.failed('agent', payload.error, { turn: payload.turn, step: payload.step });
   });
@@ -207,7 +221,11 @@ export async function apply(ctx, options = {}) {
           if (refusal) return { isError: true, content: [{ type: 'text', text: refusal }], structuredContent: { text: refusal, chatLimited: true } };
           const value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal));
           if (goalClosed(value)) closeSessionGoal('in-game goal closed');
-          return value;
+          if (!spec.name.endsWith('_do') || value?.isError) return value;
+          const verdict = guard.action(currentGoal(), args?.steps);
+          if (verdict.close) { progressStats.closedBy = verdict.close; closeSessionGoal(verdict.close); }
+          if (verdict.notice) progressStats.nudges++;
+          return withNotice(value, verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因原地打转将在本轮结束时自动完成，请简短收尾，不要再移动。` : undefined));
         },
       });
     }
@@ -228,17 +246,32 @@ export async function apply(ctx, options = {}) {
     await agentCtx.plugin(goalPlugin.default ?? goalPlugin).await();
     agentCtx.on('agent/pre-step', async (payload, next) => {
       if (paused) throw Error('Minecraft is paused');
+      // A guard-closed goal gets one wrap-up step, then the turn ends so the close settles now, not rounds later.
+      if (progressStats.closedBy && pendingGoalClose && wrapUpSteps-- <= 0) {
+        handle.agent.cancel({ kind: 'hook', reason: `Goal closed by host: ${progressStats.closedBy}` });
+        throw Error('Goal closed by host');
+      }
       await waitReady(payload.signal);
       await retireLiveFacts(payload.agent.session, createUserMessage, ctx.sessionQuery, payload.signal);
       await abortableDelay(Math.max(0, (config.minStepIntervalMs ?? 3000) - (Date.now() - lastStep)), payload.signal);
       const decision = await next();
-      if (decision.kind === 'enter') { await bridge.enter(sessionId, payload.turn, payload.step); lastStep = Date.now(); }
+      if (decision.kind === 'enter') {
+        await bridge.enter(sessionId, payload.turn, payload.step); lastStep = Date.now();
+        const over = guard.step(currentGoal());
+        if (over && !pendingGoalClose) { progressStats.closedBy = over; closeSessionGoal(over); }
+      }
       return decision;
     });
     const compaction = await import('@deepseek-ai/dsh-compaction-basic');
     await agentCtx.plugin(compaction.default, summaryOptions).await();
     agentCtx.on('session/event', (session, event) => {
-      if (session.id !== sessionId || event.type !== 'turn/end') return;
+      if (session.id !== sessionId) return;
+      if (event.type === 'goal/change' && event.data?.operation === 'complete') {
+        // Receipts queued for the finished goal must not wake the model afterwards.
+        wakeStats.droppedAfterGoal += inbox.pending.length; inbox.clear(); goalClosedAt = Date.now();
+        return;
+      }
+      if (event.type !== 'turn/end') return;
       lifecycle.ended(event.data.turn, event.data.reason);
       const reason = event.data.reason;
       if (reason?.kind === 'error' && /context|CONTEXT_WINDOW/i.test(`${reason.error?.code} ${reason.error?.message}`)) {
@@ -322,11 +355,13 @@ export async function apply(ctx, options = {}) {
       // Wake only for events a person would interrupt for; everything else rides the next snapshot.
       const goalNow = currentGoal();
       const wakeOn = config.wake?.on ?? (goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle);
-      const important = (events.events ?? []).filter(e => classifyWake(e, { selfNames: wakeNames, wakeOn }).wake);
+      // Events stamped before the goal closed belong to it; only idle-worthy ones may still wake.
+      const important = (events.events ?? []).filter(e => classifyWake(e, { selfNames: wakeNames,
+        wakeOn: goalClosedAt && Date.parse(e.ts ?? '') <= goalClosedAt ? wakeSets.idle : wakeOn }).wake);
       wakeStats.seen += events.events?.length ?? 0; wakeStats.woken += important.length;
       inbox.add(important);
       inbox.flush(handle.agent, currentGoal(), paused || lifetime.signal.aborted, createUserMessage);
-      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, coreBudget });
+      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls }, coreBudget });
     } catch (error) { if (!lifetime.signal.aborted && !shuttingDown) {
       if (!paused) lifecycle.failed('poll', error);
       status(paused ? { state: 'paused', goal: currentGoal() }

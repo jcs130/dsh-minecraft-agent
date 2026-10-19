@@ -23,6 +23,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 - minecraft.hostDecisions.combat 显式设置 enabled、endpoint、model、mode、timeoutMs、minIntervalMs、maxAgeMs。快决策状态、候选与驱动来自共享核心，可选服务器包仅转出同一契约；默认关闭，不探测地址。模型不可用时保留核心的规则控制。
 - 上下文预算：`contextTokens` 默认 131072（128k）。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发，不再按模型 1M 窗口计算；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算的请求会先压缩再重试本轮，压缩后仍超出则道别并下线，不会挂机。
 - 省上下文：默认 `tools.profile: "lean"` 隐藏少用工具（脚本、蓝图、铁路、摄影、战术等，可用 `tools.include` 单独加回或 `profile: "full"` 全开），工具说明压缩到 `tools.descriptionChars`（默认 300 字），参数细节用 `*_tool_help` 按需查；每步事件快照只保留最近 `context.events`（默认 10）条，回执给模型时截到 `context.receiptChars`（默认 1500 字），完整内容仍在会话日志。`node scripts/measure-context.mjs qiandengji 人设.md` 可测固定提示大小。
+- 防打转：连续 6 次只走动/张望且停在约 24 格范围内（或没到新地方）时，给模型提示；到 12 次时当前目标自动完成（`progress.window/radius/closeAfter`）。每个目标最多 `maxGoalCalls`（默认 30）次模型调用。目标完成后，排队中的该目标回执直接丢弃，不再唤醒。退出道别结果写在 status.json 的 `goodbye`。
 - 唤醒：只有私聊、点名（`minecraft.username`、`name`、`wake.names`）、危险和连接变化会唤醒模型；目标进行中另加本身任务回执。其他玩家之间的聊天、插件提示、状态条倒计时只进下一次现场快照。可用 `wake.on` 覆盖类别。分类逻辑来自核心 `classifyWake`（agent-mc-world 新版），旧核心用同等的本地实现。
 - 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标；连续 `noopRoundLimit`（默认 3）轮没有游戏动作也会结束目标；`maxGoalRounds` 默认 40。
 - 聊天：`chat.maxPublicLines`（默认 4）在代码里限制公屏句数，`chat.minIntervalMs`（默认 20000）限制连续发言；配置 `chat.goodbye` 时预留 1 句，在真正下线（SIGINT/SIGTERM 或卸载）时由宿主发送，并在 status.json 写 `stopped: true`。私聊（/msg）不计入。

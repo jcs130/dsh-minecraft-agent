@@ -177,20 +177,96 @@ export function classifyWakeFallback(event, options = {}) {
 }
 
 /** Collapse object item pools wider than `limit` properties to their discriminator, keeping the signature text. */
-export function collapseWidePools(schema, limit = 24, signatureChars = 3000) {
-  if (Array.isArray(schema)) return schema.map(s => collapseWidePools(s, limit, signatureChars));
+const collapseNode = node => {
+  const required = Array.isArray(node.required) ? node.required : [];
+  return { type: 'object', properties: Object.fromEntries(required.filter(k => node.properties?.[k])
+    .map(k => [k, Object.fromEntries(Object.entries(node.properties[k]).filter(([key]) => key !== 'description'))])),
+    ...(required.length ? { required } : {}), additionalProperties: true };
+};
+
+/** Mirrors core compactToolSchema: wide item pools, and wide objects nested >= nestedLevel property levels. */
+export function collapseWidePools(schema, limit = 24, signatureChars = 3000, nested = 8, nestedLevel = 3, level = 0) {
+  if (Array.isArray(schema)) return schema.map(s => collapseWidePools(s, limit, signatureChars, nested, nestedLevel, level));
   if (!schema || typeof schema !== 'object') return schema;
+  if (level >= nestedLevel && schema.properties && typeof schema.properties === 'object' && Object.keys(schema.properties).length > nested) {
+    const out = collapseNode(schema);
+    if (schema.type !== undefined) out.type = schema.type;
+    if (schema.items && typeof schema.items === 'object') out.items = schema.items.properties ? collapseNode(schema.items) : schema.items;
+    return out;
+  }
   const out = {};
-  for (const [k, v] of Object.entries(schema)) out[k] = ['enum', 'const', 'default'].includes(k) ? v : collapseWidePools(v, limit, signatureChars);
+  for (const [k, v] of Object.entries(schema)) {
+    if (['enum', 'const', 'default'].includes(k)) out[k] = v;
+    else if (k === 'properties' && v && typeof v === 'object')
+      out[k] = Object.fromEntries(Object.entries(v).map(([n, c]) => [n, collapseWidePools(c, limit, signatureChars, nested, nestedLevel, level + 1)]));
+    else out[k] = collapseWidePools(v, limit, signatureChars, nested, nestedLevel, level);
+  }
   const items = schema.items;
   if (items && typeof items === 'object' && items.properties && Object.keys(items.properties).length > limit) {
-    const required = Array.isArray(items.required) ? items.required : [];
-    out.items = { type: 'object', properties: Object.fromEntries(required.filter(k => items.properties[k])
-      .map(k => [k, Object.fromEntries(Object.entries(items.properties[k]).filter(([key]) => key !== 'description'))])),
-      ...(required.length ? { required } : {}), additionalProperties: true };
+    out.items = collapseNode(items);
     if (typeof schema.description === 'string') out.description = condense(schema.description, signatureChars);
   }
   return out;
+}
+
+const MOVEMENT_SKILLS = ['goto', 'look', 'observe', 'walk', 'wander', 'face'];
+/** Fallback copy of core MovementProgress (agent-mc-world > 0.5.7-rc.47). */
+export class MovementProgressFallback {
+  constructor({ window = 6, radius = 24, cellSize = 16, movementSkills = MOVEMENT_SKILLS } = {}) {
+    Object.assign(this, { window, radius, cellSize }); this.movement = new Set(movementSkills);
+    this.cells = new Set(); this.recent = []; this.streak = 0;
+  }
+  reset() { this.streak = 0; this.recent = []; this.cells.clear(); }
+  record(steps) {
+    const work = steps.map(s => typeof s?.skill === 'string' ? s.skill : '').filter(k => k !== 'chat');
+    if (!work.length || work.some(k => !this.movement.has(k))) {
+      if (work.length) { this.streak = 0; this.recent = []; }
+      return this.verdict();
+    }
+    const points = steps.map(s => s?.at).filter(p => Array.isArray(p) && p.length === 3 && p.every(n => typeof n === 'number'));
+    let newCells = 0;
+    for (const [x, , z] of points) {
+      const key = `${Math.floor(x / this.cellSize)},${Math.floor(z / this.cellSize)}`;
+      if (!this.cells.has(key)) { this.cells.add(key); newCells++; }
+    }
+    this.streak++; this.recent = [...this.recent, { points, newCells }].slice(-this.window);
+    return this.verdict();
+  }
+  verdict() {
+    const points = this.recent.flatMap(e => e.points), newCells = this.recent.reduce((s, e) => s + e.newCells, 0);
+    let spread = 0;
+    if (points.length) {
+      const cx = points.reduce((s, p) => s + p[0], 0) / points.length, cz = points.reduce((s, p) => s + p[2], 0) / points.length;
+      spread = Math.round(Math.max(...points.map(p => Math.hypot(p[0] - cx, p[2] - cz))));
+    }
+    return { streak: this.streak, spread, newCells, repetitive: this.streak >= this.window && (spread <= this.radius || newCells === 0) };
+  }
+}
+
+/** Per-goal guard: nudge on wandering, close the goal on continued wandering or an exhausted call budget. */
+export class GoalProgressGuard {
+  constructor({ progress, maxCalls = 30, closeAfter = 12 } = {}) { Object.assign(this, { progress, maxCalls, closeAfter }); this.goalId = null; this.calls = 0; }
+  /** Call once per model step; returns a close reason or null. */
+  step(goal) {
+    if (goal?.phase !== 'active') return null;
+    if (goal.id !== this.goalId) { this.goalId = goal.id; this.calls = 0; this.progress.reset(); }
+    this.calls++;
+    return this.maxCalls > 0 && this.calls > this.maxCalls ? `per-goal call budget (${this.maxCalls}) used up` : null;
+  }
+  /** Call for each action tool; returns { notice?, close? }. */
+  action(goal, steps) {
+    if (goal?.phase !== 'active' || !Array.isArray(steps)) return {};
+    const v = this.progress.record(steps);
+    if (!v.repetitive) return {};
+    if (this.closeAfter > 0 && v.streak >= this.closeAfter) return { close: `${v.streak} movement-only actions in one ~${v.spread}-block area without new ground` };
+    return { notice: `[宿主提示] 最近 ${v.streak} 次都只是在约 ${v.spread} 格范围内走动/张望，没有到达新地方。目标若已达成请调用 update_goal 标记完成并停下；否则换一件实际的事或去新的区域。继续原地打转会自动结束本目标。` };
+  }
+}
+
+export function withNotice(value, notice) {
+  if (!notice) return value;
+  if (value?.structuredContent) return { ...value, structuredContent: { ...value.structuredContent, hostNotice: notice } };
+  return { ...value, content: [...(value?.content ?? []), { type: 'text', text: notice }] };
 }
 
 /** Local compact schema: collapse wide pools, drop prose, keep collapsed nodes' signature text. */
