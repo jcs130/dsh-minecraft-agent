@@ -212,7 +212,7 @@ export async function apply(ctx, options = {}) {
       text: () => JSON.stringify((coreClient.compactFacts ?? compactFactsFallback)(runtime.currentFacts())) });
     agentCtx.systemPrompt.context({ name: 'minecraft:events', order: 9991,
       text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: (() => {
-        const list = (coreClient.compactEvents ?? compactEvents)(condenser.since(shownCursor, eventTail), view.events, view.eventChars);
+        const list = (coreClient.compactEvents ?? compactEvents)(condenser.since(shownCursor, eventTail), view.events, view.eventChars, runtimeOptions.timezone);
         renderedCursor = Math.max(renderedCursor, ...list.map(e => e.cursor ?? 0)); return list;
       })() }) });
     const gameTools = new Set(tools.map(tool => tool.name));

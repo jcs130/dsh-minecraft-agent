@@ -218,3 +218,13 @@ test('guard wording distinguishes repeated look-arounds from wandering', async (
   for (let i = 0; i < 9; i++) last = guard.observe(goal, 'same view ' + i) ?? last;
   assert.match(last.close, /look-arounds/);
 });
+
+test('event clock uses the configured zone; no-notes player history merges into one line', async () => {
+  const { compactEvents } = await import('../src/harness-budget.mjs');
+  const out = compactEvents([{ cursor: 1, ts: '2026-10-19T17:17:34.000Z', type: 'x' }, { cursor: 2, ts: '2026-10-20T01:17:35+08:00', type: 'x' }], 10, 200, 'Asia/Shanghai');
+  assert.deepEqual(out.map(e => e.at), ['01:17:34', '01:17:35']);
+  const { EventCondenser } = await import('../src/event-condenser-fallback.mjs');
+  const c = new EventCondenser(); let cursor = 0;
+  for (const n of ['Goddess', 'ag_NEKO']) c.push([{ cursor: ++cursor, ts: 'T', type: 'mymc.memory', text: `[游戏玩家历史] 账号 ${n}；本地未找到该账号已绑定且未过期的关系笔记；这不证明初次见面。` }]);
+  assert.deepEqual(c.view().map(e => e.text), ['[玩家历史] 无本地关系笔记：Goddess、ag_NEKO（不代表初次见面，可查 mymc_memory）']);
+});
