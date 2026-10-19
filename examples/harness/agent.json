@@ -23,6 +23,6 @@
     "summarizationModel": "deepseek-flash",
     "retainTokens": 16000,
     "maxTokens": 6000,
-    "thresholdRatio": 0.25
+    "thresholdRatio": 0.18
   }
 }
