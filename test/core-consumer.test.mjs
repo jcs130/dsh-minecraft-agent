@@ -13,7 +13,7 @@ import { HarnessBridge, modelToolSchema } from '../src/harness-bridge.mjs';
 
 const require = createRequire(import.meta.url);
 test('installed core matches the adapter pin and exposes the authored-method lifecycle', async () => {
-  const adapter = require('dsh-minecraft-agent/package.json'), core = require('agent-mc-world/package.json');
+  const adapter = require('@jcs130/dsh-minecraft-agent/package.json'), core = require('agent-mc-world/package.json');
   assert.equal(core.version, adapter.dependencies['agent-mc-world']);
   const { METHOD_LIBRARY_SCHEMA, MethodLibrary } = await import('agent-mc-world/client');
   assert.equal(typeof MethodLibrary, 'function');

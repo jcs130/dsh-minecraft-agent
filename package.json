@@ -1,5 +1,5 @@
 {
-  "name": "dsh-minecraft-agent",
+  "name": "@jcs130/dsh-minecraft-agent",
   "version": "0.3.0-rc.6",
   "type": "module",
   "description": "DeepSeek Harness host adapter for the independent Minecraft SDK, with shared visualization and optional server capability packs.",
