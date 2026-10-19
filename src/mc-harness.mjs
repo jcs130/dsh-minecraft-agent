@@ -8,6 +8,7 @@ import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } f
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
 import { HarnessBridge, renderReceipt, retireFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, compactionOptions, modelToolSchema } from './harness-bridge.mjs';
+import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 
 const require = createRequire(import.meta.url);
 const { version: coreVersion } = require('agent-mc-world/package.json');
@@ -66,12 +67,14 @@ export async function apply(ctx, options = {}) {
   const persona = readFileSync(resolve(config.personaFile), 'utf8');
   const sessionFile = join(dataDir, 'session-id.txt');
   const sessionId = existsSync(sessionFile) ? readFileSync(sessionFile, 'utf8').trim() : randomUUID();
-  let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = false;
+  const connectionIntent = connectionPreference(join(dataDir,'connection-state.json'), config.startPaused);
+  let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
+  const setPaused = value => { connectionIntent.set(value); paused = value; };
   const inbox = new MinecraftEventInbox();
   const statusFile = join(dataDir, 'status.json');
   const status = extra => writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
     name: config.name, sessionId, model: config.model, coreVersion, adapterVersion,
-    reasoningEffort: config.reasoningEffort ?? null, phase: runtime.status().phase,
+    reasoningEffort: config.reasoningEffort ?? null, phase: runtime.status().phase, paused,
     stopped: lifetime.signal.aborted, ...extra }, null, 2));
   ctx.effect(() => async () => {
     lifetime.abort(); clearTimeout(timer);
@@ -80,30 +83,31 @@ export async function apply(ctx, options = {}) {
     await bridge.stop(); await consoleServer?.close(); await server.close();
     status({ state: 'stopped' });
   }, 'minecraft host lifetime');
-  await runtime.connect();
+  if (!paused) await runtime.connect();
   const waitReady = async signal => {
     while (!(await runtime.operatorState()).connection?.connection?.ready) {
       if (paused || lifetime.signal.aborted) throw Error('Minecraft is paused');
       await abortableDelay(1000, signal);
     }
   };
-  if (config.consolePort) consoleServer = await serveClientConsole(config.consolePort, {
-    operatorState: async () => ({ ...await runtime.operatorState(), host: { paused, state: handle?.agent.status } }),
+  consoleServer = await openHostConsole(ctx, config.consolePort ? embedOrigins => serveClientConsole(config.consolePort, {
+    operatorState: async () => ({ ...await runtime.operatorState(), host: { paused, state: handle?.agent.status,
+      name:config.name, model:config.model, reasoningEffort:config.reasoningEffort ?? null, coreVersion, adapterVersion } }),
     metrics: runtime.metrics, status: () => runtime.status(),
     operatorAction: async action => {
       if (action === 'disconnect') {
-        paused = true; inbox.clear();
+        setPaused(true); inbox.clear();
         if (handle) { ctx.goals.disarm(handle.agent); handle.agent.cancel({ kind: 'user', reason: 'Operator disconnected Minecraft' });
           await handle.agent.whenIdle(); await ctx.sessions.flush(handle.agent.session); }
         await bridge.boundary; bridge.turnId = null;
         return runtime.disconnect();
       }
+      // Record intent before awaiting connection: a later disconnect must win.
+      if (action === 'connect') setPaused(false);
       await runtime.operatorAction(action);
-      if (action === 'connect') { paused = false; await waitReady(lifetime.signal);
-        const goal = handle && ctx.goals.get(handle.agent);
-        if (goal?.phase === 'active') ctx.goals.resume(handle.agent, { id: goal.id, revision: goal.revision }); }
+      if (action === 'connect' && !paused) { await waitReady(lifetime.signal); if (handle) await activate(); }
     },
-  });
+  }, undefined, undefined, {embedOrigins}) : undefined, sessionId);
   const setup = async agentCtx => {
     agentCtx.systemPrompt.section({ name: 'minecraft:persona', order: 0, text: persona + '\n\n' + prefix,
       complete: true, interpolate: false });
@@ -179,6 +183,8 @@ export async function apply(ctx, options = {}) {
     ? await ctx.agents.resume({ resumeSessionId: sessionId, agentOptions, setup })
     : await ctx.agents.create({ sessionId, meta: { cwd: dataDir }, agentOptions, setup });
   writeFileSync(sessionFile, sessionId);
+  const activate = async () => {
+  if (paused || lifetime.signal.aborted) return;
   const goal = ctx.goals.get(handle.agent);
   if (!goal && config.goal) ctx.goals.create(handle.agent, { objective: config.goal, maxGoalRounds: config.maxGoalRounds ?? 2000 });
   else if (goal?.phase === 'active') ctx.goals.resume(handle.agent, { id: goal.id, revision: goal.revision });
@@ -199,6 +205,8 @@ export async function apply(ctx, options = {}) {
     flush: () => ctx.sessions.flush(handle.agent.session),
     remember: id => writeFileSync(delivered, id),
   });
+  };
+  if (paused) ctx.goals.disarm(handle.agent); else await activate();
   const poll = async () => {
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);

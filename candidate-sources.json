@@ -1,16 +1,16 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.2",
+  "adapterVersion": "0.3.0-rc.3",
   "published": false,
   "candidates": [
     {
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "cc36f9e6273395b7c6de060d4ac5c1983a65092e",
-      "file": "vendor/agent-mc-world-0.5.7-rc.42.tgz",
-      "sha256": "afb8899852c800b3f9ef5152e40b64033eb222db9eff97806d861d82b0480142",
-      "integrity": "sha512-LIbhrB8g5pgGqjqQCK5Uq5M+pMhQMXme6xdJubpfdO1WkC+zJE9GF4nU0CzHivMGLFQzGTuXS2IlGxjeH2W6Wg=="
+      "commit": "9d0ca4f72c2235103dcdb4100c822f087ff2bb13",
+      "file": "vendor/agent-mc-world-0.5.7-rc.43.tgz",
+      "sha256": "95bbbfb8b3652796719fef8b0f13a92d6984ca45d78858e222c7c5eaaef904ac",
+      "integrity": "sha512-nsvNcYefXk4RjrwUjOgCnNhPkLIx3XP2hGvPIdoZXOj+z3/qp8U75qarkvPe7WZmd2XMIiILptMfxO6QSM288g=="
     },
     {
       "role": "serverPack",
@@ -22,21 +22,16 @@
       "integrity": "sha512-N8oT/oF+afSH0BOx9L0hx3GF7XJxCkBThB7sLrDbcX2a/YJ7hWtvPE2Du161otxADipsjA8t9xrBKphAPI95pA=="
     }
   ],
-  "coreSourceFilesSha256": "8279e86fce00943f3a08e0af0355dc7369fff9b62d81dd623b57c2ba9059f14a",
+  "coreSourceFilesSha256": "e0cfbd8da9d45b841b32e3e23284b89b13e8ac47d18a615e2e61c034e127b7cd",
   "sourceVerification": {
     "sourceEntries": 383,
-    "runtimeEntries": 36883,
-    "lineEndingsOnly": [
-      "core/viewer-activity.mjs",
-      "core/viewer-agent.mjs",
-      "dist/runtime/core/viewer-activity.mjs",
-      "dist/runtime/core/viewer-agent.mjs"
-    ]
+    "runtimeEntries": 36885,
+    "lineEndingsOnly": []
   },
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
-    "commit": "1cbd5574660c99a6c72a55224e84f4460778fd6a",
+    "commit": "310faa2bf22e41b95287ecf088ed20f069703ea8",
     "assetPack": "java-1.21.1",
-    "sha256": "586715c26f5d143f1921bfc66d8e914f0e5fdaa811f1354fc72af69a51fd8553"
+    "sha256": "c0fd68be2eec04ed848c38593c24cc949faef3361f3cdeb9cc3df33e1e5019e2"
   }
 }

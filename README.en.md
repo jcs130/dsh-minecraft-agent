@@ -4,7 +4,7 @@
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The current candidate is **0.3.0-rc.2**, using DSH **0.2.0-rc.2**, core **0.5.7-rc.42** and optional server pack **0.5.0-dev.20261019.5**. Minecraft Java **1.21.1** is the primary target. These core/server candidates are not on npm; co-install their verified archives. Installation alone does not connect a game account or call a model.
+The current candidate is **0.3.0-rc.3**, using DSH **0.2.0-rc.2**, core **0.5.7-rc.43** and optional server pack **0.5.0-dev.20261019.5**. Minecraft Java **1.21.1** is the primary target. These core/server candidates are not on npm; co-install their verified archives. Installation alone does not connect a game account or call a model.
 
 Use Node.js 24. Configure a private `configFile` with explicit `enabled`, account, server, data/persona paths, DSH provider/model and input/output budgets. [Examples](examples/harness) show official DeepSeek cloud with explicit thinking-off, along with the supported thinking levels. Keys come from environment variables. Local models and cloud models use the same body and public SDK/MCP interface.
 
