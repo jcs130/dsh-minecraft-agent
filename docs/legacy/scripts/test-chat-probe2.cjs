@@ -2,7 +2,7 @@
 const mineflayer = require('mineflayer')
 const { DatabaseSync } = require('node:sqlite')
 
-const DB = 'C:/Users/lzl19/.copaw/workspaces/default/data/client.db'
+const DB = process.env.CLIENT_DB ?? 'data/client.db'
 let lastEpisodicId = 0
 
 function snapshotEpisodic() {
@@ -27,7 +27,7 @@ function snapshotEpisodic() {
 }
 
 const bot = mineflayer.createBot({
-  host: '192.168.3.225', port: 25565, username: 'Tester2',
+  host: process.env.MC_HOST ?? 'localhost', port: Number(process.env.MC_PORT ?? 25565), username: 'Tester2',
   auth: 'offline', version: '1.21.1', viewDistance: 'tiny',
 })
 

@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 
-const db = new DatabaseSync('C:/Users/lzl19/.dsh/profiles/web/data/client.db', { readOnly: true });
+const db = new DatabaseSync(process.env.CLIENT_DB ?? 'data/client.db', { readOnly: true });
 
 const rows = db.prepare(`SELECT id, ts, text FROM episodic ORDER BY ts DESC LIMIT 20`).all();
 console.log('=== latest 20 (ts desc) ===');

@@ -1,8 +1,8 @@
 import mineflayer from 'mineflayer';
 
 const bot = mineflayer.createBot({
-  host: '192.168.3.225',
-  port: 25565,
+  host: process.env.MC_HOST ?? 'localhost',
+  port: Number(process.env.MC_PORT ?? 25565),
   username: 'Xiaozhi_Greeter',
   auth: 'offline',
 });
