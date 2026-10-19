@@ -7,6 +7,15 @@
     apiKeyEnv: DEEPSEEK_API_KEY
     reasoningEffort: off
     maxTokens: 6000
+    # Retry a failed model request before any tool dispatch. Never use unbounded always mode.
+    retryPolicy:
+      mode: normal
+      maxRetries: 2
+      retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT, STREAM_CLOSED, MALFORMED_RESPONSE]
+      backoff:
+        initialDelayMs: 500
+        maxDelayMs: 4000
+        jitterRatio: 0.2
 # Agent JSON selects provider: deepseek-official and model: deepseek-flash.
 # Endpoint, catalog, native Messages replay, usage and stable session headers
 # are owned by DSH's built-in DeepSeek provider.

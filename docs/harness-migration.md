@@ -68,6 +68,8 @@ Qwen 的 `chatTemplateKwargs.enable_thinking: false` 单独配置并不会发包
 
 DeepSeek 官方云端直接使用 DSH 内置 `llm-deepseek`（`@deepseek-ai/dsh-llm-deepseek-api-key`），选择 `provider: deepseek-official` 和内置目录的 `model: deepseek-flash`。在该插件配置 `reasoningEffort: off` 作为默认；需要部署级强制禁用时才额外设 `thinking: disabled`，Agent JSON 也明确 `reasoningEffort: off`，恢复旧会话时同样生效。不在 llm-pi-ai 重复注册这个内置路由。原生 Messages 协议的关闭思考、历史重放、会话头与最终用量由 DSH 维护；输出上限仍不等于独立思考预算。见 `examples/harness`。
 
+持续运行的 provider 示例显式使用原生 `llm-retry` 的有限策略：初次请求后最多重试两次，500ms 起步、4s 上限并带抖动。包含断流和 `MALFORMED_RESPONSE`，因为官方 Messages 在模型给出非法工具 JSON 时会在工具派发前拒绝整次回答；同一步重试仍使用原会话和历史，不执行部分参数。原始失败尝试和每次重试保留在原生日志与元数据中。鉴权、参数、上下文错误不在名单内；超出次数仍解除续跑。不能把这项策略用于自动重放已受理的游戏动作，也不自动重新激活已经停下的目标。首次部署该策略后，恢复既有停跑仍须由操作员明确操作。
+
 读取原生流的最终 usage，统计缓存输入时按 DSH 的不重叠计数还原完整输入。`effort` 表示请求等级，不能冒充引擎已生效等级；上游未提供独立思考 token、执行/排队耗时则保持未知。共享指标契约当前不支持的等级（如 max）不强行映射为 high；状态文件保留原请求等级。
 
 目标完成后停止该目标的自动续跑，已连接且未暂停的 Agent 仍可被新的聊天或任务结果唤醒。事件通知保留 `mc-harness` 来源，不冒充人类，也不重建或重新激活已完成目标。暂停、阻塞、生命周期解除激活的未完成目标仍保留原来的恢复约束。
