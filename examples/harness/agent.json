@@ -7,7 +7,7 @@
   "provider": "deepseek-official",
   "model": "deepseek-flash",
   "reasoningEffort": "off",
-  "contextTokens": 262144,
+  "contextTokens": 131072,
   "maxTokens": 6000,
   "minStepIntervalMs": 250,
   "consolePort": 17851,
@@ -23,6 +23,15 @@
     "summarizationModel": "deepseek-flash",
     "retainTokens": 16000,
     "maxTokens": 6000,
-    "thresholdRatio": 0.18
+    "triggerRatio": 0.55
+  },
+  "maxGoalRounds": 40,
+  "chat": {
+    "maxPublicLines": 4,
+    "minIntervalMs": 20000,
+    "goodbye": "我先下线啦，大家再见～"
+  },
+  "tools": {
+    "profile": "lean"
   }
 }

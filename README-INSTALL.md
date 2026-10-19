@@ -30,6 +30,16 @@ MC_HOST=... MC_PORT=... MC_USERNAME=... npm run dry-run -- --connect
 
 `--connect` 还读取 `MC_VERSION`（默认 1.21.1）和可选的 `MC_LOGIN_CONFIG`，参见 `.env.example`。
 
+### 无头运行
+
+`dsh web` 默认会打开浏览器，并把带访问令牌的地址打印到终端。服务器/CLI 场景请加 `--no-open`，并且不要把含 `token=` 的输出原样存日志，例如：
+
+```sh
+dsh web --no-open --profile <profile> 2>&1 | sed -E 's/(token=)[^&[:space:]]+/\1***/g' >> run.log
+```
+
+插件自己写的 status.json 和日志不包含令牌。
+
 ### 可选：本地候选 tgz
 
 验证尚未发布的核心/服务器候选时，把归档放到被忽略的 `vendor/`（`*.tgz` 已在 .gitignore），在部署目录或临时检出中安装，不要提交由此改动的 `package.json`/锁文件：
