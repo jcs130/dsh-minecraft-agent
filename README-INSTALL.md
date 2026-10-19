@@ -5,7 +5,7 @@
 在独立部署目录同时安装经过校验的候选，避免 npm 去 registry 寻找尚未发布的核心：
 
 ```sh
-npm install ./agent-mc-world-0.5.7-rc.43.tgz ./agent-mc-qiandengji-0.5.0-dev.20261019.5.tgz ./dsh-minecraft-agent-0.3.0-rc.3.tgz @deepseek-ai/dsh@0.2.0-rc.2
+npm install ./agent-mc-world-0.5.7-rc.43.tgz ./agent-mc-qiandengji-0.5.0-dev.20261019.5.tgz ./dsh-minecraft-agent-0.3.0-rc.4.tgz @deepseek-ai/dsh@0.2.0-rc.2
 ```
 
 只有需要千灯纪服务器协议时才配置 `serverPack: qiandengji`。普通服务器使用 `none`，不启用服务器专用规则。核心和适配器不需要 Cortico 主项目。

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { retireFacts, renderReceipt, measuredStream, wakeForMinecraftEvents, MinecraftEventInbox } from '../src/harness-bridge.mjs';
+import { retireFacts, retireLiveFacts, renderReceipt, measuredStream, wakeForMinecraftEvents, MinecraftEventInbox } from '../src/harness-bridge.mjs';
 const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.json'));
 const { Session } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-session')).href);
 const { createUserMessage } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm')).href);
@@ -45,6 +45,72 @@ test('MCP renderer does not repeat receipt; durable result is unchanged', () => 
   assert.equal((JSON.stringify(renderReceipt(value)).match(/original receipt/g) ?? []).length, 1);
   assert.equal(value.content[0].text, 'original receipt');
   assert.equal(value.structuredContent.execution.goalCompleted, false);
+});
+
+test('live observation retires only current owned snapshots without reading archived payloads', async () => {
+  const session = Session.create('live-snapshot');
+  const archive = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'archived payload' }] }), { surfaceOp: 'append' });
+  const replacement = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'archive reference' }] }),
+    { surfaceOp: { op: 'replace', startSeq: archive.seq, endSeq: archive.seq }, sourceEventSeqs: [archive.seq] });
+  const facts = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'old game facts\nother context' }],
+    source: { kind: 'runtime-context', form: 'snapshot', sections: [
+      { name: 'minecraft:current-facts', text: 'old game facts' }, { name: 'other:context', text: 'other context' }] } }), { surfaceOp: 'append' });
+  const permanent = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'permanent instruction' }] }), { surfaceOp: 'append' });
+  let disposed = 0;
+  const events = [null, replacement, facts, permanent];
+  Object.defineProperty(events, 0, { get() { assert.fail('Archived payload must not be inspected or cloned'); } });
+  const controller = new AbortController();
+  const query = { async observeSession(id, options) {
+    assert.equal(id, session.id); assert.equal(options.projectionMode, 'none'); assert.equal(options.signal, controller.signal);
+    return { source: 'live', header: session.header, cursor: permanent.seq, events, [Symbol.dispose]() { disposed++; } };
+  }, readSurface() { assert.fail('Full history clone/replay must not be used'); } };
+  assert.equal(await retireLiveFacts(session, createUserMessage, query, controller.signal), 1);
+  assert.equal(disposed, 1);
+  const visible = JSON.stringify(session.deriveMessages());
+  assert.equal(visible.includes('old game facts'), false);
+  assert.ok(visible.includes('other context')); assert.ok(visible.includes('permanent instruction'));
+  assert.equal(facts.data.source.sections[0].text, 'old game facts');
+});
+
+test('live facts observation is released on cancellation, invalid owner and stale cuts', async () => {
+  for (const mode of ['cancelled', 'wrong-session', 'cold', 'missing-event', 'concurrent-append']) {
+    const session = Session.create('cut-' + mode), events = [];
+    const first = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'first' }] }), { surfaceOp: 'append' });
+    events.push(first);
+    let disposed = 0; const controller = new AbortController();
+    const query = { async observeSession() {
+      if (mode === 'cancelled') controller.abort(Error('cancelled'));
+      if (mode === 'concurrent-append') session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'new snapshot' }],
+        source: { kind: 'runtime-context', form: 'snapshot', sections: [{ name: 'minecraft:events', text: 'new snapshot' }] } }), { surfaceOp: 'append' });
+      return { source: mode === 'cold' ? 'prepared' : 'live', header: { ...session.header, id: mode === 'wrong-session' ? 'other' : session.id },
+        cursor: first.seq, events: mode === 'missing-event' ? [] : events, [Symbol.dispose]() { disposed++; } };
+    } };
+    if (mode === 'concurrent-append') {
+      assert.equal(await retireLiveFacts(session, createUserMessage, query, controller.signal), 0);
+      assert.ok(JSON.stringify(session.deriveMessages()).includes('new snapshot'));
+    } else await assert.rejects(retireLiveFacts(session, createUserMessage, query, controller.signal));
+    assert.equal(disposed, 1);
+  }
+});
+
+test('native session query observation preserves the retirement contract', async () => {
+  const { Context } = await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
+  const { SessionQueryEngine } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-session-query')).href);
+  const session = Session.create('native-live-query');
+  const fact = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'archived game facts' }],
+    source: { kind: 'runtime-context', form: 'snapshot', sections: [{ name: 'minecraft:current-facts', text: 'archived game facts' }] } }), { surfaceOp: 'append' });
+  const root = new Context();
+  const sessions = await root.plugin({ name: 'fixture-sessions', apply(ctx) { ctx.provide('sessions', { get: id => id === session.id ? session : undefined }); } }).await();
+  const queries = await root.plugin({ name: 'fixture-queries', inject: ['sessions'], apply(ctx) { new SessionQueryEngine(ctx); } }).await();
+  try {
+    const query = root.get('sessionQuery');
+    assert.equal(await retireLiveFacts(session, createUserMessage, query), 1);
+    const surface = await query.readSurface(session.id);
+    assert.deepEqual(surface.events.map(event => event.seq), [...session.surface.nodes]);
+    assert.equal(surface.events[0].sourceEventSeqs[0], fact.seq);
+    assert.equal(await retireLiveFacts(session, createUserMessage, query), 0);
+    assert.equal(fact.data.content[0].text, 'archived game facts');
+  } finally { await queries.dispose(); await sessions.dispose(); }
 });
 
 test('actual stream metrics retain cache counts, cancellation and background role', async () => {
