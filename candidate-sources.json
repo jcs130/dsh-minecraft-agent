@@ -1,7 +1,7 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.6",
-  "published": false,
+  "published": true,
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
     "tag": "dsh-v0.2.1-rc.2",
@@ -14,19 +14,27 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "c53f76ccb5ad81a2a09fc7cf6215e2ba3465a71e",
-      "file": "vendor/agent-mc-world-0.5.7-rc.46.tgz",
-      "sha256": "bb94a61a129a2c5814c3d2cc401414941839c9f82b98631d85efa33c50118192",
-      "integrity": "sha512-swdp68XYBeKtLrk6vCqi2Nkxdgy0W9XXhdSotrAnYh8jJbKu8zdhMqsBaKpjAUWIg+mz8w2no3hi4g5BYEpMQw=="
+      "npm": "agent-mc-world@0.5.7-rc.47",
+      "registry": "https://registry.npmjs.org/",
+      "integrity": "sha512-E5DWFNIHevsgSNHTqUhQf5qu5r0EAF4sZAZ2atrJln1SbOgSzifI4Aj1mZfRCBwJjKZ2cPMFnC1BIpskMRkElg==",
+      "previousVendorCandidate": {
+        "file": "vendor/agent-mc-world-0.5.7-rc.46.tgz",
+        "commit": "c53f76ccb5ad81a2a09fc7cf6215e2ba3465a71e",
+        "sha256": "bb94a61a129a2c5814c3d2cc401414941839c9f82b98631d85efa33c50118192"
+      }
     },
     {
       "role": "serverPack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "4889e114bb42c049732e3dbb39e97ce1f09da3a3",
-      "file": "vendor/agent-mc-qiandengji-0.5.0-dev.20261019.7.tgz",
-      "sha256": "0083dfc261629f301704181b11b33802bf8c42fc3c46fcc776b3ae198ad77fad",
-      "integrity": "sha512-138VeSUftriph9K0kL6u9od6NkUB5s1l9u/sZcIOdkKiCGIj3UNR92GaP7+UukLNGWXL9Ro2HDuPxj9RrGk1Fw=="
+      "npm": "agent-mc-qiandengji@0.5.0-rc.3",
+      "registry": "https://registry.npmjs.org/",
+      "integrity": "sha512-HZ9R/ad9LPB5Ke3/o4atpBrUuA+klFdzBylf/AbThvdrpWigIgSSK0/XFQlAmcg0Hz8AtijwFcvUs2tBjT2CAQ==",
+      "previousVendorCandidate": {
+        "file": "vendor/agent-mc-qiandengji-0.5.0-dev.20261019.7.tgz",
+        "commit": "4889e114bb42c049732e3dbb39e97ce1f09da3a3",
+        "sha256": "0083dfc261629f301704181b11b33802bf8c42fc3c46fcc776b3ae198ad77fad"
+      }
     }
   ],
   "coreSourceFilesSha256": "20d2c251d296d437a5ca5c8d568cd0b8aa37e4881fb71eae7b615da9500b701f",
@@ -424,5 +432,6 @@
     "commit": "310faa2bf22e41b95287ecf088ed20f069703ea8",
     "assetPack": "java-1.21.1",
     "sha256": "c0fd68be2eec04ed848c38593c24cc949faef3361f3cdeb9cc3df33e1e5019e2"
-  }
+  },
+  "note": "Published npm releases are the default install source. The source commit of the published tarballs is not recorded in npm metadata; sourceVerification below describes the previous vendor candidate (core rc.46)."
 }
