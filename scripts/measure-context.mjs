@@ -9,7 +9,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, nullLogger } from 'agent-mc-world/client';
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { modelToolSchema } from '../src/harness-bridge.mjs';
-import { selectTools, slimSchema, slimDescription } from '../src/harness-budget.mjs';
+import { selectTools, slimToolSchema, slimDescription } from '../src/harness-budget.mjs';
 
 const pack = process.argv[2] ?? 'qiandengji', persona = process.argv[3] ? readFileSync(process.argv[3], 'utf8') : '';
 const dir = mkdtempSync(join(tmpdir(), 'dsh-measure-'));
@@ -26,7 +26,7 @@ const tools = (await client.listTools()).tools;
 const prefix = await runtime.environment();
 const help = tools.find(t => t.name.endsWith('_tool_help'))?.name;
 const full = tools.filter(t => !t.name.endsWith('_trace')).map(t => ({ name: t.name, description: t.description, parameters: modelToolSchema(t.inputSchema) }));
-const lean = selectTools(tools, {}).map(t => ({ name: t.name, description: slimDescription(t, help), parameters: slimSchema(modelToolSchema(t.inputSchema)) }));
+const lean = selectTools(tools, {}).map(t => ({ name: t.name, description: slimDescription(t, help), parameters: slimToolSchema(modelToolSchema(t.inputSchema)) }));
 const chars = v => JSON.stringify(v).length;
 const est = n => Math.ceil(n / 4); // DSH token meter heuristic (chars/4); real CJK-heavy usage is higher.
 const sys = (persona + '\n\n' + prefix).length;

@@ -145,3 +145,62 @@ export function goalClosed(value) {
 export function redactUrl(text) {
   return typeof text === 'string' ? text.replace(/([?&#](?:token|access_token|key|auth)=)[^&#\s]+/gi, '$1***') : text;
 }
+
+// ---- Fallbacks for agent-mc-world releases without src/client/context-budget (<= 0.5.7-rc.47).
+// Same behavior as the core's classifyWake / compactToolSchema; the host prefers the core exports.
+export const WAKE_DEFAULT = ['whisper', 'mention', 'danger', 'connection'];
+export const WAKE_ACTIVE_GOAL = [...WAKE_DEFAULT, 'task', 'goal'];
+const DANGER = /濒死|生命 ?\d+\/20|受到|被.{0,12}(攻击|打|伤)|敌对|有害|中了「|死了[^(（]|你死|重生点失效|溺水|着火|岩浆|服务器(停|出问题)|下线|断开|Boss 血条/u;
+const CONNECTION = /disconnect|lifecycle|kicked|leave_self/i;
+export function classifyWakeFallback(event, options = {}) {
+  const wakeOn = new Set(options.wakeOn ?? WAKE_DEFAULT);
+  const decide = category => ({ wake: wakeOn.has(category), category });
+  const kind = event.type.slice(event.type.indexOf('.') + 1), text = String(event.text ?? '');
+  const names = (options.selfNames ?? []).filter(Boolean).map(n => n.toLocaleLowerCase());
+  if (event.contextDelivery === 'archive-only') return { wake: false, category: 'piggyback' };
+  if (CONNECTION.test(kind)) return decide('connection');
+  if (kind === 'chat') {
+    if (text.startsWith('[MC 私聊发出]')) return { wake: false, category: 'self' };
+    if (text.startsWith('[MC 私聊]')) return decide('whisper');
+    const speaker = typeof event.meta?.uname === 'string' ? event.meta.uname : undefined;
+    if (!speaker) return { wake: false, category: 'system' };
+    if (names.includes(speaker.toLocaleLowerCase())) return { wake: false, category: 'self' };
+    const body = text.replace(/^\[MC[^\]]*\]\s*[^:：]*[:：]\s*/u, '').toLocaleLowerCase();
+    return names.some(n => body.includes(n) || body.includes('@' + n)) ? decide('mention') : { wake: false, category: 'chat-other' };
+  }
+  if (event.trigger === 'piggyback') return { wake: false, category: 'piggyback' };
+  if (kind === 'task') return decide('task');
+  if (kind.startsWith('task.')) return { wake: false, category: 'ambient' };
+  if (kind.startsWith('goal')) return decide('goal');
+  if ((kind === 'event' || kind === 'body') && event.trigger === 'flush' && DANGER.test(text)) return decide('danger');
+  return { wake: false, category: 'ambient' };
+}
+
+/** Collapse object item pools wider than `limit` properties to their discriminator, keeping the signature text. */
+export function collapseWidePools(schema, limit = 24, signatureChars = 3000) {
+  if (Array.isArray(schema)) return schema.map(s => collapseWidePools(s, limit, signatureChars));
+  if (!schema || typeof schema !== 'object') return schema;
+  const out = {};
+  for (const [k, v] of Object.entries(schema)) out[k] = ['enum', 'const', 'default'].includes(k) ? v : collapseWidePools(v, limit, signatureChars);
+  const items = schema.items;
+  if (items && typeof items === 'object' && items.properties && Object.keys(items.properties).length > limit) {
+    const required = Array.isArray(items.required) ? items.required : [];
+    out.items = { type: 'object', properties: Object.fromEntries(required.filter(k => items.properties[k])
+      .map(k => [k, Object.fromEntries(Object.entries(items.properties[k]).filter(([key]) => key !== 'description'))])),
+      ...(required.length ? { required } : {}), additionalProperties: true };
+    if (typeof schema.description === 'string') out.description = condense(schema.description, signatureChars);
+  }
+  return out;
+}
+
+/** Local compact schema: collapse wide pools, drop prose, keep collapsed nodes' signature text. */
+export function slimToolSchema(schema, paramChars = 80) {
+  const collapsed = collapseWidePools(schema);
+  const slim = slimSchema(collapsed, paramChars);
+  for (const [key, value] of Object.entries(collapsed.properties ?? {})) {
+    const wasWide = schema.properties?.[key]?.items?.additionalProperties !== true;
+    if (wasWide && value?.items?.additionalProperties === true && typeof value.description === 'string')
+      slim.properties[key].description = value.description;
+  }
+  return slim;
+}

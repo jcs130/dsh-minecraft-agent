@@ -4,16 +4,21 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } from 'agent-mc-world/client';
+import * as coreClient from 'agent-mc-world/client';
+const { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } = coreClient;
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
 import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, modelToolSchema } from './harness-bridge.mjs';
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { applyGoalControl } from './harness-goal.mjs';
-import { compactionForBudget, overflowFinish, selectTools, slimSchema, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS } from './harness-budget.mjs';
+import { compactionForBudget, overflowFinish, selectTools, slimSchema, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL } from './harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
+// Prefer the core's context helpers (agent-mc-world > 0.5.7-rc.47); fall back to identical local copies.
+const coreBudget = typeof coreClient.classifyWake === 'function' && typeof coreClient.compactToolSchema === 'function';
+const classifyWake = coreBudget ? coreClient.classifyWake : classifyWakeFallback;
+const wakeSets = coreBudget ? { idle: coreClient.WAKE_DEFAULT, active: coreClient.WAKE_ACTIVE_GOAL } : { idle: WAKE_DEFAULT, active: WAKE_ACTIVE_GOAL };
 const { version: coreVersion } = require('agent-mc-world/package.json');
 const { version: adapterVersion } = require('@jcs130/dsh-minecraft-agent/package.json');
 
@@ -69,7 +74,9 @@ export async function apply(ctx, options = {}) {
     runtime = new MinecraftAgentClient({ ...runtimeOptions, cfg });
   } else throw Error('Unknown explicit Minecraft server pack');
   const lifetime = new AbortController();
-  const server = createMinecraftMcpServer(runtime, coreVersion);
+  const lean = config.tools?.profile !== 'full';
+  // Newer cores advertise the compact catalogue themselves; older ones ignore the option.
+  const server = createMinecraftMcpServer(runtime, coreVersion, lean ? { catalog: 'compact', compact: { descriptionChars: config.tools?.descriptionChars ?? 300, parameterChars: config.tools?.parameterChars ?? 80 } } : {});
   const client = new Client({ name: 'dsh-minecraft-agent', version: adapterVersion });
   const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport); await client.connect(clientTransport);
@@ -85,6 +92,8 @@ export async function apply(ctx, options = {}) {
   let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
   const setPaused = value => { connectionIntent.set(value); paused = value; };
   let lastTokens = 0, shuttingDown, pendingGoalClose = null;
+  const wakeNames = [config.minecraft?.username, config.name, ...(config.wake?.names ?? [])].filter(Boolean);
+  const wakeStats = { seen: 0, woken: 0 };
   const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|blocked|risk|hear|attention)$/;
   const gameToolNames = new Set(tools.map(t => t.name));
   const noop = new NoopRounds(config.noopRoundLimit ?? 3, name => gameToolNames.has(name) && !quiet.test(name));
@@ -178,18 +187,18 @@ export async function apply(ctx, options = {}) {
     agentCtx.systemPrompt.context({ name: 'minecraft:current-facts', order: 9990,
       text: () => JSON.stringify(runtime.currentFacts()) });
     agentCtx.systemPrompt.context({ name: 'minecraft:events', order: 9991,
-      text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: compactEvents(recentEvents, view.events, view.eventChars) }) });
+      text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: (coreClient.compactEvents ?? compactEvents)(recentEvents, view.events, view.eventChars) }) });
     const gameTools = new Set(tools.map(tool => tool.name));
     agentCtx.on('tools/post-execute', (exec, result, next) =>
       gameTools.has(exec.name) ? mcpResultDecision(exec, result, next) : next());
     const helpName = tools.find(t => t.name.endsWith('_tool_help'))?.name;
     for (const spec of selectTools(tools, config.tools)) {
       // Exact schemas keep every constraint; prose lives behind *_tool_help to keep the fixed prompt small.
-      const parameters = config.tools?.profile === 'full' ? modelToolSchema(spec.inputSchema)
-        : slimSchema(modelToolSchema(spec.inputSchema), view.parameterChars);
+      const parameters = !lean || coreBudget ? modelToolSchema(spec.inputSchema)
+        : slimToolSchema(modelToolSchema(spec.inputSchema), view.parameterChars);
       if (spec.name.endsWith('_protocol')) parameters.properties.action.enum = ['task', 'facts', 'archive', 'archive_runs', 'prepare_context', 'cancel'];
       if (spec.name.endsWith('_connection')) parameters.properties.action.enum = ['status', 'environment'];
-      agentCtx.tools.register({ name: spec.name, description: config.tools?.profile === 'full' ? spec.description : slimDescription(spec, helpName, view.descriptionChars), parameters,
+      agentCtx.tools.register({ name: spec.name, description: !lean || coreBudget ? spec.description : slimDescription(spec, helpName, view.descriptionChars), parameters,
         output: { schema: { type: 'object' }, render: (_args, value) => capBlocks(renderReceipt(value), view.receiptChars) },
         isConcurrencySafe: () => false,
         execute: async (args, exec) => {
@@ -310,10 +319,14 @@ export async function apply(ctx, options = {}) {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
       eventCursor = events.nextCursor;
       if (events.events?.length) recentEvents = [...recentEvents, ...events.events].slice(-24);
-      const important = events.events?.filter(e => /chat|damage|death|task|completed|failed|login|disconnect/i.test(e.type));
-      inbox.add(important ?? []);
+      // Wake only for events a person would interrupt for; everything else rides the next snapshot.
+      const goalNow = currentGoal();
+      const wakeOn = config.wake?.on ?? (goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle);
+      const important = (events.events ?? []).filter(e => classifyWake(e, { selfNames: wakeNames, wakeOn }).wake);
+      wakeStats.seen += events.events?.length ?? 0; wakeStats.woken += important.length;
+      inbox.add(important);
       inbox.flush(handle.agent, currentGoal(), paused || lifetime.signal.aborted, createUserMessage);
-      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens });
+      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, coreBudget });
     } catch (error) { if (!lifetime.signal.aborted && !shuttingDown) {
       if (!paused) lifecycle.failed('poll', error);
       status(paused ? { state: 'paused', goal: currentGoal() }

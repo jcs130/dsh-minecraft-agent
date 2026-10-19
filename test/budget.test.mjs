@@ -102,3 +102,40 @@ test('host wires the guards: lean tools, overflow retry, signals, stopped status
   assert.match(src, /chat\.check\(spec\.name, args\)/);
   assert.match(src, /goalClosed\(value\)/);
 });
+
+test('wake filter: whispers/mentions/danger wake, other players chat and countdowns do not', async () => {
+  const { classifyWakeFallback, WAKE_ACTIVE_GOAL } = await import('../src/harness-budget.mjs');
+  const self = { selfNames: ['ag_jojo', 'Jojo'] };
+  const chat = (text, uname, trigger = 'debounce') => ({ type: 'mymc.chat', text, trigger, ...(uname ? { meta: { uname } } : {}) });
+  assert.equal(classifyWakeFallback(chat('[MC] ag_CorMy: 小鱼早呀~ 天亮了', 'ag_CorMy'), self).wake, false);
+  assert.equal(classifyWakeFallback(chat('[MC] ag_CorMy: 欢迎回来 Jojo~', 'ag_CorMy', 'flush'), self).category, 'mention');
+  assert.equal(classifyWakeFallback(chat('[MC 私聊] ag_CorMy: 在吗'), self).wake, true);
+  assert.equal(classifyWakeFallback(chat('[MC 插件] 槽位1', undefined, 'flush'), self).wake, false);
+  assert.equal(classifyWakeFallback({ type: 'mymc.event', text: '[Minecraft] ☆ 旅人顺风 | 1:25 状态条进度为 47%。', trigger: 'debounce' }, self).wake, false);
+  assert.equal(classifyWakeFallback({ type: 'mymc.event', text: '[Minecraft] 濒死!生命只剩 3/20', trigger: 'flush' }, self).wake, true);
+  const task = { type: 'mymc.task', text: '[执行器] 任务#6 完成', trigger: 'flush' };
+  assert.equal(classifyWakeFallback(task, self).wake, false);
+  assert.equal(classifyWakeFallback(task, { ...self, wakeOn: WAKE_ACTIVE_GOAL }).wake, true);
+});
+
+test('local compact schema collapses the mc_do field pool but keeps the skill enum and signatures', async () => {
+  const { slimToolSchema } = await import('../src/harness-budget.mjs');
+  const pool = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`f${i}`, { type: 'integer', minimum: 0, description: 'note' }]));
+  const schema = { type: 'object', required: ['steps'], properties: {
+    steps: { type: 'array', description: 'goto(at*) — 走过去\nchat(text*)', items: { type: 'object', required: ['skill'],
+      properties: { skill: { type: 'string', enum: ['goto', 'chat'], description: 'x' }, ...pool } } },
+    queue: { type: 'string', enum: ['now', 'append'], description: 'long '.repeat(40) } } };
+  const slim = slimToolSchema(schema, 40);
+  assert.deepEqual(slim.properties.steps.items, { type: 'object', properties: { skill: { type: 'string', enum: ['goto', 'chat'] } }, required: ['skill'], additionalProperties: true });
+  assert.equal(slim.properties.steps.description, 'goto(at*) — 走过去\nchat(text*)');
+  assert.deepEqual(slim.properties.queue.enum, ['now', 'append']);
+  assert.deepEqual(slim.required, ['steps']);
+});
+
+test('fallback wake classifier matches the core when the installed core provides one', async t => {
+  const core = await import('agent-mc-world/client');
+  if (typeof core.classifyWake !== 'function') return t.skip('installed agent-mc-world predates classifyWake');
+  const { classifyWakeFallback } = await import('../src/harness-budget.mjs');
+  for (const event of [{ type: 'mymc.chat', text: '[MC] a: hi Jojo', meta: { uname: 'a' } }, { type: 'mymc.event', text: '濒死', trigger: 'flush' }])
+    assert.deepEqual(classifyWakeFallback(event, { selfNames: ['Jojo'] }), core.classifyWake(event, { selfNames: ['Jojo'] }));
+});
