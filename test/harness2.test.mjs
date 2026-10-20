@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {createServer} from 'node:http';
-import {createDshHarness2Model,dshPracticeTool,configuredDshPractice} from '../src/harness2.mjs';
+import {createDshHarness2Model,dshPracticeTool,configuredDshPractice,bindDshHarness2Lab} from '../src/harness2.mjs';
 const require=createRequire(import.meta.url);
 
 test('Harness2 uses the DSH native DeepSeek route, session, selected thinking level and final usage',async()=>{
@@ -54,4 +54,16 @@ test('Agent practice tool allows configured jobs only, carries cancellation and 
   const result=await tool.execute({jobId:'walk-job'},{signal:new AbortController().signal});assert.equal(result.adopted,false);assert.equal(jobs[0].task,'walk');
   await assert.rejects(tool.execute({jobId:'other'},{signal:new AbortController().signal}));assert.equal(calls,1);
   assert.equal(await configuredDshPractice({config:{harness2:{enabled:false}}}),null);
+});
+
+test('optional independent Harness2 lab reads the existing scoped core monitor without new model or body work',()=>{
+  let injection,source,cleanup,reads=0,disposed=0;
+  bindDshHarness2Lab({inject(deps,fn){assert.deepEqual(deps,['harness2']);injection=fn;}},'owned',
+    {snapshot(){reads++;return{jobs:[{id:'walk.v1',status:'completed',phase:'settled',updatedAt:123,
+      result:{eligible:true,evidenceCount:6,prompt:'PRIVATE'},candidate:'PRIVATE'}]};}});
+  assert.equal(reads,0);
+  injection({harness2:{registerSource(value){source=value;return()=>{disposed++;};}},effect(factory){cleanup=factory();}});
+  assert.match(source.id,/^mc-[a-f0-9]{24}$/);assert.deepEqual(source.snapshot('other'),[]);assert.equal(reads,0);
+  const rows=source.snapshot('owned');assert.equal(reads,1);assert.equal(rows[0].result.evidenceCount,6);assert.ok(!JSON.stringify(rows).includes('PRIVATE'));
+  cleanup();assert.equal(disposed,1);bindDshHarness2Lab({},'owned',{});
 });

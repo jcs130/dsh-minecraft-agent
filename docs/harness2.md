@@ -26,3 +26,9 @@ const report = await runner.run(job, signal);
 practice 必须是核心 `PracticeExecutionPort` 的专用实例，不能复用正在直播的身体。memory.call 必须进入现有正确作用域的 mc_memory，并返回解包后的 JSON 记录。可用 `dshPracticeTool(runner,jobs,lifetimeSignal)` 将受限任务注册到自己的 DSH Agent；不把生产世界、人格、密钥或私人会话复制到练习目录。
 
 详见[核心设计与安装](https://github.com/jcs130/minecraft-ai-friend/blob/main/packages/agent-mc-world/docs/harness2.md)。关闭 harness2.enabled 停止后续任务；现役暂停状态不会被本集成改变。回退依赖需恢复之前的包和锁文件，保留未决账本与原方法历史。本次验收覆盖离线物理和 DSH 本地协议模拟，不宣称真实模型或线上胜率提升。
+
+## 独立 DSH Harness² 实验室
+
+安装独立的 `@jcs130/dsh-harness2` 后，本适配器会把已配置的核心实验监测注册到原生“实验室”子页。该注册仅作元数据投影，不启动游戏、模型或新试跑；会话不匹配时返回空列表。核心仍持有 `Harness2Runner`、物理执行、验收、MethodLibrary 与游戏记忆，启动实验仍使用既有 `mc_practice` 工具。
+
+未安装实验室插件时不增加依赖，原有 Minecraft 实验页保持可用。源码集成不代表新包已经发布、市场已上架或现役进程已加载。
