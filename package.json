@@ -63,6 +63,7 @@
     "docs/harness-migration.md",
     "docs/harness2.md",
     "docs/desktop.md",
+    "docs/registry-release.md",
     "assets/icon.svg",
     "locales",
     "examples/harness",

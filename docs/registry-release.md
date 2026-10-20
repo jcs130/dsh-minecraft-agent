@@ -1,12 +1,14 @@
-# Registry 分发修复候选 rc.9
+# Registry 分发与 rc.9 验收
 
-状态：源码准备完成，尚未发布或声称默认 DSH 安装通过。当前缺少有效的本机 npm 登录；不要在聊天、仓库或 profile 中保存 npm token。
+本页记录 rc.9 的分发修复与验收顺序，包内文档是打包时快照；实际公开发布状态以 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9) 的验证记录为准。源码提交、npm/GitHub 发布、默认 DSH 安装、Desktop 画面及现役加载分别记录。不要在聊天、仓库或 profile 中保存 npm token。
+
+2026-10-21 发布进度：核心包上传已获 npm HTTP 202 接受，CLI 正常退出并提示仍在处理；公开 registry 元数据与归档暂不可用。适配器 rc.9 尚未发布，默认 DSH 的全新 registry 安装尚未验收，市场 PR18 保持草稿，发现入口继续暂缓。不能把上传接受当作公开可安装。
 
 rc.8 的 npm 干净安装能够通过，但真实 `dsh plugin add` 在默认 pnpm11 下报告 ERR_PNPM_EXOTIC_SUBDEP，原因是核心的 GitHub URL 子依赖。官方 Desktop 0.2.1-rc.2 源码锁定 pnpm11.28.5。本次修复把核心依赖改成 registry SemVer 0.5.7-rc.57，并检查完整锁文件均来自 registry.npmjs.org；不关闭 blockExoticSubdeps，不加宽泛 allowBuilds，不降级包管理器。
 
-核心的已验证 tgz 保持不变：SHA256 317ff114bf73dc2570009ff1e6cacf4127bd9020b430d413ae27bbfa306b59a1，来源提交 e4f18f6ecd4e28a6d3ad7b2657514b8aec959a3a。它已有 GitHub Release，尚未确认 npm publication。
+核心的已验证 tgz 保持不变：SHA256 317ff114bf73dc2570009ff1e6cacf4127bd9020b430d413ae27bbfa306b59a1，来源提交 e4f18f6ecd4e28a6d3ad7b2657514b8aec959a3a。npm 与 GitHub 必须使用相同字节，不能用重新打包的制品覆盖原版本。
 
-完成授权登录后的顺序：
+发布与安装的验收顺序：
 
 1. `npm whoami --registry=https://registry.npmjs.org` 确认当前账号；读取现有维护者权限，沿用已验证的核心 tgz 发布到 next 标签，不重新生成不同的核心字节。
 2. 从 npm 读取 agent-mc-world@0.5.7-rc.57 的 dist.integrity，核对为 sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A==。
@@ -15,4 +17,4 @@ rc.8 的 npm 干净安装能够通过，但真实 `dsh plugin add` 在默认 pnp
 5. 使用隔离 DSH_HOME、Node24 和官方匹配的 pnpm11.28.5，在默认保护下实际执行 dsh plugin add，确认 bundle patch、客户端入口与会话绑定；保持安装不启动模型或身体。
 6. 默认安装验收完成后，再移除 rc.8 安装阻塞提醒、恢复市场索引为 rc.9，更新社区 PR18 的条目/生成索引并转为待审核。原生 Desktop 窗口像素验收仍需可用的桌面浏览器通道，不能由协议测试代替。
 
-市场 PR：https://github.com/ydhrdh/dsh-marketplace/pull/18，目前为草稿。rc.8 Release 已写明阻塞，当前主分支发现索引不提供可安装条目。现役 Agent、模型、World 和客户端不因发布重载。
+市场 PR：https://github.com/ydhrdh/dsh-marketplace/pull/18，由维护者审核；提交或转为待审核都不等于已上架社区主索引。rc.8 Release 保留原失败与阻塞说明，新的预览版完成安装验收后再更新当前发现入口。现役 Agent、模型、World 和客户端不因发布重载。

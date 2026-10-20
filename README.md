@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-> 安装提醒：rc.8 的 GitHub URL 核心子依赖被默认 pnpm 拒绝（ERR_PNPM_EXOTIC_SUBDEP）。当前尚不能按默认 Desktop 流程直接安装，市场条目已暂缓。正在准备 registry 依赖版本，保留包管理器的默认保护。
+> rc.9 将核心子依赖改为固定的 npm registry 版本，修复 rc.8 的 URL 子依赖分发问题。发布、默认 DSH 安装与原生 Desktop 画面分别验收，进度见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -10,7 +10,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.8 公开预览版**，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.57，可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。通过 GitHub Release / 固定 Git 版本分发，[桌面与实验室指南](docs/desktop.md)包含安装和使用方法。普通 npm registry 暂未发布本作用域包。
+**0.3.0-rc.9 registry 发布候选**，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.57，可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。发行后的固定安装目标为 `@jcs130/dsh-minecraft-agent@0.3.0-rc.9`；[桌面与实验室指南](docs/desktop.md)包含安装和使用方法，实际发布状态以[发布记录](docs/registry-release.md)为准。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -37,7 +37,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 开发
 
-克隆后直接执行 `npm ci`（核心锁定 GitHub Release，其余包使用 registry.npmjs.org，均有完整性校验）。验证未发布的本地候选 tgz 见 [安装说明](README-INSTALL.md#可选本地候选-tgz)。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
+克隆后直接执行 `npm ci`（全部锁文件依赖来自 registry.npmjs.org，均有完整性校验）。验证未发布的本地候选 tgz 见 [安装说明](README-INSTALL.md#可选本地候选-tgz)。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
 
 主模型工具动作携带真实 session/turn/step 的 `system2` 归因；不把规则动作或影子建议冒充学习策略采用。状态文件显示实际安装的核心和适配器版本、请求的思考等级；流耗时与首字延迟不等于引擎执行耗时。
 

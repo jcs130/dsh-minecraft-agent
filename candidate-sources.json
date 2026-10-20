@@ -3,7 +3,7 @@
   "adapterVersion": "0.3.0-rc.9",
   "publication": {
     "channel": "registry-candidate",
-    "status": "awaiting-npm-authentication",
+    "status": "awaiting-core-registry-processing",
     "tag": "v0.3.0-rc.9",
     "registryPublished": false
   },
@@ -70,5 +70,5 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Unpublished registry-only rc.9 preparation. Core bytes already verified from GitHub; no registry installation or default DSH install success is claimed until authentication and publication complete."
+  "note": "Unpublished registry-only rc.9 preparation. npm has accepted the unchanged verified core artifact with HTTP 202, but anonymous registry metadata/archive verification is still pending. Upload acceptance, public availability, default DSH installation and live deployment remain separate. No registry installation or default DSH install success is claimed."
 }
