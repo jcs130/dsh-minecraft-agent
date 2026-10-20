@@ -1,11 +1,11 @@
-# 安装当前 Harness 候选版
+# 安装 DSH Minecraft Agent 0.3.0-rc.8
 
-需要 Node.js 24 和 DSH 0.2.1-rc.2。本次 rc.7 / 核心 rc.54 是尚未发布的本地 Harness² 候选：先按 candidate-sources.json 的来源与哈希，把核心归档放到被忽略的 vendor/agent-mc-world-0.5.7-rc.54.tgz，再从源码执行 npm ci、npm test、npm run build。锁文件已锁定这份候选；其余依赖仍从 registry 安装。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
+需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。发行包已包含构建后的前端，不需要手动准备 vendor 候选。核心锁定公开 GitHub Release，其余依赖使用 registry.npmjs.org，均含完整性校验。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
 
-若只需要先前已发布的组合，可继续安装 rc.6（不含本次 Harness² 接入）：
+安装公开 GitHub 固定版本：
 
 ```sh
-npm install @jcs130/dsh-minecraft-agent@0.3.0-rc.6 @deepseek-ai/dsh@0.2.1-rc.2
+dsh plugin --profile web add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.8
 ```
 
 从源码开发：
@@ -15,7 +15,7 @@ git clone https://github.com/jcs130/dsh-minecraft-agent && cd dsh-minecraft-agen
 npm ci && npm test && npm run build
 ```
 
-除上述显式核心候选外，锁文件指向 `https://registry.npmjs.org/`。国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：
+Desktop 用户优先使用插件管理器；CLI 必须使用 Desktop 随附的命令且先完全退出桌面程序，详见[桌面与实验室指南](docs/desktop.md)。普通 npm registry 暂未发布本作用域包。国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：
 
 ```sh
 npm ci --registry=https://registry.npmmirror.com
@@ -50,7 +50,7 @@ dsh web --no-open --profile <profile> 2>&1 | sed -E 's/(token=)[^&[:space:]]+/\1
 npm install ./vendor/agent-mc-world-<版本>.tgz ./vendor/agent-mc-qiandengji-<版本>.tgz
 ```
 
-`candidate-sources.json` 分别记录本地核心候选与已发布服务器包的来源及完整性校验。Harness² 使用与回退见 [harness2.md](docs/harness2.md)，默认不启用。
+`candidate-sources.json` 记录核心与服务器包的来源及完整性校验。Harness² 使用与回退见 [harness2.md](docs/harness2.md)，默认不启用。
 
 只有需要千灯纪服务器协议时才配置 `serverPack: qiandengji`。普通服务器使用 `none`，不启用服务器专用规则。核心和适配器不需要 Cortico 主项目。
 

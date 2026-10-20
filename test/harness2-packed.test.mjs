@@ -51,9 +51,11 @@ if(Math.hypot(dx,dz)<0.65)break;await bot.look(Math.atan2(-dx,-dz),0);await bot.
           id:'packed-walk',methodId:'packed-walk',task:'Reach mc.state().target using observed snapshot.position. Await bot.look, setControlState, waitForTicks and clearControlStates; release keys. Flat supported Java 1.21.1.',
           baseline:{code:'return (await mc.state()).snapshot.position;',params:{},guidance:'Only read; wiring-check baseline.'},train:'walk-1',holdout:['walk-2'],mode:'parallel',k:1,
           budget:{modelCalls:6,trials:6,wallMs:180000,trialMs:10000,contextBytes:300000}}]}};
-      const tool=await configuredDshPractice({ctx:{llm:{stream:options=>adapter.stream(options)}},config,dataDir:dir,sessionId:'fixture-session',metrics:{report:r=>metrics.push(r)},
+      let monitor;
+      const tool=await configuredDshPractice({ctx:{llm:{stream:options=>adapter.stream(options)}},config,dataDir:dir,sessionId:'fixture-session',metrics:{report:r=>metrics.push(r)},onMonitor:value=>{monitor=value;},
         bridge:{call:async(name,args)=>{assert.equal(name,'mc_memory');return{structuredContent:{text:JSON.stringify(book.execute(args,{scope,dimension:null}))}};}},memoryTool:'mc_memory',lifetimeSignal:new AbortController().signal});
       assert.equal(requests.length,0);
+      assert.equal(monitor.snapshot().jobs[0].status,'not-started');
       const started=new Date().toISOString(),result=await tool.execute({jobId:'packed-walk'},{signal:new AbortController().signal});
       assert.equal(result.gate.eligible,true);assert.equal(result.adopted,false);assert.equal(result.trials,6);assert.equal(result.modelCalls,4);
       assert.equal(requests.length,4);assert.ok(requests.every(r=>r.session==='harness2:fixture-session'&&r.thinking.type==='disabled'));
@@ -61,6 +63,17 @@ if(Math.hypot(dx,dz)<0.65)break;await bot.look(Math.atan2(-dx,-dz),0);await bot.
       assert.deepEqual(await tool.execute({jobId:'packed-walk'},{signal:new AbortController().signal}),result);assert.equal(requests.length,4);
       const journal=JSON.parse(await readFile(join(dir,'practice/jobs/packed-walk/journal.json'),'utf8'));
       assert.equal(journal.memory,'stored');assert.equal(journal.status,'completed');
+      const projected=monitor.snapshot();
+      assert.equal(projected.jobs[0].status,'completed');assert.equal(projected.jobs[0].memory,'stored');
+      assert.equal(projected.jobs[0].result.eligible,true);assert.equal(projected.jobs[0].result.adopted,false);
+      assert.equal(projected.jobs[0].timeline.filter(t=>t.kind==='trial').length,6);
+      assert.ok(!JSON.stringify(projected).includes('setControlState'));assert.ok(!JSON.stringify(projected).includes('release keys'));
+      await writeFile(join(dir,'experiment-snapshot.json'),JSON.stringify(projected,null,2));
+      let historical;
+      assert.equal(await configuredDshPractice({config:{...config,harness2:{...config.harness2,enabled:false}},dataDir:dir,
+        sessionId:'fixture-session',onMonitor:m=>{historical=m;}}),null);
+      assert.equal(historical.snapshot().enabled,false);assert.equal(historical.snapshot().jobs[0].status,'completed');
+      assert.equal(requests.length,4); // History inspection never reruns the model or body.
       await writeFile(join(dir,'summary.json'),JSON.stringify({started,ended:new Date().toISOString(),dataClass:'offline-physics-and-loopback-provider',tokenUsageIsSyntheticFixture:true,realModelApiCalls:0,loopbackProviderCalls:requests.length,
         result,requests,metrics,core:require('agent-mc-world/package.json').version,adapter:require('@jcs130/dsh-minecraft-agent/package.json').version},null,2));
     }finally{await new Promise(r=>server.close(r));if(!keep)await rm(dir,{recursive:true,force:true});}

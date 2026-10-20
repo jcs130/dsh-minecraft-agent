@@ -1,7 +1,12 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.7",
-  "published": false,
+  "adapterVersion": "0.3.0-rc.8",
+  "publication": {
+    "channel": "github-release",
+    "tag": "v0.3.0-rc.8",
+    "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.8",
+    "registryPublished": false
+  },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
     "tag": "dsh-v0.2.1-rc.2",
@@ -14,12 +19,13 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "476c7a6a8fcf6aa5be672a09cad9fa7c598dd981",
-      "version": "0.5.7-rc.54",
-      "file": "vendor/agent-mc-world-0.5.7-rc.54.tgz",
-      "sha256": "22ae51d5b0646167f43882d8599533fe63bb87df3b18577f7f86d5e9367a7d10",
-      "integrity": "sha512-yej2kqBSw578PNiIFi5zygHhs8rUZlaG4XEhaL6n+IZLCv94Dtatag3IPc1wObDuqzc0efVoS8BdZr93Z11FIw==",
-      "published": false,
+      "commit": "e4f18f6ecd4e28a6d3ad7b2657514b8aec959a3a",
+      "version": "0.5.7-rc.57",
+      "url": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.57/agent-mc-world-0.5.7-rc.57.tgz",
+      "sha256": "317ff114bf73dc2570009ff1e6cacf4127bd9020b430d413ae27bbfa306b59a1",
+      "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A==",
+      "published": true,
+      "registryPublished": false,
       "previousNpm": {
         "version": "0.5.7-rc.47",
         "integrity": "sha512-E5DWFNIHevsgSNHTqUhQf5qu5r0EAF4sZAZ2atrJln1SbOgSzifI4Aj1mZfRCBwJjKZ2cPMFnC1BIpskMRkElg=="
@@ -40,18 +46,23 @@
       "published": true
     }
   ],
-  "coreSourceFilesSha256": "bbcaf8530597cac19825dcd992a79b31e4bb79df5c3a880d17ffbe5c1f65a7e4",
+  "coreSourceFilesSha256": "6ae6d34a9bd70e543045ff83e208153c9dd5c6f4584dc9fc93b5083bf92ddc23",
   "sourceVerification": {
-    "sourceEntries": 400,
-    "runtimeEntries": 36902,
+    "sourceEntries": 401,
+    "runtimeEntries": 22137,
     "buildInputVerification": "scripts/verify-build.mjs passed",
-    "publicDeclarations": 325
+    "publicDeclarations": 326
   },
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
-    "commit": "310faa2bf22e41b95287ecf088ed20f069703ea8",
+    "commit": "1c404fbfa60a8c5ac2097eb371e15aa7b1d77c26",
     "assetPack": "java-1.21.1",
-    "sha256": "c0fd68be2eec04ed848c38593c24cc949faef3361f3cdeb9cc3df33e1e5019e2"
+    "sha256": "06b82c75cadd012c3682051f303b94414bae6a6549c41970e3fd3d85515b8b6e",
+    "audio": {
+      "mode": "explicit-first-setup",
+      "files": 7388,
+      "uniqueFiles": 3691
+    }
   },
   "harness2": {
     "repository": "https://github.com/google-research/harness2",
@@ -59,5 +70,5 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Local rc.7/rc.54 candidates. The lockfile requires the verified core vendor archive. Server pack remains a registry dependency. Source integration and isolated tests do not restart or enable a live Agent."
+  "note": "GitHub public preview distribution. Core archive is public and integrity-locked; adapter publication is recorded separately after release. No production restart, model call or adoption is authorized by installation."
 }

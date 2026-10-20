@@ -42,7 +42,7 @@ test('late DSH Web service binds the real port and authenticates the matching pa
   const panel=await openHostConsole(ctx,async origins=>{created.push([...origins]);return{url:'http://127.0.0.1:17851/',close:async()=>{closed++;}};},'owned');
   assert.deepEqual(created,[[]]);assert.equal(panel.url,'http://127.0.0.1:17851/');
   await ready({webServer:{port:17850},connection:{fetch:{register(route){channel=route.path;handler=route.fetch;}}}});
-  assert.deepEqual(created,[[],['http://127.0.0.1:17850']]);assert.equal(closed,1);assert.equal(channel,'/api/mc-harness/panel');
+  assert.deepEqual(created,[[],['http://127.0.0.1:17850','dsh-app://app']]);assert.equal(closed,1);assert.equal(channel,'/api/mc-harness/panel');
   const request=id=>new Request('http://localhost/api/mc-harness/panel',{method:'POST',body:JSON.stringify({type:'client-request',rpcId:'fixture-rpc',method:'mc-harness/panel',payload:{sessionId:id}})});
   assert.equal((await(await handler(request('owned'))).json()).result.ok,true);
   assert.equal((await(await handler(request('other'))).json()).result.ok,false);
@@ -73,6 +73,13 @@ test('native separated service providers register and dispose the authenticated 
     await panel.close();await fiber.dispose();
     assert.equal((await handler.fetch(make(),owner)).status,404);
   }finally{await panel.close();await fiber.dispose();await connection.dispose();await web.dispose();}
+});
+test('native DSH metadata reader resolves the localized package and its shipped icon',async()=>{
+  const req=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));
+  const {readPluginMeta}=await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-app-boot')));
+  const meta=readPluginMeta('@jcs130/dsh-minecraft-agent',new URL('../package.json',import.meta.url).href);
+  assert.equal(meta.error,undefined);assert.equal(meta.title.en,'Minecraft Agent');assert.equal(meta.title.zh,'我的世界 Agent');
+  assert.ok(meta.icon.startsWith('data:image/svg+xml;base64,'));
 });
 test('native DSH patch composition keeps one configured body and a passive frontend entry',async()=>{
   const req=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));

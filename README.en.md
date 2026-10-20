@@ -4,7 +4,7 @@
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The current local candidate is **0.3.0-rc.7**, using DSH **0.2.1-rc.2**, core **0.5.7-rc.54** and optional server pack **0.5.0-rc.3**, with regression coverage for DSH **0.2.0-rc.2**. Minecraft Java **1.21.1** is the primary target. This Harness2 core/adapter candidate is not published; provide the verified core archive listed in candidate-sources.json before installing the candidate lockfile. The optional server pack remains available on npm. Installation alone does not connect or call a model.
+The current public preview is **0.3.0-rc.8**, using DSH **0.2.1-rc.2**, core **0.5.7-rc.57** and optional server pack **0.5.0-rc.3**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Install the GitHub release or `github:jcs130/dsh-minecraft-agent#v0.3.0-rc.8`; this scoped package is not published to npm yet. See [Desktop and experiments](docs/desktop.md). The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
 
 Optional [Harness2 practice](docs/harness2.md) reuses DSH's registered model route and the core's isolated execution, baseline/held-out comparison and game-memory contracts. It is disabled by default and never adopts a skill or resumes a live Agent automatically.
 
@@ -12,7 +12,7 @@ Use Node.js 24. Configure a private `configFile` with explicit `enabled`, accoun
 
 An existing session resumes with its original identity, goals and history. The adapter preserves structured receipts, task terminal states, cancellation and real DSH turn boundaries. Model actions carry actual session/turn/step attribution. Shadow suggestions are not counted as adopted learned actions. Client stream duration is not engine execution time, and unavailable metrics remain unknown.
 
-For development, first provide the verified local core candidate archive, then run `npm ci`, `npm test` and `npm run build`; other dependencies remain pinned to the registry. See the [installation guide](README-INSTALL.md). Tests cover native DSH sessions and actual SDK request formatting against loopback endpoints. `DSH_RUNTIME` can point to an external DSH installation. The build copies only the adapter; it does not bundle another body or import a Cortico checkout.
+For development, run `npm ci`, `npm test` and `npm run build`. The core is pinned to a public GitHub release with integrity metadata; other dependencies remain pinned to the registry. See the [installation guide](README-INSTALL.md). Tests cover native DSH sessions and actual SDK request formatting against loopback endpoints. `DSH_RUNTIME` can point to an external DSH installation. The build copies only the adapter; it does not bundle another body or import a Cortico checkout.
 
 See the [migration guide](docs/harness-migration.md) and [installation guide](README-INSTALL.md). The old 0.1.x implementation is retained as [legacy reference](docs/legacy-0.1.md) and excluded from the default release.
 

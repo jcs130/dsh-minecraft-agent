@@ -90,7 +90,7 @@ export async function apply(ctx, options = {}) {
   const lifecycle = new HostLifecycle({ sessionId, stateFile: join(dataDir, 'host-lifecycle.json'),
     eventsFile: join(dataDir, 'host-lifecycle.ndjson') });
   const connectionIntent = connectionPreference(join(dataDir,'connection-state.json'), config.startPaused);
-  let handle, consoleServer, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
+  let handle, consoleServer, experimentMonitor, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
   const setPaused = value => { connectionIntent.set(value); paused = value; };
   let lastTokens = 0, shuttingDown, pendingGoalClose = null, goalClosedAt = 0;
   const wakeNames = [config.minecraft?.username, config.name, ...(config.wake?.names ?? [])].filter(Boolean);
@@ -189,6 +189,7 @@ export async function apply(ctx, options = {}) {
       name:config.name, model:config.model, reasoningEffort:config.reasoningEffort ?? null, coreVersion, adapterVersion,
       ...hostLifecycle() } }),
     metrics: runtime.metrics, status: () => runtime.status(),
+    experiments: () => experimentMonitor?.snapshot()??{schema:'agent-mc.experiments/v1',sampledAt:Date.now(),enabled:false,scope:'isolated-practice-only',jobs:[]},
     operatorAction: async action => {
       if (action === 'disconnect') {
         setPaused(true); inbox.clear();
@@ -258,10 +259,11 @@ export async function apply(ctx, options = {}) {
         finally { await log.close(); }
       },
     });
-    if(config.harness2?.enabled===true){
+    if(config.harness2){
       const {configuredDshPractice}=await import('./harness2.mjs');
-      agentCtx.tools.register(await configuredDshPractice({ctx,config,dataDir,sessionId,metrics:runtime.metrics,
-        bridge,memoryTool:tools.find(t=>t.name.endsWith('_memory'))?.name,lifetimeSignal:lifetime.signal}));
+      const practiceTool=await configuredDshPractice({ctx,config,dataDir,sessionId,metrics:runtime.metrics,
+        bridge,memoryTool:tools.find(t=>t.name.endsWith('_memory'))?.name,lifetimeSignal:lifetime.signal,onMonitor:monitor=>{experimentMonitor=monitor;}});
+      if(practiceTool)agentCtx.tools.register(practiceTool);
     }
     // DSH restrictions address the GLOBAL roster; scoped game tools remain available.
     agentCtx.tools.restrict({ allow: [] });

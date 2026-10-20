@@ -32,7 +32,9 @@ export async function openHostConsole(ctx, createConsole, sessionId) {
       if (closed || !createConsole) return;
       const previous = server; server = undefined;
       await previous?.close();
-      if (!closed) server = await createConsole([origin]);
+      // Desktop uses the shared Web client at this exact application origin.
+      // This allows framing only; it grants no cross-origin API/control access.
+      if (!closed) server = await createConsole([origin,'dsh-app://app']);
     });
     await binding;
     // Exact Fetch routes inherit Connection's authentication/Origin fence and do

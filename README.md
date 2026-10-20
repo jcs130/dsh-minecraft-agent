@@ -8,7 +8,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-0.3.0-rc.7 本地试运行候选，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.54，可选千灯纪包 0.5.0-rc.3；保留 DSH 0.2.0-rc.2 的回归覆盖，主维护版本为 Minecraft Java 1.21.1。本次 Harness² 核心与适配器候选尚未发布；先准备 candidate-sources.json 中经过校验的核心 tgz，再按锁文件安装。可选服务器包已发布，不需重打包。
+**0.3.0-rc.8 公开预览版**，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.57，可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。通过 GitHub Release / 固定 Git 版本分发，[桌面与实验室指南](docs/desktop.md)包含安装和使用方法。普通 npm registry 暂未发布本作用域包。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -20,7 +20,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 - 私有配置显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。
 - `reasoningEffort` 显式传给 DSH 的创建与恢复入口；`off` 表示本轮关闭思考，其他等级以 provider 声明为准。未配置时沿用 DSH 的选择，不暗中降低模型质量。
 - serverPack 默认 none；千灯纪选择 qiandengji。以当前服务端回执作为事实来源。
-- consolePort 启用本机管理页；DSH 会话中的 Minecraft 标签内嵌同一个共享面板，包含游戏画面、连接与账号、系统一/系统二指标。/metrics 仍可独立打开。minecraft.viewerPort/viewerAssetsDir 指定同一 bot 的现代画面。
+- consolePort 启用本机管理页；DSH 会话中的 Minecraft 标签内嵌同一个共享面板，包含游戏画面、连接与账号、系统一/系统二指标和只读实验室。/#experiments 可直达实验页，/metrics 仍可独立打开。minecraft.viewerPort/viewerAssetsDir 指定同一 bot 的现代画面。
 - 可用 startPaused 设置首次启动暂不连接；之后操作员的连接/断开选择保存在 dataDir/connection-state.json，重启沿用。暂停期间保留会话、目标和记忆，连接后才恢复目标及待投递的操作员指令。
 - minecraft.hostDecisions.combat 显式设置 enabled、endpoint、model、mode、timeoutMs、minIntervalMs、maxAgeMs。快决策状态、候选与驱动来自共享核心，可选服务器包仅转出同一契约；默认关闭，不探测地址。模型不可用时保留核心的规则控制。
 - 上下文预算：`contextTokens` 默认 131072（128k）。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发，不再按模型 1M 窗口计算；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算的请求会先压缩再重试本轮，压缩后仍超出则道别并下线，不会挂机。
@@ -35,7 +35,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 开发
 
-克隆后直接执行 `npm ci`（锁文件指向 registry.npmjs.org，含完整性校验）。验证未发布的本地候选 tgz 见 [安装说明](README-INSTALL.md#可选本地候选-tgz)。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
+克隆后直接执行 `npm ci`（核心锁定 GitHub Release，其余包使用 registry.npmjs.org，均有完整性校验）。验证未发布的本地候选 tgz 见 [安装说明](README-INSTALL.md#可选本地候选-tgz)。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
 
 主模型工具动作携带真实 session/turn/step 的 `system2` 归因；不把规则动作或影子建议冒充学习策略采用。状态文件显示实际安装的核心和适配器版本、请求的思考等级；流耗时与首字延迟不等于引擎执行耗时。
 
