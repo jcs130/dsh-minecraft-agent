@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+> Installation hold: rc.8's GitHub URL core subdependency is rejected by default pnpm (ERR_PNPM_EXOTIC_SUBDEP). Default Desktop installation is not ready. Market listings are withheld pending a registry-only release; keep the package-manager protections enabled.
+
 [简体中文](README.md) | English
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.

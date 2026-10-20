@@ -1,5 +1,7 @@
 # 安装 DSH Minecraft Agent 0.3.0-rc.8
 
+> rc.8 默认 pnpm 安装存在已知阻塞：URL 核心子依赖被拒绝。请等待 registry 依赖版本；以下是预览版说明，不能视为当前可直接安装。不要关闭包管理器保护来绕过。
+
 需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。发行包已包含构建后的前端，不需要手动准备 vendor 候选。核心锁定公开 GitHub Release，其余依赖使用 registry.npmjs.org，均含完整性校验。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
 
 安装公开 GitHub 固定版本：

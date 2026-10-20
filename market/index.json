@@ -5,83 +5,8 @@
     "zh": "Agent MC World 插件"
   },
   "description": {
-    "en": "Minecraft Agent bundles with shared game capabilities and explicit isolated experiments.",
-    "zh": "共享游戏能力、可视化与独立实验的 Minecraft Agent 插件。"
+    "en": "Listings temporarily withheld while preparing registry-only dependencies for default DSH/pnpm installation.",
+    "zh": "正在修复默认 DSH/pnpm 的依赖分发；registry 版本就绪前暂不展示可安装条目。"
   },
-  "metadata": {
-    "categories": {
-      "games": {
-        "title": {
-          "en": "Games and simulation",
-          "zh": "游戏与仿真"
-        }
-      }
-    },
-    "labels": {
-      "preview": {
-        "title": {
-          "en": "Public preview",
-          "zh": "公开预览"
-        }
-      },
-      "desktop": {
-        "title": {
-          "en": "Web / Desktop",
-          "zh": "Web / 桌面版"
-        }
-      }
-    }
-  },
-  "plugins": [
-    {
-      "name": "@jcs130/dsh-minecraft-agent",
-      "title": {
-        "en": "Minecraft Agent",
-        "zh": "我的世界 Agent"
-      },
-      "description": {
-        "en": "One Minecraft body, same-connection visualization, navigation, game memory and a read-only experiment dashboard. Installation starts no game or model; experimental physics results are not live adoption.",
-        "zh": "Minecraft 身体、同连接可视化、导航、游戏记忆与只读实验室。主维护 Java1.21.1；安装不启动游戏或模型，独立物理练习结果不代表线上采用。"
-      },
-      "icon": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/06afaacbafd6db695008c5938f43a93786789426/assets/icon.svg",
-      "author": "jcs130",
-      "homepage": "https://github.com/jcs130/dsh-minecraft-agent#readme",
-      "repository": {
-        "url": "https://github.com/jcs130/dsh-minecraft-agent"
-      },
-      "metadata": {
-        "category": "games",
-        "labels": [
-          "preview",
-          "desktop"
-        ],
-        "keywords": [
-          "minecraft",
-          "我的世界",
-          "mineflayer",
-          "agent",
-          "harness2",
-          "experiments",
-          "game-memory"
-        ]
-      },
-      "dist-tags": {
-        "latest": "0.3.0-rc.8"
-      },
-      "versions": [
-        {
-          "version": "0.3.0-rc.8",
-          "publishTimestamp": 1792508642,
-          "source": {
-            "type": "git",
-            "url": "https://github.com/jcs130/dsh-minecraft-agent",
-            "commit": "06afaacbafd6db695008c5938f43a93786789426"
-          },
-          "engines": {
-            "dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2"
-          }
-        }
-      ]
-    }
-  ]
+  "plugins": []
 }

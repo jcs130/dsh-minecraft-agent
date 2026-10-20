@@ -1,5 +1,7 @@
 # DSH Desktop 与实验室
 
+> 当前 rc.8 的 URL 核心子依赖触发默认 pnpm 的 ERR_PNPM_EXOTIC_SUBDEP，Desktop 默认安装尚未就绪。下一版将使用 registry 依赖；无需、也不建议关闭保护。以下是目标使用流程，市场索引暂不提供此预览版的安装目标。
+
 支持官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件入口，普通 Web 同一套构建。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
 ## 安装

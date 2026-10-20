@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+> 安装提醒：rc.8 的 GitHub URL 核心子依赖被默认 pnpm 拒绝（ERR_PNPM_EXOTIC_SUBDEP）。当前尚不能按默认 Desktop 流程直接安装，市场条目已暂缓。正在准备 registry 依赖版本，保留包管理器的默认保护。
+
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
 ## 核心归属
