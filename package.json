@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.8",
+  "version": "0.3.0-rc.9",
   "repository": { "type": "git", "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git" },
   "homepage": "https://github.com/jcs130/dsh-minecraft-agent#readme",
   "bugs": { "url": "https://github.com/jcs130/dsh-minecraft-agent/issues" },
@@ -76,7 +76,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.57/agent-mc-world-0.5.7-rc.57.tgz"
+    "agent-mc-world": "0.5.7-rc.57"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",

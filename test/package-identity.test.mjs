@@ -25,25 +25,17 @@ test('cordis patch rows point at the scoped module while row ids stay stable', (
   assert.match(patch, /id: mc-harness\s+name: '@jcs130\/dsh-minecraft-agent\/lib\/plugins\/mc-harness\.mjs'/);
 });
 
-test('lockfile uses the public registry or the exact verified public core release', () => {
+test('registry candidate has no URL/file/Git subdependencies and pins the exact verified core bytes', () => {
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
   const sources = JSON.parse(readFileSync(new URL('../candidate-sources.json', import.meta.url), 'utf8'));
   for (const [path, entry] of Object.entries(lock.packages)) {
     if (!entry.resolved) continue;
-    if (entry.resolved.startsWith('https://github.com/jcs130/minecraft-ai-friend/releases/download/')) {
-      const candidate=sources.candidates.find(c=>c.role==='core');
-      assert.equal(candidate?.published,true);
-      assert.equal(path,'node_modules/agent-mc-world');
-      assert.equal(entry.resolved,candidate.url);
-      assert.equal(entry.version,candidate.version);
-      assert.equal(entry.resolved,pkg.dependencies['agent-mc-world']);
-      assert.equal(entry.integrity,candidate.integrity);
-      assert.match(candidate.commit,/^[a-f0-9]{40}$/);
-      assert.match(candidate.sha256,/^[a-f0-9]{64}$/);
-      continue;
-    }
     assert.ok(entry.resolved.startsWith('https://registry.npmjs.org/'), `${path}: ${entry.resolved}`);
   }
+  const candidate=sources.candidates.find(c=>c.role==='core'),core=lock.packages['node_modules/agent-mc-world'];
+  assert.equal(core.version,candidate.version);assert.equal(core.version,pkg.dependencies['agent-mc-world']);
+  assert.equal(core.integrity,candidate.integrity);assert.match(candidate.commit,/^[a-f0-9]{40}$/);
+  assert.match(candidate.sha256,/^[a-f0-9]{64}$/);
 });
 test('DSH metadata is localized and its icon is shipped through the public package',()=>{
   for(const language of ['en','zh']){

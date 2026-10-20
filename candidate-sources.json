@@ -1,10 +1,10 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.8",
+  "adapterVersion": "0.3.0-rc.9",
   "publication": {
-    "channel": "github-release",
-    "tag": "v0.3.0-rc.8",
-    "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.8",
+    "channel": "registry-candidate",
+    "status": "awaiting-npm-authentication",
+    "tag": "v0.3.0-rc.9",
     "registryPublished": false
   },
   "dsh": {
@@ -70,5 +70,5 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "GitHub public preview distribution. Core archive is public and integrity-locked; adapter publication is recorded separately after release. No production restart, model call or adoption is authorized by installation."
+  "note": "Unpublished registry-only rc.9 preparation. Core bytes already verified from GitHub; no registry installation or default DSH install success is claimed until authentication and publication complete."
 }
