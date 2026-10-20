@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "backend": "physics",
+  "seeds": [1, 2],
+  "worker": {
+    "command": "/absolute/path/to/isolated-python/bin/python",
+    "workspace": "/absolute/path/to/linux-local/practice-workspace"
+  },
+  "jobs": [{
+    "id": "walk-wiring-check-v1",
+    "methodId": "walk-wiring-check",
+    "task": "Reach mc.state().target on the loaded flat supported grid. mc.state().snapshot.position is observed. Available bot calls: look(yaw,pitch), setControlState(key,boolean), waitForTicks(n), clearControlStates(). Await every call, release keys in finally. Java 1.21.1. At most 32 API calls and 1000 simulated ticks per method. This is an isolated wiring check, not evidence about a live Agent.",
+    "baseline": {"code": "return (await mc.state()).snapshot.position;", "params": {}, "guidance": "Read the supplied scene; this baseline does not move and is only a wiring-check fixture."},
+    "train": "walk-1",
+    "holdout": ["walk-2"],
+    "mode": "parallel",
+    "k": 1,
+    "budget": {"modelCalls": 6, "trials": 6, "wallMs": 180000, "trialMs": 10000, "contextBytes": 300000}
+  }]
+}

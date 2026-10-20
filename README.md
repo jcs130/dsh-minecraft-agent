@@ -8,7 +8,9 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-0.3.0-rc.6 本地试运行候选，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.47，可选千灯纪包 0.5.0-rc.3；保留 DSH 0.2.0-rc.2 的回归覆盖，主维护版本为 Minecraft Java 1.21.1。配套核心 `agent-mc-world` 与服务器包 `agent-mc-qiandengji` 已发布到 npm，直接从 registry 安装即可。
+0.3.0-rc.7 本地试运行候选，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.54，可选千灯纪包 0.5.0-rc.3；保留 DSH 0.2.0-rc.2 的回归覆盖，主维护版本为 Minecraft Java 1.21.1。本次 Harness² 核心与适配器候选尚未发布；先准备 candidate-sources.json 中经过校验的核心 tgz，再按锁文件安装。可选服务器包已发布，不需重打包。
+
+新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
 没有 Cortico/N.E.K.O 依赖，不迁入其他角色的人格或记忆。安装本插件不会自动连接。旧 0.1.x 身体只保留在源码及迁移资料，不进入默认构建或发行包。
 
