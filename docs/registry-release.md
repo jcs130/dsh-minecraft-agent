@@ -1,5 +1,17 @@
 # Registry 分发记录
 
+## rc.12：直接兼容官方 DSH
+
+适配器 `0.3.0-rc.12` 保持核心 `0.5.7-rc.64`、可选千灯纪包 `0.5.0-rc.10`，新增精确的 `readable-stream@4.8.0` 宿主依赖。在异步导入 SDK 前同步选择依赖支持的 Node 原生流，并恢复原环境；无需用户修改 DSH 主程序或 Worker，不动 Cortico、通用 Minecraft 能力或现役进程。
+
+全新 registry npm 消费端：97 项全量回归通过，包含外置 Harness² 集成和市场解析。新增真实未修补 DSH 回归先复现旧错误，再验证两个独立入口、SDK/MCP、离线引擎 IPC、游戏记忆、千灯纪包、物理练习及启用了官方解析器的 Worker。前后宿主文件 SHA256、解析器引用和环境一致。后续默认 pnpm、公开分发、面板与实验验收见 `candidate-sources.json`，发布制品与源码状态分别记录。候选尚未公开时不将版本号或上传成功当成匿名可下载证明。
+
+维护者可用 `node scripts/verify-installed-core.mjs "<实际 profile 绝对路径>" --require-server-pack` 检查依赖。真实 stock fixture 支持 `MC_DSH_PROFILE=<隔离 profile>`；不使用修补过的宿主当作直接兼容证据。Desktop 原生像素和实服效果未由离线测试认证，当前任务不加载现役服务。
+
+## rc.11 历史记录
+
+下面保留先前分发、失败、修复与等待记录。其手工 doctor 要求不再适用于 rc.12。
+
 当前制品：适配器 rc.11，精确依赖已公开的核心 rc.64、可选千灯纪包 rc.10。核心已通过 npm 与 GitHub 匿名下载，字节和完整性相同。无 override 的默认 pnpm 安装、新的 registry 消费端 92 项回归、实际 profile/客户端/RPC 验收通过；生产依赖只有一份核心，没有 tsx/esbuild。DSH 0.2.1-rc.2 必须先进行文档中的显式解析修复，安装不自动修改宿主。适配器已在 npm 的 next 标签和 GitHub 公开；两处匿名归档 SHA256 均为 `6b915d84fb5a83b59f10333798560a6a0c6326b51983c805656e30bc75fcf55d`。公开 npm 的完整安装、同一物理核心和实际面板/RPC 均通过，见[发布校验记录](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.11/release-verification.json)。发行归档保持原字节；本次只更新源码中的发布状态与证据，不重新打包同一版本。
 
 pnpm 对刚发布依赖自动添加了两个精确 minimumReleaseAgeExclude 条目，这是官方默认行为；没有手动关闭新包年龄检查、构建脚本保护或 exotic 子依赖保护。维护者可在源码中执行 `node scripts/verify-installed-core.mjs "<实际 DSH profile 绝对路径>" --require-server-pack` 检查两个包使用同一物理核心。

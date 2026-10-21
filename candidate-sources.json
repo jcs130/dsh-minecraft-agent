@@ -1,19 +1,15 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.11",
+  "adapterVersion": "0.3.0-rc.12",
   "publication": {
     "channel": "release-candidate",
-    "status": "published-preview-explicit-dsh-repair-required",
-    "tag": "v0.3.0-rc.11",
-    "registryPublished": true,
-    "githubPublished": true,
-    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.11",
-    "npm": "@jcs130/dsh-minecraft-agent@0.3.0-rc.11",
-    "sourceSnapshotCommit": "157fa6688f98af9318a0e12a8043032e416530c3",
-    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.11/release-verification.json",
-    "verifiedAt": "2026-10-21T13:20:16.257Z",
-    "sha256": "6b915d84fb5a83b59f10333798560a6a0c6326b51983c805656e30bc75fcf55d",
-    "integrity": "sha512-NB8z03+g3VbpNk8OuB+LV5AzltCJBa3euLJb8J+W8zAL1gJ99f4xKx3YqxwGzHHcJEpiKY5wplLxElmcm6zOwQ=="
+    "status": "verified-stock-dsh-candidate-publication-pending",
+    "tag": "v0.3.0-rc.12",
+    "registryPublished": false,
+    "githubPublished": false,
+    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.12",
+    "npm": "@jcs130/dsh-minecraft-agent@0.3.0-rc.12",
+    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/release-verification.json"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -31,6 +27,15 @@
       "fullBuildGates": 9,
       "prePushTypecheckGates": 5,
       "automaticPatch": false
+    },
+    "nativeStreamsCompatibility": {
+      "dependency": "readable-stream@4.8.0",
+      "backend": "native-node",
+      "synchronousInitialization": true,
+      "environmentRestoredBeforeAsyncImport": true,
+      "hostFilesModified": false,
+      "hostResolverModified": false,
+      "manualDoctorRequired": false
     }
   },
   "candidates": [
@@ -55,14 +60,14 @@
       "sourceBaseCommit": "79aba267055d4a8ab41d00232b6c907df8a64913",
       "githubPublished": true,
       "githubPublicVerification": {
-        "time": "2026-10-21T12:42:44.979390+00:00",
+        "time": "2026-10-21T20:42:44.97939+08:00",
         "anonymousDownload": true,
         "bytes": 59150580,
         "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
         "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q=="
       },
       "registryPublicVerification": {
-        "time": "2026-10-21T12:52:47.846709+00:00",
+        "time": "2026-10-21T20:52:47.846709+08:00",
         "endpoint": "https://registry.npmjs.org/agent-mc-world/0.5.7-rc.64",
         "anonymous": true,
         "version": "0.5.7-rc.64",
@@ -136,67 +141,80 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Exact core and server-pack archives are public and integrity-verified. Default pnpm installs one shared production core without overrides, tsx or esbuild. Official DSH 0.2.1-rc.2 still requires the explicit exact-byte main/Worker resolver repair; installation never patches it. Desktop native pixels, market admission and live gameplay are separate gates.",
+  "note": "DSH-specific synchronous native-stream bootstrap supports the stock official main/Worker resolver without a host patch. Core and server-pack bytes remain unchanged. Publication, default pnpm installation, native Desktop pixels and live gameplay are separate evidence. The older doctor is retained for explicit rollback only.",
   "hostVerification": {
-    "status": "public-dependencies-verified-explicit-dsh-repair-required",
-    "verifiedAt": "2026-10-21T13:03:40.304Z",
+    "status": "stock-dsh-default-pnpm-and-harness2-verified-publication-pending",
     "ordinaryTests": {
-      "passed": 92,
+      "passed": 96,
       "failed": 0,
-      "optionalSkipped": 1
+      "optionalSkipped": 0
     },
+    "stockOfficialDshLoad": true,
+    "officialWorkerResolverActive": true,
+    "workerLoad": true,
+    "sdkMcp": true,
+    "offlineEngineIpc": true,
+    "offlineGameMemory": true,
+    "offlinePhysicsInitialization": true,
+    "hostFileHashesUnchanged": true,
+    "hostResolverUnchanged": true,
+    "environmentRestored": true,
+    "defaultPnpmInstallVerified": true,
+    "publicRegistryInstallVerified": false,
+    "nativeDesktopPixels": false,
+    "liveGameConnections": 0,
+    "paidModelCalls": 0,
+    "productionReloads": 0,
+    "verifiedAt": "2026-10-21T22:02:42.887483+08:00",
+    "officialPluginLoader": true,
+    "adapterWasLocalCandidate": true,
+    "coreAndServerPackFromRegistry": true,
+    "dependencyGraph": {
+      "time": "2026-10-21T14:01:43.047Z",
+      "profile": "mc12-local",
+      "core": "0.5.7-rc.64",
+      "installedCoreVersions": [
+        "0.5.7-rc.64"
+      ],
+      "sharedPhysicalCore": true,
+      "tsxInstalled": false,
+      "esbuildInstalled": false,
+      "override": false,
+      "defaultPnpmProtections": true,
+      "automaticFreshReleaseExclusions": true,
+      "modelRequests": 0,
+      "gameConnections": 0
+    },
+    "frameworkSha256": [
+      "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+      "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+    ],
     "harness2": {
       "separateTestPassed": true,
+      "sameProcessOfficialResolver": true,
       "loopbackResponses": 4,
       "offlinePhysicalTrials": 6,
       "paidModelCalls": 0,
       "adopted": false
     },
-    "defaultPnpm": {
-      "version": "11.28.5",
-      "actualDshPluginAddPassed": true,
-      "adapterWasLocalCandidate": false,
-      "coreAndServerPackFromRegistry": true,
-      "unpublishedCoreArchiveOverride": false,
-      "registryDownloadVerified": true,
-      "ignoreScripts": false,
-      "allowBuildsAdded": false,
-      "blockExoticSubdepsDisabled": false,
-      "automaticFreshReleaseExclusions": [
-        "@jcs130/dsh-minecraft-agent@0.3.0-rc.11",
-        "agent-mc-qiandengji@0.5.0-rc.10",
-        "agent-mc-world@0.5.7-rc.64"
-      ],
-      "adapterAndDependenciesFromRegistry": true
+    "panel": {
+      "clientTab": "mc-panel",
+      "ownerApi": 200,
+      "otherSessionDenied": true,
+      "delegateApi": 403,
+      "disposedApi": 404
     },
-    "originalOfficialDshLoad": false,
-    "repairedOfficialDshLoad": true,
-    "rollbackRestoresOriginalFailure": true,
-    "clientTab": "mc-panel",
-    "ownerRpc": 200,
-    "otherSessionDenied": true,
-    "delegateRpc": 403,
-    "disposedRpc": 404,
-    "nativeDesktopPixels": false,
-    "liveGameConnections": 0,
-    "paidModelCalls": 0,
-    "productionReloads": 0,
-    "freshRegistryConsumer": true,
-    "serverPackVersion": "0.5.0-rc.10",
-    "dependencyGraph": {
-      "installedCoreVersions": [
-        "0.5.7-rc.64"
-      ],
-      "sharedPhysicalCore": true,
-      "productionTsxInstalled": false,
-      "productionEsbuildInstalled": false
-    },
-    "publicRegistryInstall": {
-      "verifiedAt": "2026-10-21T13:20:16.257Z",
-      "exactArchiveMatched": true,
-      "sharedPhysicalCore": true,
-      "explicitOldDshRepairRequired": true,
-      "nativeDesktopPixels": false
+    "marketTests": {
+      "failed": 0,
+      "passed": 1
     }
+  },
+  "previousRelease": {
+    "version": "0.3.0-rc.11",
+    "sourceCommit": "157fa6688f98af9318a0e12a8043032e416530c3",
+    "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.11",
+    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.11/release-verification.json",
+    "requiredExplicitOldDshRepair": true,
+    "archivePreserved": true
   }
 }

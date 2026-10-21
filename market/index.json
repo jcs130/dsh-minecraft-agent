@@ -5,8 +5,8 @@
     "zh": "Agent MC World 插件"
   },
   "description": {
-    "en": "Installable entries withheld until the official DSH npm-subpath loader compatibility issue is resolved.",
-    "zh": "官方 DSH 的 npm 子路径加载兼容问题尚待修复；暂不提供可安装条目。"
+    "en": "registry-only rc.12 candidate passed stock DSH; installable listing awaits verified public distribution.",
+    "zh": "rc.12 候选已通过原始官方 DSH；可安装条目待公开分发核验后恢复。"
   },
   "plugins": []
 }
