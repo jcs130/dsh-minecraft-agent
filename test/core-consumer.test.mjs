@@ -9,7 +9,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, nullLogger, withToolHelp } from 'agent-mc-world/client';
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
-import { HarnessBridge, modelToolSchema } from '../src/harness-bridge.mjs';
+import { HarnessBridge, MinecraftEventInbox, modelToolSchema } from '../src/harness-bridge.mjs';
+import { selectTools } from '../src/harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
 test('installed core matches the adapter pin and exposes the authored-method lifecycle', async () => {
@@ -87,4 +88,66 @@ test('optional server pack consumes the same public core without starting a seco
     const forwarded = await import('agent-mc-qiandengji/host-decisions');
     assert.deepEqual(Object.keys(forwarded), Object.keys(decisions));
   } finally { await runtime.disconnect(); await removeFixture(dir); }
+});
+
+test('default DSH tools discover all shared routines through the packed SDK and actual MCP handlers', async () => {
+  const { MinecraftWorld, listWorkRoutines, readWorkRoutine } = await import('agent-mc-world/extension');
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-packed-core-'));
+  const cfg = { ...structuredClone(MINECRAFT_CLIENT_DEFAULTS), host: 'offline.invalid', username: 'DshRoutineTest' };
+  const engine = new MinecraftWorld({ cfg, dataDir: join(dir, 'engine'), timezone: 'UTC', botName: cfg.username });
+  // Explicit inert lifecycle port: real core handlers, no game transport or model.
+  const runtime = new MinecraftAgentClient({ cfg, dataDir: dir, log: nullLogger() }, {
+    id: 'routine-offline-fixture', tools: () => withToolHelp(engine.tools(), 'mc_tool_help'),
+    envPromptVars: () => ({}), async start() {}, async stop() {},
+  });
+  const server = createMinecraftMcpServer(runtime, 'routine-consumer', { catalog: 'compact' });
+  const client = new Client({ name: 'dsh-routine-consumer', version: '1' });
+  const [left, right] = InMemoryTransport.createLinkedPair();
+  const bridge = new HarnessBridge(runtime, client);
+  try {
+    await server.connect(left); await client.connect(right); await runtime.connect();
+    await bridge.enter('original-routine-session', 2, 1);
+    const selected = selectTools((await client.listTools()).tools);
+    const script = selected.find(tool => tool.name === 'mc_script');
+    assert.ok(script, 'Default lean tools must expose shared routines');
+    const schema = modelToolSchema(script.inputSchema);
+    assert.deepEqual(schema.properties.routine.properties.op.enum, ['list', 'read', 'run']);
+    assert.equal(schema.properties.params.additionalProperties, true);
+    const call = async args => {
+      const value = await bridge.call('mc_script', args, { id: `routine-${JSON.stringify(args)}` });
+      assert.notEqual(value.isError, true, JSON.stringify(value));
+      return JSON.parse(value.structuredContent.text);
+    };
+    const catalog = await call({ routine: { op: 'list' } });
+    assert.deepEqual(catalog, listWorkRoutines());
+    assert.equal(catalog.length, 10);
+    for (const { id } of catalog) {
+      const read = await call({ routine: { op: 'read', id } });
+      const expected = readWorkRoutine(id);
+      assert.equal(read.sourceHash, expected.sourceHash);
+      assert.deepEqual(read.parameters, expected.parameters);
+      assert.equal(read.automaticallyReplayed, false);
+      assert.equal(read.supportedTransport, 'mineflayer');
+    }
+    const invalid = await bridge.call('mc_script', { routine: { op: 'run', id: 'swim_route' },
+      params: {}, validate: true }, { id: 'invalid-routine' });
+    assert.equal(invalid.isError, true);
+    assert.equal(invalid.structuredContent.execution, null);
+    await bridge.ended('original-routine-session', 2);
+  } finally { await bridge.stop(); await server.close(); await removeFixture(dir); }
+});
+
+test('shared method terminal wakes the DSH inbox once, while local steps and idle goals stay quiet', async () => {
+  const { classifyWake, WAKE_ACTIVE_GOAL } = await import('agent-mc-world/client');
+  const inbox = new MinecraftEventInbox(), messages = [];
+  const terminal = { type: 'minecraft.method', text: 'fixture method blocked', trigger: 'flush',
+    execution: { kind: 'method', id: 'fixture:1', phase: 'blocked', terminal: true, goalCompleted: false } };
+  const events = [{ ...terminal, trigger: 'piggyback' }, terminal];
+  inbox.add(events.filter(event => classifyWake(event, { wakeOn: WAKE_ACTIVE_GOAL }).wake));
+  assert.equal(inbox.pending.length, 1);
+  assert.equal(inbox.flush({ status: 'idle', steer: value => messages.push(value) },
+    { phase: 'active', activation: 'armed' }, false, value => value), true);
+  assert.equal(messages.length, 1); assert.equal(inbox.pending.length, 0);
+  assert.equal(classifyWake(terminal).wake, false);
+  assert.equal(terminal.execution.goalCompleted, false);
 });

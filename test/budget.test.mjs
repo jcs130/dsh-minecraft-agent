@@ -36,8 +36,10 @@ test('budget overflow is an in-band finish DSH compaction answers with compact-a
 
 test('lean tool profile drops rarely used tools and keeps constraints while dropping prose', () => {
   const specs = ['mc_do', 'mc_script', 'mc_blueprint', 'mc_trace', 'mc_tool_help'].map(name => ({ name }));
-  assert.deepEqual(selectTools(specs).map(t => t.name), ['mc_do', 'mc_tool_help']);
+  assert.deepEqual(selectTools(specs).map(t => t.name), ['mc_do', 'mc_script', 'mc_tool_help']);
   assert.deepEqual(selectTools(specs, { include: ['mc_script'] }).map(t => t.name), ['mc_do', 'mc_script', 'mc_tool_help']);
+  assert.deepEqual(selectTools(specs, { exclude: ['mc_script'] }).map(t => t.name), ['mc_do', 'mc_tool_help']);
+  assert.deepEqual(selectTools([{ name: 'mymc_script' }]).map(t => t.name), ['mymc_script']);
   assert.equal(selectTools(specs, { profile: 'full' }).length, 4);
   const schema = { type: 'object', description: 'x'.repeat(500), properties: { steps: { type: 'array', description: 'long '.repeat(80),
     items: { type: 'object', properties: { skill: { type: 'string', enum: ['goto', 'chat'], description: 'nested prose' } }, required: ['skill'] } } } };
