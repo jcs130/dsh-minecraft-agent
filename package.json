@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.11",
+  "version": "0.3.0-rc.12",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -86,11 +86,13 @@
     "docs/core-update-20261021.md",
     "bin/repair-dsh.mjs",
     "lib/plugins/dsh-compat.mjs",
-    "docs/DSH-COMPAT.md"
+    "docs/DSH-COMPAT.md",
+    "lib/plugins/dsh-native-streams.mjs"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.64"
+    "agent-mc-world": "0.5.7-rc.64",
+    "readable-stream": "4.8.0"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",

@@ -1,32 +1,26 @@
-# 安装 DSH Minecraft Agent 0.3.0-rc.11
+# 安装 DSH Minecraft Agent 0.3.0-rc.12
 
-> rc.11 已在 npm 和 GitHub 公开，归档与安装验收见[发布记录](docs/registry-release.md)。旧 DSH 0.2.1-rc.2 需要一次显式解析器修复，安装不会自动修改框架。先读[兼容指南](docs/DSH-COMPAT.md)。
+> rc.12 直接兼容未经修补的官方 DSH 0.2.1-rc.2，无需执行 doctor。当前候选与公开状态见[发布记录](docs/registry-release.md)。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
 
-需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.64。核心编译版引擎、脚本子进程和训练模拟器直接用 Node，不要求生产环境运行 tsx 安装脚本。可选服务器包 agent-mc-qiandengji@0.5.0-rc.10 已发布。
+需要 Node.js 24 和 DSH 0.2.1-rc.2，Java 1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.64，可选服务器包为 agent-mc-qiandengji@0.5.0-rc.10。生产引擎、脚本与训练模拟器使用编译版，不要求 tsx。
 
-安装公开固定版本（核心使用 npm registry 依赖）：
+固定版本公开后，通过 DSH 正常安装：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.11
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
 ```
 
-本轮源码候选开发（先取得并核对核心归档）：
+源码开发：
 
 ```sh
-git clone --branch codex/core61-dsh-sync-20261021 https://github.com/jcs130/dsh-minecraft-agent
+git clone https://github.com/jcs130/dsh-minecraft-agent
 cd dsh-minecraft-agent
-npm install --ignore-scripts --no-save --package-lock=false ./vendor/agent-mc-world-0.5.7-rc.64.tgz
-npm run build && npm test
+npm ci
+npm run build
+npm test
 ```
 
-安装完毕，先完全退出要修复的 DSH。用安装目录的 `bin/repair-dsh.mjs`（或 `dsh-minecraft-doctor` 命令）默认只读检查，再明确执行修复：
-
-```sh
-dsh-minecraft-doctor --dsh-root "<包含 @deepseek-ai/dsh/package.json 的实际目录>"
-dsh-minecraft-doctor --dsh-root "<同一实际目录>" --apply
-```
-
-它覆盖已知版本主入口和 Worker 入口，拒绝未知字节、未知版本与应用归档，保留原文件用于 `--rollback`。不会启动服务或模型，也不改 profile。Desktop 用户必须使用 Desktop 随附的安装，不能用另一个 CLI 的依赖替代；封装为归档的 Desktop 等待官方更新。详见[桌面与实验室指南](docs/desktop.md)。
+插件同步初始化 Node 原生流依赖后，正常导入共享核心；不改写 DSH/依赖文件或解析器，不保留临时环境变量。安装本身不开游戏或模型。Desktop 使用其自身的插件管理和 profile，不混用其他 CLI 的 node_modules。此前手工使用过 doctor 的用户可按兼容指南自行检查或回滚备份，升级不要求再次修复框架。详见[桌面与实验室指南](docs/desktop.md)。
 
 国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：
 

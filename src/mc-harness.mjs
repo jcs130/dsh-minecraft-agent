@@ -5,15 +5,18 @@ import { createRequire } from 'node:module';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { EventCondenser as EventCondenserFallback } from './event-condenser-fallback.mjs';
-import * as coreClient from 'agent-mc-world/client';
-const { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } = coreClient;
-import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
+import { prepareDshNativeStreams } from './dsh-native-streams.mjs';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
 import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, modelToolSchema } from './harness-bridge.mjs';
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { applyGoalControl } from './harness-goal.mjs';
 import { compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
+
+prepareDshNativeStreams();
+const coreClient = await import('agent-mc-world/client');
+const { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, serveClientConsole } = coreClient;
+const { createMinecraftMcpServer } = await import('agent-mc-world/mcp');
 
 const require = createRequire(import.meta.url);
 // Prefer the core's context helpers (agent-mc-world > 0.5.7-rc.47); fall back to identical local copies.
