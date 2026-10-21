@@ -1,6 +1,6 @@
 # 安装 DSH Minecraft Agent 0.3.0-rc.11
 
-> 以下固定版本命令在对应包公开后可用；是否已公开见[发布记录](docs/registry-release.md)。旧 DSH 0.2.1-rc.2 需要一次显式解析器修复，安装不会自动修改框架。先读[兼容指南](docs/DSH-COMPAT.md)。
+> rc.11 已在 npm 和 GitHub 公开，归档与安装验收见[发布记录](docs/registry-release.md)。旧 DSH 0.2.1-rc.2 需要一次显式解析器修复，安装不会自动修改框架。先读[兼容指南](docs/DSH-COMPAT.md)。
 
 需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.64。核心编译版引擎、脚本子进程和训练模拟器直接用 Node，不要求生产环境运行 tsx 安装脚本。可选服务器包 agent-mc-qiandengji@0.5.0-rc.10 已发布。
 

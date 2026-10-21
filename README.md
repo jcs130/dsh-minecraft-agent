@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-> rc.11 修复候选：核心生产子进程不再依赖 tsx，保留完整可视化与训练模拟器。DSH 0.2.1-rc.2 的 `process/` 加载错误提供了[显式检查、修复与回滚工具](docs/DSH-COMPAT.md)，安装时不会自动修改框架。源码与隔离运行已验证；公开分发状态见[发布记录](docs/registry-release.md)。
+> rc.11 修复预览版：核心生产子进程不再依赖 tsx，保留完整可视化与训练模拟器。DSH 0.2.1-rc.2 的 `process/` 加载错误提供了[显式检查、修复与回滚工具](docs/DSH-COMPAT.md)，安装时不会自动修改框架。源码与隔离运行已验证；公开分发状态见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -10,7 +10,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.11 发布候选**，精确消费核心 0.5.7-rc.64 和可选千灯纪包 0.5.0-rc.10。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。旧版 DSH 需要操作员先退出程序，再按兼容指南选择实际安装目录进行一次修复；主进程和 Worker 都覆盖。官方 DSH 的合并/发行、Desktop 原生画面与实服游玩分别验收，市场入口不因隔离修复通过而自动恢复。
+**0.3.0-rc.11 预览版**，精确消费核心 0.5.7-rc.64 和可选千灯纪包 0.5.0-rc.10。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。旧版 DSH 需要操作员先退出程序，再按兼容指南选择实际安装目录进行一次修复；主进程和 Worker 都覆盖。官方 DSH 的合并/发行、Desktop 原生画面与实服游玩分别验收，市场入口不因隔离修复通过而自动恢复。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 

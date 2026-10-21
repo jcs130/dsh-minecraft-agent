@@ -1,12 +1,12 @@
 # DSH Minecraft Agent
 
-> rc.11 repair candidate removes the production engine's tsx loader dependency while retaining visualization and the training simulator. DSH 0.2.1-rc.2 has an [explicit check/apply/rollback tool](docs/DSH-COMPAT.md) for its `process/` resolver defect; installing the plugin never patches the framework automatically. Source and isolated runtime checks passed. See the [release record](docs/registry-release.md) for public distribution status.
+> rc.11 repair preview removes the production engine's tsx loader dependency while retaining visualization and the training simulator. DSH 0.2.1-rc.2 has an [explicit check/apply/rollback tool](docs/DSH-COMPAT.md) for its `process/` resolver defect; installing the plugin never patches the framework automatically. Source and isolated runtime checks passed. See the [release record](docs/registry-release.md) for public distribution status.
 
 [简体中文](README.md) | English
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The release candidate is **0.3.0-rc.11**, consuming core **0.5.7-rc.64** and optional server pack **0.5.0-rc.10**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. The old DSH release requires a one-time explicit repair after fully exiting the selected installation; both its main and Worker resolvers are covered. Upstream acceptance/release, native Desktop pixels and live gameplay remain separate checks. The market entry stays held. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
+The preview release is **0.3.0-rc.11**, consuming core **0.5.7-rc.64** and optional server pack **0.5.0-rc.10**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. The old DSH release requires a one-time explicit repair after fully exiting the selected installation; both its main and Worker resolvers are covered. Upstream acceptance/release, native Desktop pixels and live gameplay remain separate checks. The market entry stays held. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
 
 The default lean tool set now retains `*_script` for on-demand shared routine and method discovery; explicit `tools.exclude` is respected.
 

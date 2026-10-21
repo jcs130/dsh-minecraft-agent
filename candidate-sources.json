@@ -3,11 +3,17 @@
   "adapterVersion": "0.3.0-rc.11",
   "publication": {
     "channel": "release-candidate",
-    "status": "validated-ready-for-publication",
+    "status": "published-preview-explicit-dsh-repair-required",
     "tag": "v0.3.0-rc.11",
-    "registryPublished": false,
-    "githubPublished": false,
-    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.11"
+    "registryPublished": true,
+    "githubPublished": true,
+    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.11",
+    "npm": "@jcs130/dsh-minecraft-agent@0.3.0-rc.11",
+    "sourceSnapshotCommit": "157fa6688f98af9318a0e12a8043032e416530c3",
+    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.11/release-verification.json",
+    "verifiedAt": "2026-10-21T13:20:16.257Z",
+    "sha256": "6b915d84fb5a83b59f10333798560a6a0c6326b51983c805656e30bc75fcf55d",
+    "integrity": "sha512-NB8z03+g3VbpNk8OuB+LV5AzltCJBa3euLJb8J+W8zAL1gJ99f4xKx3YqxwGzHHcJEpiKY5wplLxElmcm6zOwQ=="
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -149,7 +155,7 @@
     "defaultPnpm": {
       "version": "11.28.5",
       "actualDshPluginAddPassed": true,
-      "adapterWasLocalCandidate": true,
+      "adapterWasLocalCandidate": false,
       "coreAndServerPackFromRegistry": true,
       "unpublishedCoreArchiveOverride": false,
       "registryDownloadVerified": true,
@@ -157,9 +163,11 @@
       "allowBuildsAdded": false,
       "blockExoticSubdepsDisabled": false,
       "automaticFreshReleaseExclusions": [
+        "@jcs130/dsh-minecraft-agent@0.3.0-rc.11",
         "agent-mc-qiandengji@0.5.0-rc.10",
         "agent-mc-world@0.5.7-rc.64"
-      ]
+      ],
+      "adapterAndDependenciesFromRegistry": true
     },
     "originalOfficialDshLoad": false,
     "repairedOfficialDshLoad": true,
@@ -182,6 +190,13 @@
       "sharedPhysicalCore": true,
       "productionTsxInstalled": false,
       "productionEsbuildInstalled": false
+    },
+    "publicRegistryInstall": {
+      "verifiedAt": "2026-10-21T13:20:16.257Z",
+      "exactArchiveMatched": true,
+      "sharedPhysicalCore": true,
+      "explicitOldDshRepairRequired": true,
+      "nativeDesktopPixels": false
     }
   }
 }

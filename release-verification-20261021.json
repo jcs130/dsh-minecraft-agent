@@ -1,0 +1,69 @@
+{
+  "time": "2026-10-21T13:20:16.257Z",
+  "schema": "dsh-minecraft-release-verification/v1",
+  "package": {
+    "name": "@jcs130/dsh-minecraft-agent",
+    "version": "0.3.0-rc.11",
+    "sourceCommit": "157fa6688f98af9318a0e12a8043032e416530c3",
+    "bytes": 75956,
+    "sha256": "6b915d84fb5a83b59f10333798560a6a0c6326b51983c805656e30bc75fcf55d",
+    "integrity": "sha512-NB8z03+g3VbpNk8OuB+LV5AzltCJBa3euLJb8J+W8zAL1gJ99f4xKx3YqxwGzHHcJEpiKY5wplLxElmcm6zOwQ==",
+    "npmPublic": true,
+    "githubPublic": true
+  },
+  "core": {
+    "version": "0.5.7-rc.64",
+    "sourceCommit": "9433a29d9a7c11ba712f3f8ae930d42fcd0373e7",
+    "npmPublic": true,
+    "githubPublic": true,
+    "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
+    "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q=="
+  },
+  "serverPack": {
+    "version": "0.5.0-rc.10",
+    "sharedPhysicalCore": true
+  },
+  "installation": {
+    "actualDshPluginAdd": true,
+    "pnpm": "11.28.5",
+    "adapterAndDependenciesFromRegistry": true,
+    "overrides": false,
+    "ignoreScripts": false,
+    "allowBuildsAdded": false,
+    "blockExoticSubdepsDisabled": false,
+    "automaticPreciseFreshnessExclusions": true,
+    "stockOldDshLoads": false,
+    "explicitOldDshRepairRequired": true
+  },
+  "runtime": {
+    "clientTab": "mc-panel",
+    "ownerRpc": 200,
+    "otherSessionDenied": true,
+    "delegateRpc": 403,
+    "disposedRpc": 404,
+    "nativeDesktopPixels": false,
+    "liveGameConnections": 0,
+    "paidModelCalls": 0,
+    "productionReloads": 0
+  },
+  "tests": {
+    "corePassed": 1856,
+    "coreOptionalSkipped": 1,
+    "hostPassed": 92,
+    "hostOptionalSkipped": 1,
+    "separateActualHarness2Passed": true,
+    "loopbackResponses": 4,
+    "offlinePhysicalTrials": 6,
+    "onlineAdoption": false
+  },
+  "upstream": {
+    "officialDshResolverReleased": false,
+    "linuxResolverTestsPassed": 238,
+    "fullBuildGatesPassed": 9,
+    "prePushTypecheckGatesPassed": 5
+  },
+  "market": {
+    "discoveryRestored": false,
+    "reason": "Official old DSH still requires an explicit resolver repair; native Desktop pixels not verified"
+  }
+}

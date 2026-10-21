@@ -1,6 +1,6 @@
 # DSH Desktop 与实验室
 
-> rc.11 提供旧 DSH 0.2.1-rc.2 的显式解析器修复；安装不自动修改框架。下面的命令须等对应版本公开，实际状态见[发布记录](registry-release.md)。共享 Web 面板协议已验证，Desktop 原生窗口画面尚未验收。
+> rc.11 提供旧 DSH 0.2.1-rc.2 的显式解析器修复；安装不自动修改框架。版本已公开，安装验收见[发布记录](registry-release.md)。共享 Web 面板协议已验证，Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。未包含上游修复的 DSH 需要按[兼容指南](DSH-COMPAT.md)退出程序、选择实际安装目录、检查并显式修复；工具同时覆盖主入口和 Worker。应用归档不支持现场改写，须等待官方更新。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
