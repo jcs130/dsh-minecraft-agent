@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {createServer} from 'node:http';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {dirname,join,resolve} from 'node:path';
 import {createDshHarness2Model,dshPracticeTool,configuredDshPractice,bindDshHarness2Lab} from '../src/harness2.mjs';
 const require=createRequire(import.meta.url);
 
@@ -66,4 +69,28 @@ test('optional independent Harness2 lab reads the existing scoped core monitor w
   assert.match(source.id,/^mc-[a-f0-9]{24}$/);assert.deepEqual(source.snapshot('other'),[]);assert.equal(reads,0);
   const rows=source.snapshot('owned');assert.equal(reads,1);assert.equal(rows[0].result.evidenceCount,6);assert.ok(!JSON.stringify(rows).includes('PRIVATE'));
   cleanup();assert.equal(disposed,1);bindDshHarness2Lab({},'owned',{});
+});
+
+test('disabled practice history can be read without a live DSH context or a model route',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'dsh-practice-history-'));
+  try{
+    let monitor;
+    const result=await configuredDshPractice({
+      config:{name:'fixture',minecraft:{host:'example.invalid',port:25565,username:'fixture'},
+        harness2:{enabled:false,backend:'physics',seeds:[1,2],jobs:[{
+          id:'history-only',methodId:'history-only',task:'Read existing practice history.',
+          baseline:{code:'return {};',params:{},guidance:'History fixture.'},
+          train:'walk-1',holdout:['walk-2'],mode:'parallel',k:1,
+          budget:{modelCalls:6,trials:6,wallMs:180000,trialMs:10000,contextBytes:300000}
+        }]}},
+      dataDir:directory,sessionId:'history-session',onMonitor:value=>{monitor=value;}
+    });
+    assert.equal(result,null);
+    assert.equal(monitor.snapshot().enabled,false);
+    assert.equal(monitor.snapshot().jobs.length,1);
+  }finally{
+    assert.equal(dirname(directory),resolve(tmpdir()));
+    assert.ok(directory.startsWith(join(resolve(tmpdir()),'dsh-practice-history-')));
+    await rm(directory,{recursive:true,force:true});
+  }
 });

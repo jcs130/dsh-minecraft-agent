@@ -2,10 +2,11 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.9",
   "publication": {
-    "channel": "registry-candidate",
-    "status": "awaiting-core-registry-processing",
+    "channel": "github-release-preview",
+    "status": "registry-core-and-host-tests-verified",
     "tag": "v0.3.0-rc.9",
-    "registryPublished": false
+    "registryPublished": false,
+    "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -21,15 +22,19 @@
       "sourceDirectory": "packages/agent-mc-world",
       "commit": "e4f18f6ecd4e28a6d3ad7b2657514b8aec959a3a",
       "version": "0.5.7-rc.57",
-      "url": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.57/agent-mc-world-0.5.7-rc.57.tgz",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.57.tgz",
       "sha256": "317ff114bf73dc2570009ff1e6cacf4127bd9020b430d413ae27bbfa306b59a1",
       "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A==",
       "published": true,
-      "registryPublished": false,
+      "registryPublished": true,
       "previousNpm": {
         "version": "0.5.7-rc.47",
         "integrity": "sha512-E5DWFNIHevsgSNHTqUhQf5qu5r0EAF4sZAZ2atrJln1SbOgSzifI4Aj1mZfRCBwJjKZ2cPMFnC1BIpskMRkElg=="
-      }
+      },
+      "githubUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.57/agent-mc-world-0.5.7-rc.57.tgz",
+      "npm": "agent-mc-world@0.5.7-rc.57",
+      "registry": "https://registry.npmjs.org/",
+      "registryPublishedAt": "2026-10-20T18:01:38.639Z"
     },
     {
       "role": "serverPack",
@@ -70,5 +75,5 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Unpublished registry-only rc.9 preparation. npm has accepted the unchanged verified core artifact with HTTP 202, but anonymous registry metadata/archive verification is still pending. Upload acceptance, public availability, default DSH installation and live deployment remain separate. No registry installation or default DSH install success is claimed."
+  "note": "The npm core archive matches the immutable GitHub core release. Full host tests and the actual pinned Harness2 loopback/physics workflow passed in a fresh registry-only consumer. Adapter Git/archive publication, default DSH installation, optional adapter npm publication and live deployment are recorded separately."
 }

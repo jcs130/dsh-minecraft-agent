@@ -2,7 +2,7 @@
 
 本页记录 rc.9 的分发修复与验收顺序，包内文档是打包时快照；实际公开发布状态以 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9) 的验证记录为准。源码提交、npm/GitHub 发布、默认 DSH 安装、Desktop 画面及现役加载分别记录。不要在聊天、仓库或 profile 中保存 npm token。
 
-2026-10-21 发布进度：核心包上传已获 npm HTTP 202 接受，CLI 正常退出并提示仍在处理；公开 registry 元数据与归档暂不可用。适配器 rc.9 尚未发布，默认 DSH 的全新 registry 安装尚未验收，市场 PR18 保持草稿，发现入口继续暂缓。不能把上传接受当作公开可安装。
+2026-10-21 发布进度：核心 agent-mc-world@0.5.7-rc.57 已公开发布到 npm，匿名下载与 GitHub 归档的字节、SHA256 和 dist.integrity 一致。适配器 rc.9 的全新 registry 依赖安装、83 项常规宿主测试及单独的真实 Harness² 物理/本地协议测试已通过；默认 DSH 的固定 Git / 归档安装正在验收。GitHub 分发与适配器 npm 发布分别记录，通过前市场 PR18 和发现入口继续暂缓。
 
 rc.8 的 npm 干净安装能够通过，但真实 `dsh plugin add` 在默认 pnpm11 下报告 ERR_PNPM_EXOTIC_SUBDEP，原因是核心的 GitHub URL 子依赖。官方 Desktop 0.2.1-rc.2 源码锁定 pnpm11.28.5。本次修复把核心依赖改成 registry SemVer 0.5.7-rc.57，并检查完整锁文件均来自 registry.npmjs.org；不关闭 blockExoticSubdeps，不加宽泛 allowBuilds，不降级包管理器。
 

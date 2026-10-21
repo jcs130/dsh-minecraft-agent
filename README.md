@@ -10,7 +10,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.9 registry 发布候选**，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.57，可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。发行后的固定安装目标为 `@jcs130/dsh-minecraft-agent@0.3.0-rc.9`；[桌面与实验室指南](docs/desktop.md)包含安装和使用方法，实际发布状态以[发布记录](docs/registry-release.md)为准。
+**0.3.0-rc.9 预览版**，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.57，可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。通过固定 Git 标签 `github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9` 与 GitHub Release 安装包分发，核心依赖使用公开 npm 版本；[桌面与实验室指南](docs/desktop.md)包含安装和使用方法，实际发布状态以[发布记录](docs/registry-release.md)为准。适配器自身的 npm 发布单独记录。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 

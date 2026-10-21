@@ -4,10 +4,10 @@
 
 需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。发行包已包含构建后的前端，不需要手动准备 vendor 候选。核心锁定 agent-mc-world@0.5.7-rc.57，全部依赖使用 registry.npmjs.org，均含完整性校验。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
 
-安装 npm 固定版本：
+安装公开 Git 固定版本（核心使用 npm registry 依赖）：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.9
+dsh plugin --profile web add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9
 ```
 
 从源码开发：

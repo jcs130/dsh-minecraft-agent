@@ -95,7 +95,7 @@ export function dshPracticeTool(runner,jobs,lifetimeSignal) {
 
 /** Optional native lab projection. The existing MC core remains the runner and evidence owner. */
 export function bindDshHarness2Lab(ctx,sessionId,monitor) {
-  if(typeof ctx.inject!=='function')return;
+  if(typeof ctx?.inject!=='function')return;
   ctx.inject(['harness2'],scoped=>{
     const off=scoped.harness2.registerSource({id:`mc-${createHash('sha256').update(sessionId).digest('hex').slice(0,24)}`,
       snapshot:requested=>requested!==sessionId?[]:monitor.snapshot().jobs.map(job=>({id:job.id,status:job.status,phase:job.phase,

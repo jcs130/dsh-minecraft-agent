@@ -2,7 +2,7 @@
 
 `@jcs130/dsh-minecraft-agent/harness2` 直接消费核心的 Harness²、隔离执行、方法版本和记忆契约。模型通过 DSH 注册的 `ctx.llm.stream` 调用，沿用其 provider、鉴权、会话头、思考等级及最终 usage，不新增模型 HTTP 客户端。默认关闭，无启动任务、定时器、自动采用或权重训练。
 
-本次 registry 预览为适配器 rc.9 + 核心 rc.57，使用固定 npm 版本；不要求本地 vendor 候选。发布与默认安装状态见[发布记录](registry-release.md)，源码、安装包、部署加载与线上验证分别记录。Desktop 安装及只读实验页见[指南](desktop.md)。
+本次预览为适配器 rc.9 + 核心 rc.57；适配器使用固定 Git 标签 / GitHub 归档，核心使用固定 npm 版本，不要求本地 vendor 候选。发布与默认安装状态见[发布记录](registry-release.md)，源码、安装包、部署加载与线上验证分别记录。Desktop 安装及只读实验页见[指南](desktop.md)。
 
 在私有 Agent 配置中显式添加 `harness2`，示例见 [harness2.json](../examples/harness/harness2.json)。`enabled:true` 后只注册 `mc_practice {jobId}`，由 Agent 显式执行已配置任务。安装和注册均不发起推理。jobId 去重且绑定完整配置；改变任务、模型、预算或原方法时使用新 ID，未决动作先查原账本。
 
