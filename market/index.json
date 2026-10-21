@@ -5,8 +5,79 @@
     "zh": "Agent MC World 插件"
   },
   "description": {
-    "en": "registry-only market listing awaits npm authentication; validated rc.12 GitHub archive is already public.",
-    "zh": "rc.12 GitHub 包已验证并公开；npm 尚待网页认证，registry 市场条目暂缓。"
+    "en": "Minecraft Agent bundles with shared game capabilities and explicit isolated experiments.",
+    "zh": "共享游戏能力、可视化与独立实验的 Minecraft Agent 插件。"
   },
-  "plugins": []
+  "metadata": {
+    "categories": {
+      "games": {
+        "title": {
+          "en": "Games and simulation",
+          "zh": "游戏与仿真"
+        }
+      }
+    },
+    "labels": {
+      "preview": {
+        "title": {
+          "en": "Public preview",
+          "zh": "公开预览"
+        }
+      },
+      "desktop": {
+        "title": {
+          "en": "Web / Desktop",
+          "zh": "Web / 桌面版"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@jcs130/dsh-minecraft-agent",
+      "title": {
+        "en": "Minecraft Agent",
+        "zh": "我的世界 Agent"
+      },
+      "description": {
+        "en": "Minecraft body, shared visualization, navigation, game memory and an optional isolated-experiment dashboard. Direct stock DSH 0.2.1-rc.2 compatibility; installation starts no game or model.",
+        "zh": "Minecraft 身体、共享可视化、导航、游戏记忆与可选独立实验室。直接兼容原始官方 DSH0.2.1-rc.2；安装不启动游戏或模型。"
+      },
+      "icon": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/4f22222bb4a7d3ae161c355eb29f31b77930a9a5/assets/icon.svg",
+      "author": "jcs130",
+      "homepage": "https://github.com/jcs130/dsh-minecraft-agent#readme",
+      "repository": {
+        "url": "https://github.com/jcs130/dsh-minecraft-agent"
+      },
+      "metadata": {
+        "category": "games",
+        "labels": [
+          "preview",
+          "desktop"
+        ],
+        "keywords": [
+          "minecraft",
+          "我的世界",
+          "mineflayer",
+          "agent",
+          "harness2",
+          "experiments",
+          "game-memory"
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.3.0-rc.12",
+          "publishTimestamp": 1792594988,
+          "source": {
+            "type": "npm",
+            "registry": "https://registry.npmjs.org"
+          },
+          "engines": {
+            "dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2"
+          }
+        }
+      ]
+    }
+  ]
 }

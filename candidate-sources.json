@@ -3,28 +3,48 @@
   "adapterVersion": "0.3.0-rc.12",
   "publication": {
     "channel": "release-candidate",
-    "status": "github-preview-published-npm-web-authentication-pending",
+    "status": "npm-and-github-published-default-stock-dsh-install-verified",
     "tag": "v0.3.0-rc.12",
-    "registryPublished": false,
+    "registryPublished": true,
     "githubPublished": true,
     "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.12",
     "npm": "@jcs130/dsh-minecraft-agent@0.3.0-rc.12",
-    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/release-verification.json",
+    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/npm-registry-verification.json",
     "sourceSnapshotCommit": "4f22222bb4a7d3ae161c355eb29f31b77930a9a5",
     "mergedSourceCommit": "6d831d80dfe63dd0a53524d421e4f12536b4e799",
-    "verifiedAt": "2026-10-21T14:14:59.010641+00:00",
+    "verifiedAt": "2026-10-21T15:07:43.552060+00:00",
     "sha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
     "integrity": "sha512-Gr21Zo3g7tHh0odYaYOZPCMkRWItZzXON5BKo1IrY4OdjXoxm/PEMVLhmIhZ/S/m/0vTc+MHMr1IYThK/ByplQ==",
     "githubArchive": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz",
-    "publicVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/github-public-verification.json",
-    "npmPublishAttempt": {
+    "publicVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/npm-registry-verification.json",
+    "previousNpmAttempt": {
       "exitCode": 1,
       "errorCode": "E404",
       "phase": "web-authentication-wait",
       "status": "expired-or-invalidated-web-authentication",
       "processStillRunning": false,
       "credentialsRecorded": false
-    }
+    },
+    "npmPublishedAt": "2026-10-21T15:03:08.439Z",
+    "npmDistTags": {
+      "latest": "0.3.0-rc.12",
+      "next": "0.3.0-rc.11"
+    },
+    "artifactVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/release-verification.json",
+    "npmPublishAttempt": {
+      "exitCode": 0,
+      "status": "public-verified",
+      "credentialsRecorded": false
+    },
+    "communitySubmission": {
+      "url": "https://github.com/ydhrdh/dsh-marketplace/pull/18",
+      "state": "open",
+      "draft": false,
+      "headSha": "33ebc6a89524e20f34f5ca21ecc14288a3fdd834",
+      "maintainerApproval": "pending",
+      "merged": false
+    },
+    "ownMarketRestored": true
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -156,9 +176,9 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "The rc.12 GitHub archive is public, hash-verified and installed through default DSH/pnpm with stock official main/Worker resolution. No host patch is required. Npm publication still requires fresh package-specific web authentication; its latest anonymous lookup is 404. Package bytes and original pre-publication metadata are preserved. Native Desktop pixels and live gameplay remain separate.",
+  "note": "rc.12 is public on npm latest and GitHub with identical archive hashes. Default official DSH/pnpm installs the registry package without a host patch, overrides, disabled protections or production tsx/esbuild. Package-embedded flags and older reports are immutable historical snapshots. Native Desktop pixels, live gameplay and community-maintainer acceptance are separate.",
   "hostVerification": {
-    "status": "github-public-stock-dsh-default-pnpm-and-harness2-verified",
+    "status": "public-registry-stock-dsh-default-pnpm-and-harness2-verified",
     "ordinaryTests": {
       "passed": 96,
       "failed": 0,
@@ -175,18 +195,18 @@
     "hostResolverUnchanged": true,
     "environmentRestored": true,
     "defaultPnpmInstallVerified": true,
-    "publicRegistryInstallVerified": false,
+    "publicRegistryInstallVerified": true,
     "nativeDesktopPixels": false,
     "liveGameConnections": 0,
     "paidModelCalls": 0,
     "productionReloads": 0,
-    "verifiedAt": "2026-10-21T14:14:59.010641+00:00",
+    "verifiedAt": "2026-10-21T15:07:43.552060+00:00",
     "officialPluginLoader": true,
     "adapterWasLocalCandidate": false,
     "coreAndServerPackFromRegistry": true,
     "dependencyGraph": {
-      "time": "2026-10-21T14:13:22.491Z",
-      "profile": "mc12-github",
+      "time": "2026-10-21T15:05:30.695Z",
+      "profile": "mc12-registry",
       "core": "0.5.7-rc.64",
       "installedCoreVersions": [
         "0.5.7-rc.64"
@@ -223,7 +243,13 @@
       "failed": 0,
       "passed": 1
     },
-    "publicGithubInstallVerified": true
+    "publicGithubInstallVerified": true,
+    "adapterAndDependenciesFromRegistry": true,
+    "postPublicationMetadataTests": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    }
   },
   "previousRelease": {
     "version": "0.3.0-rc.11",

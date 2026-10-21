@@ -1,0 +1,162 @@
+{
+  "schema": "dsh-minecraft-registry-verification/v1",
+  "verifiedAt": "2026-10-21T15:07:43.552060+00:00",
+  "stage": "npm-and-github-public-default-registry-install-verified",
+  "artifact": {
+    "version": "0.3.0-rc.12",
+    "sourceCommit": "4f22222bb4a7d3ae161c355eb29f31b77930a9a5",
+    "mergedCommit": "6d831d80dfe63dd0a53524d421e4f12536b4e799",
+    "sha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
+    "integrity": "sha512-Gr21Zo3g7tHh0odYaYOZPCMkRWItZzXON5BKo1IrY4OdjXoxm/PEMVLhmIhZ/S/m/0vTc+MHMr1IYThK/ByplQ==",
+    "bytes": 77648,
+    "runtimeSameAsValidatedCandidate": true,
+    "runtimeFiles": 13
+  },
+  "npm": {
+    "verifiedAt": "2026-10-21T15:03:37.888740+00:00",
+    "version": "0.3.0-rc.12",
+    "source": "registry",
+    "anonymous": true,
+    "metadataUrl": "https://registry.npmjs.org/@jcs130%2fdsh-minecraft-agent/0.3.0-rc.12",
+    "available": true,
+    "httpStatus": 200,
+    "archiveUrl": "https://registry.npmjs.org/@jcs130/dsh-minecraft-agent/-/dsh-minecraft-agent-0.3.0-rc.12.tgz",
+    "sha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
+    "integrity": "sha512-Gr21Zo3g7tHh0odYaYOZPCMkRWItZzXON5BKo1IrY4OdjXoxm/PEMVLhmIhZ/S/m/0vTc+MHMr1IYThK/ByplQ==",
+    "bytes": 77648,
+    "exactArchiveMatched": true
+  },
+  "github": {
+    "verifiedAt": "2026-10-21T14:10:59.258475+00:00",
+    "version": "0.3.0-rc.12",
+    "source": "github",
+    "anonymous": true,
+    "available": true,
+    "httpStatus": 200,
+    "archiveUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz",
+    "sha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
+    "integrity": "sha512-Gr21Zo3g7tHh0odYaYOZPCMkRWItZzXON5BKo1IrY4OdjXoxm/PEMVLhmIhZ/S/m/0vTc+MHMr1IYThK/ByplQ==",
+    "bytes": 77648,
+    "exactArchiveMatched": true
+  },
+  "npmPublishedAt": "2026-10-21T15:03:08.439Z",
+  "npmDistTags": {
+    "latest": "0.3.0-rc.12",
+    "next": "0.3.0-rc.11"
+  },
+  "publisher": {
+    "commandExitCode": 0,
+    "status": "public-verified",
+    "credentialsRecorded": false
+  },
+  "defaultDshInstall": {
+    "passed": true,
+    "packageSpec": "@jcs130/dsh-minecraft-agent@0.3.0-rc.12",
+    "adapterAndDependenciesFromRegistry": true,
+    "pnpm": "11.28.5",
+    "protectionsChanged": false,
+    "overridesAdded": false,
+    "ignoreScripts": false,
+    "automaticFreshReleaseExclusions": [
+      "@jcs130/dsh-minecraft-agent@0.3.0-rc.12",
+      "agent-mc-qiandengji@0.5.0-rc.10",
+      "agent-mc-world@0.5.7-rc.64"
+    ]
+  },
+  "stockOfficialDsh": {
+    "dsh": "0.2.1-rc.2",
+    "modelRequests": 0,
+    "gameConnections": 0,
+    "moduleLoaded": true,
+    "officialPluginLoader": true,
+    "mcpTools": 36,
+    "offlineEngineIpc": true,
+    "offlineGameMemory": true,
+    "serverPackLoaded": true,
+    "physicsFixtures": 2,
+    "workerLoaded": true,
+    "workerOfficialResolverActive": true,
+    "environmentRestored": true,
+    "resolverUnchanged": true,
+    "frameworkSha256": [
+      "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+      "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+    ],
+    "frameworkUnchanged": true
+  },
+  "dependencyGraph": {
+    "time": "2026-10-21T15:05:30.695Z",
+    "profile": "mc12-registry",
+    "core": "0.5.7-rc.64",
+    "installedCoreVersions": [
+      "0.5.7-rc.64"
+    ],
+    "sharedPhysicalCore": true,
+    "tsxInstalled": false,
+    "esbuildInstalled": false,
+    "override": false,
+    "defaultPnpmProtections": true,
+    "automaticFreshReleaseExclusions": true,
+    "modelRequests": 0,
+    "gameConnections": 0
+  },
+  "panel": {
+    "compiledClientTab": "mc-panel",
+    "ownerApi": 200,
+    "otherSessionDenied": true,
+    "delegateApi": 403,
+    "disposedApi": 404
+  },
+  "priorFullTests": {
+    "passed": 97,
+    "failed": 0,
+    "skipped": 0
+  },
+  "harness2": {
+    "started": "2026-10-21T13:56:41.751Z",
+    "ended": "2026-10-21T13:56:48.217Z",
+    "stockDsh": "0.2.1-rc.2",
+    "sameProcessOfficialResolver": true,
+    "loopbackProviderCalls": 4,
+    "offlinePhysicalTrials": 6,
+    "paidModelCalls": 0,
+    "gameConnections": 0,
+    "adopted": false,
+    "results": [
+      {
+        "type": "test:pass",
+        "name": "packed DSH tool uses native DeepSeek, actual pinned Harness2, physical probes and existing game memory",
+        "durationMs": 5152.4832
+      }
+    ]
+  },
+  "limits": {
+    "productionReloads": 0,
+    "liveGameConnections": 0,
+    "paidModelCalls": 0,
+    "nativeDesktopPixelsVerified": false
+  },
+  "note": "Same immutable archive bytes on npm and GitHub. Real default DSH/pnpm registry installation and stock official main/Worker, offline SDK/MCP/engine/game-memory and native panel/session checks passed. Older artifact/authentication reports and package-embedded publication flags remain historical snapshots. Community market submission is separate from maintainer acceptance.",
+  "postPublicationMetadataTests": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "communityLocalValidation": {
+    "registryAndWebBuildPassed": true,
+    "verifiedBadge": false
+  },
+  "communitySubmission": {
+    "url": "https://github.com/ydhrdh/dsh-marketplace/pull/18",
+    "state": "open",
+    "draft": false,
+    "headSha": "33ebc6a89524e20f34f5ca21ecc14288a3fdd834",
+    "maintainerApproval": "pending",
+    "merged": false
+  },
+  "ownMarket": {
+    "sourceType": "npm",
+    "version": "0.3.0-rc.12",
+    "indexUrl": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/main/market/index.json"
+  }
+}
