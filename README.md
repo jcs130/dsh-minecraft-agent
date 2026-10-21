@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-> 源码候选 rc.10：跟进共享工作/移动能力，并消费方法终态唤醒修复。按用户要求，本轮仅同步源码和验证；核心 rc.61 与适配器均未发布。候选锁文件中的核心归档须先在本地显式准备。官方 DSH 的 `process/` 加载问题仍存在，未恢复市场入口。见[本轮记录](docs/core-update-20261021.md)。
+> rc.11 修复候选：核心生产子进程不再依赖 tsx，保留完整可视化与训练模拟器。DSH 0.2.1-rc.2 的 `process/` 加载错误提供了[显式检查、修复与回滚工具](docs/DSH-COMPAT.md)，安装时不会自动修改框架。源码与隔离运行已验证；公开分发状态见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -10,7 +10,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.10 发布候选**，消费核心 0.5.7-rc.61 和可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。计划通过固定 Git 标签与 GitHub Release 分发，当前核心和适配器候选均未发布，须用已核验的本地核心归档做开发验证。[桌面与实验室指南](docs/desktop.md)中的安装流程仍待框架兼容修复，实际状态以[发布记录](docs/registry-release.md)为准。
+**0.3.0-rc.11 发布候选**，精确消费核心 0.5.7-rc.64 和可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。旧版 DSH 需要操作员先退出程序，再按兼容指南选择实际安装目录进行一次修复；主进程和 Worker 都覆盖。官方 DSH 的合并/发行、Desktop 原生画面与实服游玩分别验收，市场入口不因隔离修复通过而自动恢复。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -37,7 +37,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 开发
 
-候选分支的核心尚未发布，先按[本地候选步骤](docs/core-update-20261021.md)安装核验归档；不能直接把在线 `npm ci` 当作已可用的分发流程。锁文件保留预期 registry 地址与已核验归档的完整性校验，不引入 Git/URL 子依赖。验证未发布的本地候选 tgz 见 [安装说明](README-INSTALL.md#可选本地候选-tgz)。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定及暂停持久化测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
+核心版本尚未公开时，先按[本地候选步骤](docs/core-update-20261021.md)安装核验归档。锁文件保留 registry SemVer 地址与归档完整性，不引入 Git/URL 子依赖。`npm run build` 生成薄适配器及 DSH 浏览器入口；通用页面、渲染和控制由核心消费的 mc-visual-console 提供。`npm test` 包含真实 DSH Session API、DeepSeek/Qwen 请求格式、取消、回合、动作归因、会话面板绑定、暂停持久化，以及修复工具的原子替换和回滚测试；外置安装可用 `DSH_RUNTIME` 指定其根目录。
 
 主模型工具动作携带真实 session/turn/step 的 `system2` 归因；不把规则动作或影子建议冒充学习策略采用。状态文件显示实际安装的核心和适配器版本、请求的思考等级；流耗时与首字延迟不等于引擎执行耗时。
 

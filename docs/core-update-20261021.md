@@ -1,4 +1,28 @@
-# 2026-10-21 核心跟进：源码候选 rc.10
+# 2026-10-21 核心跟进：rc.11 兼容修复
+
+rc.11 精确消费核心 `0.5.7-rc.64`，源码提交 `9433a29d9a7c11ba712f3f8ae930d42fcd0373e7`，基于最新主干 rc.63。核心已合入主分支；源码、归档公开状态、DSH 修复后的运行、Desktop 原生画面及线上游戏分别记录。
+
+修复两项实际阻塞：
+
+- 核心编译版引擎与脚本子进程直接使用 Node，不再把 tsx/esbuild 的开发安装脚本带入生产依赖。源码开发仍解析自己的 tsx；训练 worker 同时编译，Python 模拟器优先使用编译版本，避免修安装却破坏训练入口。
+- DSH 0.2.1-rc.2 将 `process/`、`buffer/` 的 npm 包查询误判为 Node 内置模块。已完成上游源码修复、五项新回归及完整构建；提供独立 [dsh-minecraft-doctor](DSH-COMPAT.md)，显式选择退出后的安装进行检查、修复或回滚。安装、导入和启用插件均不自动改写宿主。
+
+最终核心归档 `agent-mc-world-0.5.7-rc.64.tgz`：59,150,580 字节，SHA256 `3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f`，完整性 `sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q==`。包含锁定的完整可视化、实验室与编译训练 worker，未替换为 engine-only 包。
+
+验证结果：
+
+- 核心完整回归 1856 通过、1 项可选跳过、0 失败；完整 release 构建、328 份公开声明、源码类型及隔离 NodeNext/Bundler 类型检查通过。
+- 不安装 tsx 的全新消费端能启动真实引擎 IPC，保存游戏笔记，并在新 runtime 中读取；离线 Python 模拟器握手、重置通过，没有训练模型。
+- 宿主回归 92 通过、1 项可选跳过、0 失败。另行开启的真实 Harness²/DSH 内置 DeepSeek 协议测试通过：4 次本机模拟响应、6 次离线物理试跑、写入原游戏记忆；付费模型调用和真实游戏连接均为 0。
+- 官方 pnpm 11.28.5 默认保护下实际 `dsh plugin add` 成功。该次安装通过临时 profile 的 YAML override 读取未公开核心候选，不能称为 registry 下载；没有加 `--ignore-scripts`、构建许可或关闭 exotic 子依赖检查。
+- 未修复的官方 DSH 仍复现 TypeError；显式修复后的实际 profile 能加载包及浏览器标签，所有者 RPC 200、其他会话拒绝、delegate 403、卸载后 404。回滚能恢复原始哈希和原故障。
+- DSH 上游拥有的解析测试 Linux 238 全过，完整构建 9 项门禁、推送前类型检查 5 项门禁通过。Windows 文档同步保留两项既有失败：文件符号链接权限与原始 `python/sdk/uv.lock:113` 检查；Linux 文档/站点 151 项通过，没有改旧锁文件凑绿。
+
+DSH 修复源码已推送 [fix/npm-builtin-subpaths](https://github.com/jcs130/deepseek-harness/tree/fix/npm-builtin-subpaths)，提交 `d336362d78b2802a9ce1908a2493a4cefa7de2a5`。当前 GitHub 凭据/集成不能向官方仓库创建 PR（API 404/403），因此不声称已提交 PR、合入或发行。官方旧版和手动修复版仍是不同验收状态。
+
+回滚插件时恢复升级前的 profile 依赖及锁文件；解析器单独按兼容指南 `--rollback`。本轮未重载现役 Cortico、World、客户端或服务器，未启动鸣人，未修改人格、会话、目标、记忆和账本。公开制品的匿名校验结果以 [registry 记录](registry-release.md) 和 Release 页面为准。
+
+## rc.10 历史记录
 
 本轮按用户要求只完成源码同步与验证，不发布 npm/GitHub 安装版本，不更新市场，不加载现役服务。候选位于 `codex/core61-dsh-sync-20261021`，主分支仍保留原来已公开的依赖。核心自身的共用修复已合入 `minecraft-ai-friend` 主分支。
 

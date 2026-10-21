@@ -1,13 +1,13 @@
-# 安装 DSH Minecraft Agent 0.3.0-rc.10
+# 安装 DSH Minecraft Agent 0.3.0-rc.11
 
-> rc.10 是源码候选，核心 rc.61 和插件均未发布。本轮按用户要求只交付源码与验证，不能用下面的目标 Git/tag 命令安装。先看[本地候选步骤](docs/core-update-20261021.md)；官方 DSH 的模块解析问题也尚未修复。
+> 以下固定版本命令在对应包公开后可用；是否已公开见[发布记录](docs/registry-release.md)。旧 DSH 0.2.1-rc.2 需要一次显式解析器修复，安装不会自动修改框架。先读[兼容指南](docs/DSH-COMPAT.md)。
 
-需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。候选包含构建后的前端，核心须先准备同一核验归档。核心锁定 agent-mc-world@0.5.7-rc.61，锁文件保留预期 registry 地址与已核验本地归档的完整性校验；核心尚不能从 registry 下载。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
+需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.64。核心编译版引擎、脚本子进程和训练模拟器直接用 Node，不要求生产环境运行 tsx 安装脚本。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
 
-安装公开 Git 固定版本（核心使用 npm registry 依赖）：
+安装公开固定版本（核心使用 npm registry 依赖）：
 
 ```sh
-dsh plugin --profile web add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.10
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.11
 ```
 
 本轮源码候选开发（先取得并核对核心归档）：
@@ -15,11 +15,20 @@ dsh plugin --profile web add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.10
 ```sh
 git clone --branch codex/core61-dsh-sync-20261021 https://github.com/jcs130/dsh-minecraft-agent
 cd dsh-minecraft-agent
-npm install --ignore-scripts --no-save --package-lock=false ./vendor/agent-mc-world-0.5.7-rc.61.tgz
+npm install --ignore-scripts --no-save --package-lock=false ./vendor/agent-mc-world-0.5.7-rc.64.tgz
 npm run build && npm test
 ```
 
-Desktop 用户优先使用插件管理器；CLI 必须使用 Desktop 随附的命令且先完全退出桌面程序，详见[桌面与实验室指南](docs/desktop.md)。国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：
+安装完毕，先完全退出要修复的 DSH。用安装目录的 `bin/repair-dsh.mjs`（或 `dsh-minecraft-doctor` 命令）默认只读检查，再明确执行修复：
+
+```sh
+dsh-minecraft-doctor --dsh-root "<包含 @deepseek-ai/dsh/package.json 的实际目录>"
+dsh-minecraft-doctor --dsh-root "<同一实际目录>" --apply
+```
+
+它覆盖已知版本主入口和 Worker 入口，拒绝未知字节、未知版本与应用归档，保留原文件用于 `--rollback`。不会启动服务或模型，也不改 profile。Desktop 用户必须使用 Desktop 随附的安装，不能用另一个 CLI 的依赖替代；封装为归档的 Desktop 等待官方更新。详见[桌面与实验室指南](docs/desktop.md)。
+
+国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：
 
 ```sh
 npm ci --registry=https://registry.npmmirror.com

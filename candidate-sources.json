@@ -1,41 +1,60 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.10",
+  "adapterVersion": "0.3.0-rc.11",
   "publication": {
     "channel": "release-candidate",
-    "status": "source-only-per-user-request",
-    "tag": "v0.3.0-rc.10",
+    "status": "validated-awaiting-npm-browser-authentication",
+    "tag": "v0.3.0-rc.11",
     "registryPublished": false,
     "githubPublished": false,
-    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.10"
+    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.11"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
     "tag": "dsh-v0.2.1-rc.2",
     "commit": "687f282e8625c6b8d11ff58211a90524be2e4317",
     "version": "0.2.1-rc.2",
-    "previousVersion": "0.2.0-rc.2"
+    "previousVersion": "0.2.0-rc.2",
+    "resolverFix": {
+      "repository": "https://github.com/jcs130/deepseek-harness",
+      "branch": "fix/npm-builtin-subpaths",
+      "commit": "d336362d78b2802a9ce1908a2493a4cefa7de2a5",
+      "upstreamPrCreated": false,
+      "upstreamReleased": false,
+      "fullLinuxResolverTests": 238,
+      "fullBuildGates": 9,
+      "prePushTypecheckGates": 5,
+      "automaticPatch": false
+    }
   },
   "candidates": [
     {
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "e24273decc638c7f5caee224a0157165cf59082c",
-      "version": "0.5.7-rc.61",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.61.tgz",
-      "sha256": "7957ac9abfefff61efdc7e044fea47b612b1e78b4df3d7bf3df1947d851f8a73",
-      "integrity": "sha512-T3pCvPhblfevJZC1UCMbxB/RNE+soxiOXn4NHNVbzxFkUdzohH6nEnKVcMUB+Mn3dNMv6HP4k0i57fdgaMGpvA==",
-      "published": false,
+      "commit": "9433a29d9a7c11ba712f3f8ae930d42fcd0373e7",
+      "version": "0.5.7-rc.64",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.64.tgz",
+      "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
+      "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q==",
+      "published": true,
       "registryPublished": false,
       "previousNpm": {
         "version": "0.5.7-rc.57",
         "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A=="
       },
-      "githubUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.61/agent-mc-world-0.5.7-rc.61.tgz",
-      "npm": "agent-mc-world@0.5.7-rc.61",
+      "githubUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.64/agent-mc-world-0.5.7-rc.64.tgz",
+      "npm": "agent-mc-world@0.5.7-rc.64",
       "registry": "https://registry.npmjs.org/",
-      "sourceBaseCommit": "7fdd91747eff0fd6f2cbd42485bc08c5fece4634"
+      "sourceBaseCommit": "79aba267055d4a8ab41d00232b6c907df8a64913",
+      "githubPublished": true,
+      "githubPublicVerification": {
+        "time": "2026-10-21T12:42:44.979390+00:00",
+        "anonymousDownload": true,
+        "bytes": 59150580,
+        "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
+        "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q=="
+      }
     },
     {
       "role": "serverPack",
@@ -52,12 +71,12 @@
       "published": true
     }
   ],
-  "coreSourceFilesSha256": "72d84b363c914a256c729bd7f931017376cd567b5d6f0035e61d3d5b6b62afc7",
+  "coreSourceFilesSha256": "5f36ef2ee2ad55a96609ef0bbb3ecafeb06765e05f46a5e96179fc347eaebd21",
   "sourceVerification": {
-    "sourceEntries": 405,
-    "runtimeEntries": 22141,
-    "buildInputVerification": "scripts/verify-build.mjs passed; full locked viewer included",
-    "publicDeclarations": 327
+    "sourceEntries": 406,
+    "runtimeEntries": 22143,
+    "buildInputVerification": "scripts/verify-build.mjs passed; full locked viewer and compiled training worker included",
+    "publicDeclarations": 328
   },
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
@@ -76,25 +95,42 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Source-only candidate per user request. Shared core .60 routines plus .61 method-terminal wake fix; default lean tools expose script discovery. Core .61 bytes were independently installed from the verified local content cache, not downloaded from the registry. Neither current candidate is published. Official DSH loader blocker remains; no market or live deployment update.",
+  "note": "Full compiled core and visualization retained. Production engine/script children and the Python simulator require no tsx. Explicit exact-byte repair is required for official DSH 0.2.1-rc.2; both main and Worker are covered, with read-only check and rollback. Installation never patches DSH. Source, public registry, repaired runtime, native Desktop pixels and live gameplay are separate gates.",
   "hostVerification": {
-    "dsh": "0.2.1-rc.2",
-    "node": "24.19.0",
-    "pnpmBaseline": "11.28.5",
-    "packedContractsAndBudgetTestsPassed": 25,
-    "regularSuite": {
-      "total": 86,
-      "passed": 85,
+    "status": "isolated-runtime-passed-explicit-dsh-repair-required",
+    "verifiedAt": "2026-10-21T12:35:34.844Z",
+    "ordinaryTests": {
+      "passed": 92,
       "failed": 0,
-      "skipped": 1
+      "optionalSkipped": 1
     },
-    "freshContentCacheNpmCi": true,
-    "freshRegistryDownload": false,
-    "stockDshLoadPassed": false,
-    "stockDshLoadFailure": "npm process/ subpath resolution TypeError in official app-boot",
-    "nativeDesktopPixelsVerified": false,
-    "gameConnections": 0,
-    "modelRequests": 0,
-    "liveServicesChanged": false
+    "harness2": {
+      "separateTestPassed": true,
+      "loopbackResponses": 4,
+      "offlinePhysicalTrials": 6,
+      "paidModelCalls": 0,
+      "adopted": false
+    },
+    "defaultPnpm": {
+      "version": "11.28.5",
+      "actualDshPluginAddPassed": true,
+      "ignoreScripts": false,
+      "allowBuildsAdded": false,
+      "blockExoticSubdepsDisabled": false,
+      "unpublishedCoreArchiveOverride": true,
+      "registryDownloadVerified": false
+    },
+    "originalOfficialDshLoad": false,
+    "repairedOfficialDshLoad": true,
+    "rollbackRestoresOriginalFailure": true,
+    "clientTab": "mc-panel",
+    "ownerRpc": 200,
+    "otherSessionDenied": true,
+    "delegateRpc": 403,
+    "disposedRpc": 404,
+    "nativeDesktopPixels": false,
+    "liveGameConnections": 0,
+    "paidModelCalls": 0,
+    "productionReloads": 0
   }
 }
