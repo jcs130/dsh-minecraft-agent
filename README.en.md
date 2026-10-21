@@ -1,12 +1,12 @@
 # DSH Minecraft Agent
 
-> rc.9 replaces the URL core subdependency with an exact npm registry version. Publication, default DSH installation and native Desktop visual checks are recorded separately in the [release record](docs/registry-release.md).
+> Publication hold: the registry core is available, but actual loading on official DSH 0.2.1-rc.2 fails while resolving the npm `process/` package. An isolated resolver fix passed; it is not an official framework release. rc.9 and market installation remain withheld. See the [release record](docs/registry-release.md).
 
 [简体中文](README.md) | English
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The preview is **0.3.0-rc.9**, using DSH **0.2.1-rc.2**, core **0.5.7-rc.57** and optional server pack **0.5.0-rc.3**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Distribution uses the fixed Git tag `github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9` and GitHub Release archive; the core dependency is a public npm version. The adapter's own npm publication is recorded separately. See the [release record](docs/registry-release.md) and [Desktop and experiments](docs/desktop.md). The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
+The release candidate is **0.3.0-rc.9**, consuming core **0.5.7-rc.57** and optional server pack **0.5.0-rc.3**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. The core is public on npm; this adapter is not yet published. Fixed Git/tag and archive distribution remain planned until framework compatibility passes. See the [release record](docs/registry-release.md) and [Desktop and experiments](docs/desktop.md). The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
 
 Optional [Harness2 practice](docs/harness2.md) reuses DSH's registered model route and the core's isolated execution, baseline/held-out comparison and game-memory contracts. It is disabled by default and never adopts a skill or resumes a live Agent automatically.
 

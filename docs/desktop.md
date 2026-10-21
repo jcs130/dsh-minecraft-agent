@@ -1,6 +1,6 @@
 # DSH Desktop 与实验室
 
-> rc.9 使用固定的 registry 核心依赖。默认 DSH 安装、协议/组件和原生 Desktop 画面分别验收，状态见[发布记录](registry-release.md)。
+> rc.9 尚未发布；官方 DSH 0.2.1-rc.2 的 `process/` 解析问题仍待上游交付。以下是目标流程，默认安装与真实加载尚未整体验收；状态见[发布记录](registry-release.md)。
 
 支持官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件入口，普通 Web 同一套构建。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 

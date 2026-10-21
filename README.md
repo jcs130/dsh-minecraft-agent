@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-> rc.9 将核心子依赖改为固定的 npm registry 版本，修复 rc.8 的 URL 子依赖分发问题。发布、默认 DSH 安装与原生 Desktop 画面分别验收，进度见[发布记录](docs/registry-release.md)。
+> 发布暂缓：核心 npm 依赖已就绪，rc.9 在实际 DSH 加载验收中发现官方 0.2.1-rc.2 的 `process/` 解析问题。修复已在隔离副本验证，尚未进入官方框架；rc.9 尚未发布或恢复市场入口。详情见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -10,7 +10,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.9 预览版**，基于 DSH 0.2.1-rc.2、核心 0.5.7-rc.57，可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。通过固定 Git 标签 `github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9` 与 GitHub Release 安装包分发，核心依赖使用公开 npm 版本；[桌面与实验室指南](docs/desktop.md)包含安装和使用方法，实际发布状态以[发布记录](docs/registry-release.md)为准。适配器自身的 npm 发布单独记录。
+**0.3.0-rc.9 发布候选**，消费核心 0.5.7-rc.57 和可选千灯纪包 0.5.0-rc.3。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。计划通过固定 Git 标签与 GitHub Release 分发，核心依赖已公开发布到 npm；适配器自身尚未发布。[桌面与实验室指南](docs/desktop.md)中的安装流程仍待框架兼容修复，实际状态以[发布记录](docs/registry-release.md)为准。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 

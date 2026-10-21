@@ -5,8 +5,8 @@
     "zh": "Agent MC World 插件"
   },
   "description": {
-    "en": "Listings temporarily withheld while preparing registry-only dependencies for default DSH/pnpm installation.",
-    "zh": "正在修复默认 DSH/pnpm 的依赖分发；registry 版本就绪前暂不展示可安装条目。"
+    "en": "Installable entries withheld until the official DSH npm-subpath loader compatibility issue is resolved.",
+    "zh": "官方 DSH 的 npm 子路径加载兼容问题尚待修复；暂不提供可安装条目。"
   },
   "plugins": []
 }

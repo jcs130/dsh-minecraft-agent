@@ -1,6 +1,6 @@
 # 安装 DSH Minecraft Agent 0.3.0-rc.9
 
-> rc.9 使用 registry 依赖。发布与默认 DSH 安装状态见[发布记录](docs/registry-release.md)，保留包管理器的默认保护。
+> rc.9 尚未发布。实际验收发现 DSH 0.2.1-rc.2 的模块解析缺陷，下面是待修复后的目标安装流程；不能当作当前可用版本。发布与默认安装状态见[发布记录](docs/registry-release.md)。
 
 需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。发行包已包含构建后的前端，不需要手动准备 vendor 候选。核心锁定 agent-mc-world@0.5.7-rc.57，全部依赖使用 registry.npmjs.org，均含完整性校验。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
 

@@ -2,11 +2,12 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.9",
   "publication": {
-    "channel": "github-release-preview",
-    "status": "registry-core-and-host-tests-verified",
+    "channel": "release-candidate",
+    "status": "blocked-on-stock-dsh-module-resolution",
     "tag": "v0.3.0-rc.9",
     "registryPublished": false,
-    "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9"
+    "githubPublished": false,
+    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -75,5 +76,17 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "The npm core archive matches the immutable GitHub core release. Full host tests and the actual pinned Harness2 loopback/physics workflow passed in a fresh registry-only consumer. Adapter Git/archive publication, default DSH installation, optional adapter npm publication and live deployment are recorded separately."
+  "note": "Core 0.5.7-rc.57 is publicly available on npm with identical verified bytes. Adapter rc.9 is not published. Default pnpm installation reports an ignored esbuild build; --ignore-scripts installs without running hooks, but official DSH app-boot then fails to resolve the npm process/ request. A three-site resolver fix passed only in an isolated copied fixture and has not been submitted upstream or released. Do not advertise stock DSH compatibility, restore the market or publish the old prepared artifact.",
+  "hostVerification": {
+    "dsh": "0.2.1-rc.2",
+    "node": "24.19.0",
+    "pnpm": "11.28.5",
+    "regularTestsPassed": 83,
+    "optionalRealHarness2Passed": true,
+    "stockDshLoadPassed": false,
+    "installWithIgnoreScriptsPassed": true,
+    "isolatedAppBootFixPassed": true,
+    "officialAppBootFixReleased": false,
+    "nativeDesktopPixelsVerified": false
+  }
 }
