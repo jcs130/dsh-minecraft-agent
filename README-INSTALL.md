@@ -1,14 +1,16 @@
 # 安装 DSH Minecraft Agent 0.3.0-rc.12
 
-> rc.12 直接兼容未经修补的官方 DSH 0.2.1-rc.2，无需执行 doctor。当前候选与公开状态见[发布记录](docs/registry-release.md)。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
+> rc.12 直接兼容未经修补的官方 DSH 0.2.1-rc.2，无需执行 doctor。GitHub 发行包已公开，默认 DSH 安装和运行已验收；npm 尚待网页认证，渠道状态见[发布记录](docs/registry-release.md)。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
 
 需要 Node.js 24 和 DSH 0.2.1-rc.2，Java 1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.64，可选服务器包为 agent-mc-qiandengji@0.5.0-rc.10。生产引擎、脚本与训练模拟器使用编译版，不要求 tsx。
 
-固定版本公开后，通过 DSH 正常安装：
+当前直接安装已验证的 GitHub 固定发行包：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
+dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz
 ```
+
+npm 认证与匿名下载验证完成后，才可改用 `@jcs130/dsh-minecraft-agent@0.3.0-rc.12`。当前不要把 npm 的 rc.11 当作这次直接兼容修复。
 
 源码开发：
 

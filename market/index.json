@@ -5,8 +5,8 @@
     "zh": "Agent MC World 插件"
   },
   "description": {
-    "en": "registry-only rc.12 candidate passed stock DSH; installable listing awaits verified public distribution.",
-    "zh": "rc.12 候选已通过原始官方 DSH；可安装条目待公开分发核验后恢复。"
+    "en": "registry-only market listing awaits npm authentication; validated rc.12 GitHub archive is already public.",
+    "zh": "rc.12 GitHub 包已验证并公开；npm 尚待网页认证，registry 市场条目暂缓。"
   },
   "plugins": []
 }

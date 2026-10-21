@@ -6,10 +6,10 @@
 
 ## 安装
 
-在 Desktop 的插件管理中填写固定 npm 版本：
+在 Desktop 的插件管理中填写已公开的固定发行包 URL（npm 渠道仍待认证）：
 
 ```text
-@jcs130/dsh-minecraft-agent@0.3.0-rc.12
+https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz
 ```
 
 或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。
@@ -17,7 +17,7 @@
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
+dsh plugin --profile desktop add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz
 ```
 
 重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。

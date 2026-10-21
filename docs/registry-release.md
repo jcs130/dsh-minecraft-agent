@@ -2,6 +2,8 @@
 
 ## rc.12：直接兼容官方 DSH
 
+GitHub rc.12 已公开，匿名归档校验和真实 URL 的默认 DSH/pnpm 安装、原始官方解析器与面板验证均通过。[公开校验记录](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/github-public-verification.json)。npm 独立网页认证等待返回 E404，进程已结束；最新匿名查询仍为 404。旧页面不可复用，不能声称 npm 已发布。继续发布须使用相同归档字节，不重新打包。
+
 适配器 `0.3.0-rc.12` 保持核心 `0.5.7-rc.64`、可选千灯纪包 `0.5.0-rc.10`，新增精确的 `readable-stream@4.8.0` 宿主依赖。在异步导入 SDK 前同步选择依赖支持的 Node 原生流，并恢复原环境；无需用户修改 DSH 主程序或 Worker，不动 Cortico、通用 Minecraft 能力或现役进程。
 
 全新 registry npm 消费端：97 项全量回归通过，包含外置 Harness² 集成和市场解析。新增真实未修补 DSH 回归先复现旧错误，再验证两个独立入口、SDK/MCP、离线引擎 IPC、游戏记忆、千灯纪包、物理练习及启用了官方解析器的 Worker。前后宿主文件 SHA256、解析器引用和环境一致。后续默认 pnpm、公开分发、面板与实验验收见 `candidate-sources.json`，发布制品与源码状态分别记录。候选尚未公开时不将版本号或上传成功当成匿名可下载证明。

@@ -3,13 +3,28 @@
   "adapterVersion": "0.3.0-rc.12",
   "publication": {
     "channel": "release-candidate",
-    "status": "verified-stock-dsh-candidate-publication-pending",
+    "status": "github-preview-published-npm-web-authentication-pending",
     "tag": "v0.3.0-rc.12",
     "registryPublished": false,
-    "githubPublished": false,
+    "githubPublished": true,
     "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.12",
     "npm": "@jcs130/dsh-minecraft-agent@0.3.0-rc.12",
-    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/release-verification.json"
+    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/release-verification.json",
+    "sourceSnapshotCommit": "4f22222bb4a7d3ae161c355eb29f31b77930a9a5",
+    "mergedSourceCommit": "6d831d80dfe63dd0a53524d421e4f12536b4e799",
+    "verifiedAt": "2026-10-21T14:14:59.010641+00:00",
+    "sha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
+    "integrity": "sha512-Gr21Zo3g7tHh0odYaYOZPCMkRWItZzXON5BKo1IrY4OdjXoxm/PEMVLhmIhZ/S/m/0vTc+MHMr1IYThK/ByplQ==",
+    "githubArchive": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz",
+    "publicVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/github-public-verification.json",
+    "npmPublishAttempt": {
+      "exitCode": 1,
+      "errorCode": "E404",
+      "phase": "web-authentication-wait",
+      "status": "expired-or-invalidated-web-authentication",
+      "processStillRunning": false,
+      "credentialsRecorded": false
+    }
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -141,9 +156,9 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "DSH-specific synchronous native-stream bootstrap supports the stock official main/Worker resolver without a host patch. Core and server-pack bytes remain unchanged. Publication, default pnpm installation, native Desktop pixels and live gameplay are separate evidence. The older doctor is retained for explicit rollback only.",
+  "note": "The rc.12 GitHub archive is public, hash-verified and installed through default DSH/pnpm with stock official main/Worker resolution. No host patch is required. Npm publication still requires fresh package-specific web authentication; its latest anonymous lookup is 404. Package bytes and original pre-publication metadata are preserved. Native Desktop pixels and live gameplay remain separate.",
   "hostVerification": {
-    "status": "stock-dsh-default-pnpm-and-harness2-verified-publication-pending",
+    "status": "github-public-stock-dsh-default-pnpm-and-harness2-verified",
     "ordinaryTests": {
       "passed": 96,
       "failed": 0,
@@ -165,13 +180,13 @@
     "liveGameConnections": 0,
     "paidModelCalls": 0,
     "productionReloads": 0,
-    "verifiedAt": "2026-10-21T22:02:42.887483+08:00",
+    "verifiedAt": "2026-10-21T14:14:59.010641+00:00",
     "officialPluginLoader": true,
-    "adapterWasLocalCandidate": true,
+    "adapterWasLocalCandidate": false,
     "coreAndServerPackFromRegistry": true,
     "dependencyGraph": {
-      "time": "2026-10-21T14:01:43.047Z",
-      "profile": "mc12-local",
+      "time": "2026-10-21T14:13:22.491Z",
+      "profile": "mc12-github",
       "core": "0.5.7-rc.64",
       "installedCoreVersions": [
         "0.5.7-rc.64"
@@ -207,7 +222,8 @@
     "marketTests": {
       "failed": 0,
       "passed": 1
-    }
+    },
+    "publicGithubInstallVerified": true
   },
   "previousRelease": {
     "version": "0.3.0-rc.11",
