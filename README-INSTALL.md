@@ -1,20 +1,22 @@
-# 安装 DSH Minecraft Agent 0.3.0-rc.9
+# 安装 DSH Minecraft Agent 0.3.0-rc.10
 
-> rc.9 尚未发布。实际验收发现 DSH 0.2.1-rc.2 的模块解析缺陷，下面是待修复后的目标安装流程；不能当作当前可用版本。发布与默认安装状态见[发布记录](docs/registry-release.md)。
+> rc.10 是源码候选，核心 rc.61 和插件均未发布。本轮按用户要求只交付源码与验证，不能用下面的目标 Git/tag 命令安装。先看[本地候选步骤](docs/core-update-20261021.md)；官方 DSH 的模块解析问题也尚未修复。
 
-需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。发行包已包含构建后的前端，不需要手动准备 vendor 候选。核心锁定 agent-mc-world@0.5.7-rc.57，全部依赖使用 registry.npmjs.org，均含完整性校验。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
+需要 Node.js24 和 DSH0.2.1-rc.2，Java1.21.1 主维护。候选包含构建后的前端，核心须先准备同一核验归档。核心锁定 agent-mc-world@0.5.7-rc.61，锁文件保留预期 registry 地址与已核验本地归档的完整性校验；核心尚不能从 registry 下载。可选服务器包 agent-mc-qiandengji@0.5.0-rc.3 已发布。
 
 安装公开 Git 固定版本（核心使用 npm registry 依赖）：
 
 ```sh
-dsh plugin --profile web add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9
+dsh plugin --profile web add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.10
 ```
 
-从源码开发：
+本轮源码候选开发（先取得并核对核心归档）：
 
 ```sh
-git clone https://github.com/jcs130/dsh-minecraft-agent && cd dsh-minecraft-agent
-npm ci && npm test && npm run build
+git clone --branch codex/core61-dsh-sync-20261021 https://github.com/jcs130/dsh-minecraft-agent
+cd dsh-minecraft-agent
+npm install --ignore-scripts --no-save --package-lock=false ./vendor/agent-mc-world-0.5.7-rc.61.tgz
+npm run build && npm test
 ```
 
 Desktop 用户优先使用插件管理器；CLI 必须使用 Desktop 随附的命令且先完全退出桌面程序，详见[桌面与实验室指南](docs/desktop.md)。国内网络可以只在本机使用镜像，不要提交 `.npmrc`，也不要用镜像重新生成锁文件：

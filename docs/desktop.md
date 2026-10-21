@@ -1,23 +1,23 @@
 # DSH Desktop 与实验室
 
-> rc.9 尚未发布；官方 DSH 0.2.1-rc.2 的 `process/` 解析问题仍待上游交付。以下是目标流程，默认安装与真实加载尚未整体验收；状态见[发布记录](registry-release.md)。
+> rc.10 仅完成源码与隔离验证，核心 rc.61 和插件均未发布；官方 DSH 0.2.1-rc.2 的 `process/` 解析问题仍存在。以下是发布后的目标流程，不是当前可用安装入口。见[本轮记录](core-update-20261021.md)。
 
-支持官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件入口，普通 Web 同一套构建。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
+采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建；实际加载仍受上述框架问题阻塞。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
 ## 安装
 
 在 Desktop 的插件管理中填写固定 Git 版本：
 
 ```text
-github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9
+github:jcs130/dsh-minecraft-agent#v0.3.0-rc.10
 ```
 
-或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.9.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。
+或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.10.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。
 
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.9
+dsh plugin --profile desktop add github:jcs130/dsh-minecraft-agent#v0.3.0-rc.10
 ```
 
 重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。

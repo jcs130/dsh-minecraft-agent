@@ -5,7 +5,7 @@ export const DEFAULT_CONTEXT_TOKENS = 131072;
 
 /** Rarely needed tools hidden by default; `tools.profile: "full"` or `tools.include` restores them. */
 export const LEAN_EXCLUDED_SUFFIXES = ['_combat_tactic', '_blueprint', '_railway', '_flight_plan', '_photo',
-  '_policy', '_map', '_view_map', '_artifact', '_metrics', '_events', '_script', '_check', '_cast', '_trace'];
+  '_policy', '_map', '_view_map', '_artifact', '_metrics', '_events', '_check', '_cast', '_trace'];
 
 /**
  * Compaction must trigger from the plugin's own contextTokens budget, not the model's (much larger)

@@ -1,9 +1,14 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.9",
-  "repository": { "type": "git", "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git" },
+  "version": "0.3.0-rc.10",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
+  },
   "homepage": "https://github.com/jcs130/dsh-minecraft-agent#readme",
-  "bugs": { "url": "https://github.com/jcs130/dsh-minecraft-agent/issues" },
+  "bugs": {
+    "url": "https://github.com/jcs130/dsh-minecraft-agent/issues"
+  },
   "author": "jcs130",
   "icon": "assets/icon.svg",
   "type": "module",
@@ -18,7 +23,9 @@
   ],
   "license": "MIT",
   "main": "./lib/plugins/mc-harness.mjs",
-  "bin": { "dsh-minecraft-assets": "./bin/prepare-assets.mjs" },
+  "bin": {
+    "dsh-minecraft-assets": "./bin/prepare-assets.mjs"
+  },
   "exports": {
     ".": "./lib/plugins/mc-harness.mjs",
     "./client": "./lib/client.js",
@@ -74,11 +81,12 @@
     "README.en.md",
     "README-INSTALL.md",
     "LICENSE",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "docs/core-update-20261021.md"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.57"
+    "agent-mc-world": "0.5.7-rc.61"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",

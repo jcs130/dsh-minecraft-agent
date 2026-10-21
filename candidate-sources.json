@@ -1,13 +1,13 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.9",
+  "adapterVersion": "0.3.0-rc.10",
   "publication": {
     "channel": "release-candidate",
-    "status": "blocked-on-stock-dsh-module-resolution",
-    "tag": "v0.3.0-rc.9",
+    "status": "source-only-per-user-request",
+    "tag": "v0.3.0-rc.10",
     "registryPublished": false,
     "githubPublished": false,
-    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9"
+    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.10"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -21,21 +21,21 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "e4f18f6ecd4e28a6d3ad7b2657514b8aec959a3a",
-      "version": "0.5.7-rc.57",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.57.tgz",
-      "sha256": "317ff114bf73dc2570009ff1e6cacf4127bd9020b430d413ae27bbfa306b59a1",
-      "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A==",
-      "published": true,
-      "registryPublished": true,
+      "commit": "e24273decc638c7f5caee224a0157165cf59082c",
+      "version": "0.5.7-rc.61",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.61.tgz",
+      "sha256": "7957ac9abfefff61efdc7e044fea47b612b1e78b4df3d7bf3df1947d851f8a73",
+      "integrity": "sha512-T3pCvPhblfevJZC1UCMbxB/RNE+soxiOXn4NHNVbzxFkUdzohH6nEnKVcMUB+Mn3dNMv6HP4k0i57fdgaMGpvA==",
+      "published": false,
+      "registryPublished": false,
       "previousNpm": {
-        "version": "0.5.7-rc.47",
-        "integrity": "sha512-E5DWFNIHevsgSNHTqUhQf5qu5r0EAF4sZAZ2atrJln1SbOgSzifI4Aj1mZfRCBwJjKZ2cPMFnC1BIpskMRkElg=="
+        "version": "0.5.7-rc.57",
+        "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A=="
       },
-      "githubUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.57/agent-mc-world-0.5.7-rc.57.tgz",
-      "npm": "agent-mc-world@0.5.7-rc.57",
+      "githubUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.61/agent-mc-world-0.5.7-rc.61.tgz",
+      "npm": "agent-mc-world@0.5.7-rc.61",
       "registry": "https://registry.npmjs.org/",
-      "registryPublishedAt": "2026-10-20T18:01:38.639Z"
+      "sourceBaseCommit": "7fdd91747eff0fd6f2cbd42485bc08c5fece4634"
     },
     {
       "role": "serverPack",
@@ -52,12 +52,12 @@
       "published": true
     }
   ],
-  "coreSourceFilesSha256": "6ae6d34a9bd70e543045ff83e208153c9dd5c6f4584dc9fc93b5083bf92ddc23",
+  "coreSourceFilesSha256": "72d84b363c914a256c729bd7f931017376cd567b5d6f0035e61d3d5b6b62afc7",
   "sourceVerification": {
-    "sourceEntries": 401,
-    "runtimeEntries": 22137,
-    "buildInputVerification": "scripts/verify-build.mjs passed",
-    "publicDeclarations": 326
+    "sourceEntries": 405,
+    "runtimeEntries": 22141,
+    "buildInputVerification": "scripts/verify-build.mjs passed; full locked viewer included",
+    "publicDeclarations": 327
   },
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
@@ -76,17 +76,25 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Core 0.5.7-rc.57 is publicly available on npm with identical verified bytes. Adapter rc.9 is not published. Default pnpm installation reports an ignored esbuild build; --ignore-scripts installs without running hooks, but official DSH app-boot then fails to resolve the npm process/ request. A three-site resolver fix passed only in an isolated copied fixture and has not been submitted upstream or released. Do not advertise stock DSH compatibility, restore the market or publish the old prepared artifact.",
+  "note": "Source-only candidate per user request. Shared core .60 routines plus .61 method-terminal wake fix; default lean tools expose script discovery. Core .61 bytes were independently installed from the verified local content cache, not downloaded from the registry. Neither current candidate is published. Official DSH loader blocker remains; no market or live deployment update.",
   "hostVerification": {
     "dsh": "0.2.1-rc.2",
     "node": "24.19.0",
-    "pnpm": "11.28.5",
-    "regularTestsPassed": 83,
-    "optionalRealHarness2Passed": true,
+    "pnpmBaseline": "11.28.5",
+    "packedContractsAndBudgetTestsPassed": 25,
+    "regularSuite": {
+      "total": 86,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 1
+    },
+    "freshContentCacheNpmCi": true,
+    "freshRegistryDownload": false,
     "stockDshLoadPassed": false,
-    "installWithIgnoreScriptsPassed": true,
-    "isolatedAppBootFixPassed": true,
-    "officialAppBootFixReleased": false,
-    "nativeDesktopPixelsVerified": false
+    "stockDshLoadFailure": "npm process/ subpath resolution TypeError in official app-boot",
+    "nativeDesktopPixelsVerified": false,
+    "gameConnections": 0,
+    "modelRequests": 0,
+    "liveServicesChanged": false
   }
 }

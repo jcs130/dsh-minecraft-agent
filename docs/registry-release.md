@@ -1,4 +1,8 @@
-# Registry 分发与 rc.9 验收
+# Registry 分发记录
+
+2026-10-21 当前工作：`0.3.0-rc.10` 源码候选跟进核心 rc.60 的共享工作/移动能力，并精确锁定含方法终态唤醒修复的 rc.61。本轮用户明确要求先完成源码和验证，因此没有 npm/GitHub 版本发布、市场更新或现役加载。候选放在独立分支，核心归档来自本机核验内容缓存，不能称为 registry 下载；官方 DSH 的加载阻塞在新包上仍可复现。详见 [本轮记录](core-update-20261021.md)。
+
+## rc.9 历史验收与发布阻塞
 
 本页记录 rc.9 的分发修复与验收顺序，包内文档是打包时快照；实际公开发布状态以 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.9) 的验证记录为准。源码提交、npm/GitHub 发布、默认 DSH 安装、Desktop 画面及现役加载分别记录。不要在聊天、仓库或 profile 中保存 npm token。
 
