@@ -1,5 +1,7 @@
 # 2026-10-21 核心跟进：rc.11 兼容修复
 
+最终依赖采用核心 rc.64 和已发布的千灯纪包 rc.10。无 override 的 registry 实装揭露旧千灯纪包 rc.3 会另拉核心 rc.47、重新带入 tsx/esbuild；该失败已保留。更新到 rc.10 后，默认 pnpm 11.28.5 安装通过，实际只解析到同一份核心 rc.64，生产环境无 tsx/esbuild。新的 registry 消费端 92 项宿主回归通过，修复后的实际 profile 面板与权限通过。新增 `scripts/verify-installed-core.mjs`，供维护者针对真实 DSH profile 检查唯一核心，避免只在 npm 开发目录中去重而漏掉 pnpm 安装分支。
+
 rc.11 精确消费核心 `0.5.7-rc.64`，源码提交 `9433a29d9a7c11ba712f3f8ae930d42fcd0373e7`，基于最新主干 rc.63。核心已合入主分支；源码、归档公开状态、DSH 修复后的运行、Desktop 原生画面及线上游戏分别记录。
 
 修复两项实际阻塞：

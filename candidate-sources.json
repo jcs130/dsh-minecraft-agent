@@ -3,7 +3,7 @@
   "adapterVersion": "0.3.0-rc.11",
   "publication": {
     "channel": "release-candidate",
-    "status": "validated-awaiting-npm-browser-authentication",
+    "status": "validated-ready-for-publication",
     "tag": "v0.3.0-rc.11",
     "registryPublished": false,
     "githubPublished": false,
@@ -38,7 +38,7 @@
       "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
       "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q==",
       "published": true,
-      "registryPublished": false,
+      "registryPublished": true,
       "previousNpm": {
         "version": "0.5.7-rc.57",
         "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A=="
@@ -54,21 +54,56 @@
         "bytes": 59150580,
         "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
         "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q=="
+      },
+      "registryPublicVerification": {
+        "time": "2026-10-21T12:52:47.846709+00:00",
+        "endpoint": "https://registry.npmjs.org/agent-mc-world/0.5.7-rc.64",
+        "anonymous": true,
+        "version": "0.5.7-rc.64",
+        "httpStatus": 200,
+        "cacheAge": null,
+        "public": true,
+        "archiveUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.64.tgz",
+        "bytes": 59150580,
+        "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
+        "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q==",
+        "matchesTestedArtifact": true,
+        "productionTsxDependency": false
       }
     },
     {
       "role": "serverPack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "npm": "agent-mc-qiandengji@0.5.0-rc.3",
+      "npm": "agent-mc-qiandengji@0.5.0-rc.10",
       "registry": "https://registry.npmjs.org/",
-      "integrity": "sha512-HZ9R/ad9LPB5Ke3/o4atpBrUuA+klFdzBylf/AbThvdrpWigIgSSK0/XFQlAmcg0Hz8AtijwFcvUs2tBjT2CAQ==",
+      "integrity": "sha512-VB8bQIzAfls/eirg4Qyj7/35xpdZvL0DbshgrbB2OWGEEW1YmHP76HlHLTxZc9MAcdeNH1GqSPlhpeVncSFmlA==",
       "previousVendorCandidate": {
         "file": "vendor/agent-mc-qiandengji-0.5.0-dev.20261019.7.tgz",
         "commit": "4889e114bb42c049732e3dbb39e97ce1f09da3a3",
         "sha256": "0083dfc261629f301704181b11b33802bf8c42fc3c46fcc776b3ae198ad77fad"
       },
-      "published": true
+      "published": true,
+      "previousNpm": {
+        "npm": "agent-mc-qiandengji@0.5.0-rc.3",
+        "integrity": "sha512-HZ9R/ad9LPB5Ke3/o4atpBrUuA+klFdzBylf/AbThvdrpWigIgSSK0/XFQlAmcg0Hz8AtijwFcvUs2tBjT2CAQ=="
+      },
+      "version": "0.5.0-rc.10",
+      "registryPublished": true,
+      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.10.tgz",
+      "sha256": "7b80683a298a28875e41686ac8fcac0530d400e441ec4a7d5671b55e9f72ac39",
+      "publicVerification": {
+        "time": "2026-10-21T12:58:57.934Z",
+        "endpoint": "https://registry.npmjs.org/agent-mc-qiandengji/0.5.0-rc.10",
+        "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.10.tgz",
+        "version": "0.5.0-rc.10",
+        "coreRange": "^0.5.7-rc.63",
+        "sourceMainObserved": "c69ad46bf169a0a142fc94feee610fa70ffb9802",
+        "integrity": "sha512-VB8bQIzAfls/eirg4Qyj7/35xpdZvL0DbshgrbB2OWGEEW1YmHP76HlHLTxZc9MAcdeNH1GqSPlhpeVncSFmlA==",
+        "sha256": "7b80683a298a28875e41686ac8fcac0530d400e441ec4a7d5671b55e9f72ac39",
+        "bytes": 155330,
+        "anonymousDownload": true
+      }
     }
   ],
   "coreSourceFilesSha256": "5f36ef2ee2ad55a96609ef0bbb3ecafeb06765e05f46a5e96179fc347eaebd21",
@@ -95,10 +130,10 @@
     "optional": true,
     "automaticAdoption": false
   },
-  "note": "Full compiled core and visualization retained. Production engine/script children and the Python simulator require no tsx. Explicit exact-byte repair is required for official DSH 0.2.1-rc.2; both main and Worker are covered, with read-only check and rollback. Installation never patches DSH. Source, public registry, repaired runtime, native Desktop pixels and live gameplay are separate gates.",
+  "note": "Exact core and server-pack archives are public and integrity-verified. Default pnpm installs one shared production core without overrides, tsx or esbuild. Official DSH 0.2.1-rc.2 still requires the explicit exact-byte main/Worker resolver repair; installation never patches it. Desktop native pixels, market admission and live gameplay are separate gates.",
   "hostVerification": {
-    "status": "isolated-runtime-passed-explicit-dsh-repair-required",
-    "verifiedAt": "2026-10-21T12:35:34.844Z",
+    "status": "public-dependencies-verified-explicit-dsh-repair-required",
+    "verifiedAt": "2026-10-21T13:03:40.304Z",
     "ordinaryTests": {
       "passed": 92,
       "failed": 0,
@@ -114,11 +149,17 @@
     "defaultPnpm": {
       "version": "11.28.5",
       "actualDshPluginAddPassed": true,
+      "adapterWasLocalCandidate": true,
+      "coreAndServerPackFromRegistry": true,
+      "unpublishedCoreArchiveOverride": false,
+      "registryDownloadVerified": true,
       "ignoreScripts": false,
       "allowBuildsAdded": false,
       "blockExoticSubdepsDisabled": false,
-      "unpublishedCoreArchiveOverride": true,
-      "registryDownloadVerified": false
+      "automaticFreshReleaseExclusions": [
+        "agent-mc-qiandengji@0.5.0-rc.10",
+        "agent-mc-world@0.5.7-rc.64"
+      ]
     },
     "originalOfficialDshLoad": false,
     "repairedOfficialDshLoad": true,
@@ -131,6 +172,16 @@
     "nativeDesktopPixels": false,
     "liveGameConnections": 0,
     "paidModelCalls": 0,
-    "productionReloads": 0
+    "productionReloads": 0,
+    "freshRegistryConsumer": true,
+    "serverPackVersion": "0.5.0-rc.10",
+    "dependencyGraph": {
+      "installedCoreVersions": [
+        "0.5.7-rc.64"
+      ],
+      "sharedPhysicalCore": true,
+      "productionTsxInstalled": false,
+      "productionEsbuildInstalled": false
+    }
   }
 }
