@@ -2,7 +2,7 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.13",
   "publication": {
-    "status": "source-candidate-unpublished-dependencies",
+    "status": "release-prepared-awaiting-registry-authentication",
     "registryPublished": false,
     "githubPublished": false,
     "previousPublishedVersion": "0.3.0-rc.12",
@@ -40,26 +40,26 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "5233334ee0add3cd484427311c9a6025ec2a882d",
-      "sourceStatus": "uncommitted-upstream-candidate",
+      "commit": "ae880ce037728d73c8ea98d8604bbdb0cf36e68b",
+      "sourceStatus": "committed-on-remote-main",
       "version": "0.5.7-rc.69",
       "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.69.tgz",
       "sha256": "357ebccf922395920e0390c980c399e10a556dfaf71dc49b6a52c0e8eab49d6e",
       "integrity": "sha512-xvm2LsIixlTv2M80qiuaTQaO2YhfBpzYQwUJkOUS2cqRPzkVc2myjUuFDdsN4v7w8v/39jn9nV2zLKpYWSKCUA==",
       "published": false,
       "registryPublished": false,
-      "artifactFile": "core.tgz"
+      "artifactFile": "agent-mc-world-0.5.7-rc.69.tgz"
     },
     {
       "role": "server-pack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "e8ee226002cb88bb23697ac573f040a4dc2ad3ce",
-      "sourceStatus": "uncommitted-upstream-candidate",
+      "commit": "f17af9d73b43870cbc02c711daba2e55caa70944",
+      "sourceStatus": "committed-on-remote-main",
       "version": "0.5.0-rc.13",
       "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.13.tgz",
-      "sha256": "caedd2e9c1d2dd0776eb320f86eb1626cab18a457148d43c17aeecabf65cdd45",
-      "integrity": "sha512-siH5GfATTF36ijaZwKrP/3qVZM1Wjs40cYgayas6RSkNbvxB/LYiwtT4XOh6CaUFAskBqIdJH8+/x5IBl9xW+A==",
+      "sha256": "49f4d451eaad1ed41a794bb971ca1f86ca0ce9e32a6bb5da9ce1d0fa45c15c40",
+      "integrity": "sha512-SxeAdJDns/tO6XnmTZPY4GCp4o6dyPXjsdVcj9W9XtYzH1Lnatl1/cNStMPtqYOZXZpyOvEzc2RSEMo8DiEdiw==",
       "published": false,
       "registryPublished": false,
       "artifactFile": "agent-mc-qiandengji-0.5.0-rc.13.tgz"
@@ -98,6 +98,7 @@
     "skipped": 0,
     "nativeFrontendVerified": true,
     "registryDefaultInstallVerified": false,
-    "verificationFile": "onboarding-verification-20261023.json"
+    "verificationFile": "onboarding-verification-20261023.json",
+    "serverPackRefreshedToCommittedGuides": true
   }
 }

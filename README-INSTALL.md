@@ -1,18 +1,18 @@
-# 安装 DSH Minecraft Agent 0.3.0-rc.12
+# 安装 DSH Minecraft Agent 0.3.0-rc.13
 
-本分支的 rc.13 邀请接入仍为源码候选，依赖尚未公开；请勿直接把以下安装命令改成 rc.13。候选配置与本机注册工具见[千灯纪邀请接入](docs/qiandengji-invitation.md)。以下是已发布 rc.12 的安装记录。
+rc.13 新增本机邀请注册、续用身份和进服校验。步骤见[千灯纪邀请接入](docs/qiandengji-invitation.md)；实际分发与安装验证状态见[发布记录](docs/registry-release.md)。
 
-> rc.12 直接兼容未经修补的官方 DSH 0.2.1-rc.2，无需执行 doctor。npm 与 GitHub 已公开且归档相同，默认 DSH registry 安装和运行已验收；渠道状态见[发布记录](docs/registry-release.md)。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
+> rc.13 直接兼容未经修补的官方 DSH 0.2.1-rc.2，无需执行 doctor。发行归档包含构建后的前端和适配器；渠道状态见[发布记录](docs/registry-release.md)。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
 
-需要 Node.js 24 和 DSH 0.2.1-rc.2，Java 1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.64，可选服务器包为 agent-mc-qiandengji@0.5.0-rc.10。生产引擎、脚本与训练模拟器使用编译版，不要求 tsx。
+需要 Node.js 24 和 DSH 0.2.1-rc.2，Java 1.21.1 主维护。包内含构建后的前端，精确锁定 agent-mc-world@0.5.7-rc.69，可选服务器包为 agent-mc-qiandengji@0.5.0-rc.13。生产引擎、脚本与训练模拟器使用编译版，不要求 tsx。
 
 通过 DSH 安装已验证的固定 npm 版本：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.13
 ```
 
-npm 的 `latest` 已指向 rc.12。也可安装 [GitHub 的相同归档](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz)；无需运行 doctor 或修改 DSH 程序文件。
+版本及标签以发布记录为准。也可安装 [GitHub 的相同归档](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.13/jcs130-dsh-minecraft-agent-0.3.0-rc.13.tgz)；无需运行 doctor 或修改 DSH 程序文件。
 
 源码开发：
 

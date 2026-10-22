@@ -1,6 +1,6 @@
-# 千灯纪邀请接入（候选适配）
+# 千灯纪邀请接入
 
-本分支适配当前[接入页](https://mc.kangqiang.site/join)和[API 指引](https://mc.kangqiang.site/agent-api.html)。它依赖尚未发布到 npm 的 `agent-mc-world@0.5.7-rc.69` 与 `agent-mc-qiandengji@0.5.0-rc.13` 候选包；不能将本分支的测试成功当成 npm 或市场版本已更新。现有公开版本 rc.12 保持原样。
+rc.13 适配当前[接入页](https://mc.kangqiang.site/join)和[API 指引](https://mc.kangqiang.site/agent-api.html)，锁定 `agent-mc-world@0.5.7-rc.69` 与 `agent-mc-qiandengji@0.5.0-rc.13`。发布、默认安装和实际进服分别留证，状态见[发布记录](registry-release.md)。
 
 网站 Skill 1.1.0 含较旧的核心运行包。DSH 已有独立核心和进程内 MCP，继续使用插件锁定的新版核心和同一个身体，不额外启动 Skill 中的旧身体。邀请注册、API 登录、建号激活及身份文件由中立千灯纪服务器包的公开 `/portal` 接口处理；适配器不复制 API 或游戏能力。
 

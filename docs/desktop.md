@@ -1,6 +1,6 @@
 # DSH Desktop 与实验室
 
-> rc.12 直接兼容原始官方 DSH 0.2.1-rc.2，无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
+> rc.13 直接兼容原始官方 DSH 0.2.1-rc.2，无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
@@ -9,18 +9,18 @@
 在 Desktop 的插件管理中填写已公开并通过默认安装验证的固定 npm 版本：
 
 ```text
-@jcs130/dsh-minecraft-agent@0.3.0-rc.12
+@jcs130/dsh-minecraft-agent@0.3.0-rc.13
 ```
 
-或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。
+或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.13.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。
 
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
+dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.13
 ```
 
-重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
+重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
 
 发行包包含画面、纹理、字体、原版声音目录和原创 BGM；体积较大的原版音频按需单独从 Mojang 下载。需要完整原版游戏音效时，显式执行安装包提供的 `dsh-minecraft-assets <私有缓存目录>`，将输出的目录写入 `minecraft.viewerAssetsDir`。也可用 Node 执行安装目录的 bin/prepare-assets.mjs。准备过程验证大小与哈希，可续用已验证缓存，不启动游戏或模型，不改写 node_modules。首次音频准备需要网络；未准备不能称为离线音频完整。
 
