@@ -10,6 +10,7 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm';
 import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, modelToolSchema } from './harness-bridge.mjs';
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
+import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
 import { applyGoalControl } from './harness-goal.mjs';
 import { compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
 
@@ -49,6 +50,7 @@ export async function apply(ctx, options = {}) {
     parameterChars: config.tools?.parameterChars ?? 80 };
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true });
+  const portalAccess = await qiandengjiAccess(config);
   const nativeLog = ctx.logger('mc-harness');
   const log = { child: () => log, emit: (level, text, metadata) => {
     nativeLog[level === 'trace' ? 'debug' : level]?.(text);
@@ -65,14 +67,15 @@ export async function apply(ctx, options = {}) {
     }
   }, ...Object.fromEntries(['trace','debug','info','warn','error'].map(level =>
     [level, (...args) => nativeLog[level === 'trace' ? 'debug' : level](...args)])) };
-  let cfg, runtime;
+  let cfg, runtime, onboarding = '';
   const runtimeOptions = { dataDir: join(dataDir, 'body'), timezone: config.timezone ?? 'Asia/Shanghai',
     agentName: config.name, log, modelFacts: { model: () => config.model,
       contextWindow: () => config.contextTokens, accepts: () => false } };
   if (config.serverPack === 'qiandengji') {
-    const { MymcAgentRuntime, MYMC_DEFAULTS } = await import('agent-mc-qiandengji');
+    const { MymcAgentRuntime, MYMC_DEFAULTS, readServerGuide } = await import('agent-mc-qiandengji');
     cfg = merge(MYMC_DEFAULTS, config.minecraft);
     runtime = new MymcAgentRuntime({ ...runtimeOptions, cfg });
+    if (portalAccess) onboarding = readServerGuide('onboarding').text;
   } else if (!config.serverPack || config.serverPack === 'none') {
     cfg = merge(MINECRAFT_CLIENT_DEFAULTS, config.minecraft);
     runtime = new MinecraftAgentClient({ ...runtimeOptions, cfg });
@@ -86,13 +89,13 @@ export async function apply(ctx, options = {}) {
   await server.connect(serverTransport); await client.connect(clientTransport);
   const bridge = new HarnessBridge(runtime, client);
   const tools = (await client.listTools()).tools;
-  const prefix = await runtime.environment();
+  const prefix = await runtime.environment() + (onboarding ? '\n\n' + onboarding : '');
   const persona = readFileSync(resolve(config.personaFile), 'utf8');
   const sessionFile = join(dataDir, 'session-id.txt');
   const sessionId = existsSync(sessionFile) ? readFileSync(sessionFile, 'utf8').trim() : randomUUID();
   const lifecycle = new HostLifecycle({ sessionId, stateFile: join(dataDir, 'host-lifecycle.json'),
     eventsFile: join(dataDir, 'host-lifecycle.ndjson') });
-  const connectionIntent = connectionPreference(join(dataDir,'connection-state.json'), config.startPaused);
+  const connectionIntent = connectionPreference(join(dataDir,'connection-state.json'), config.startPaused, config.qiandengjiAccess?.bindingId);
   let handle, consoleServer, experimentMonitor, eventCursor = 0, recentEvents = [], lastStep = 0, timer, paused = connectionIntent.paused;
   const setPaused = value => { connectionIntent.set(value); paused = value; };
   let lastTokens = 0, shuttingDown, pendingGoalClose = null, goalClosedAt = 0;
@@ -180,7 +183,16 @@ export async function apply(ctx, options = {}) {
     await bridge.stop(); await consoleServer?.close(); await server.close();
     status({ state: 'stopped', stopped: true });
   }, 'minecraft host lifetime');
-  if (!paused) await runtime.connect();
+  const connect = async () => {
+    try { await verifyQiandengjiConnection(portalAccess, cfg); }
+    catch (error) { setPaused(true); throw error; }
+    if (!paused) await runtime.connect();
+  };
+  // An API failure blocks connection without discarding the session or preventing local status queries.
+  if (!paused) {
+    if (!portalAccess) await runtime.connect();
+    else try { await connect(); } catch { setPaused(true); log.warn('千灯纪接入尚未确认；已保留会话并暂停连接，请查询原身份状态。'); }
+  }
   const waitReady = async signal => {
     while (!(await runtime.operatorState()).connection?.connection?.ready) {
       if (paused || lifetime.signal.aborted) throw Error('Minecraft is paused');
@@ -203,10 +215,13 @@ export async function apply(ctx, options = {}) {
       }
       // Record intent before awaiting connection: a later disconnect must win.
       if (action === 'connect') setPaused(false);
-      await runtime.operatorAction(action);
+      if (action === 'connect') await connect(); else await runtime.operatorAction(action);
       if (action === 'connect' && !paused) { await waitReady(lifetime.signal); if (handle) await activate(); }
     },
-  }, undefined, undefined, {embedOrigins}) : undefined, sessionId);
+  }, undefined, undefined, {embedOrigins}) : undefined, sessionId, portalAccess ? {
+    state: async () => publicAccessState(await portalAccess.state(), (await runtime.operatorState()).connection?.connection?.ready),
+    query: async () => publicAccessState(await portalAccess.status(), (await runtime.operatorState()).connection?.connection?.ready),
+  } : undefined);
   const setup = async agentCtx => {
     agentCtx.systemPrompt.section({ name: 'minecraft:persona', order: 0, text: persona + '\n\n' + prefix,
       complete: true, interpolate: false });

@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.12",
+  "version": "0.3.0-rc.13",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -25,7 +25,8 @@
   "main": "./lib/plugins/mc-harness.mjs",
   "bin": {
     "dsh-minecraft-assets": "./bin/prepare-assets.mjs",
-    "dsh-minecraft-doctor": "./bin/repair-dsh.mjs"
+    "dsh-minecraft-doctor": "./bin/repair-dsh.mjs",
+    "dsh-minecraft-join": "./bin/join-qiandengji.mjs"
   },
   "exports": {
     ".": "./lib/plugins/mc-harness.mjs",
@@ -87,11 +88,14 @@
     "bin/repair-dsh.mjs",
     "lib/plugins/dsh-compat.mjs",
     "docs/DSH-COMPAT.md",
-    "lib/plugins/dsh-native-streams.mjs"
+    "lib/plugins/dsh-native-streams.mjs",
+    "lib/plugins/qiandengji-access.mjs",
+    "bin/join-qiandengji.mjs",
+    "docs/qiandengji-invitation.md"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.64",
+    "agent-mc-world": "0.5.7-rc.69",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
@@ -108,7 +112,7 @@
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-rc.10"
+    "agent-mc-qiandengji": "0.5.0-rc.13"
   },
   "engines": {
     "node": ">=24",

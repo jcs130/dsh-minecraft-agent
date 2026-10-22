@@ -1,50 +1,12 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.12",
+  "adapterVersion": "0.3.0-rc.13",
   "publication": {
-    "channel": "release-candidate",
-    "status": "npm-and-github-published-default-stock-dsh-install-verified",
-    "tag": "v0.3.0-rc.12",
-    "registryPublished": true,
-    "githubPublished": true,
-    "plannedUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.12",
-    "npm": "@jcs130/dsh-minecraft-agent@0.3.0-rc.12",
-    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/npm-registry-verification.json",
-    "sourceSnapshotCommit": "4f22222bb4a7d3ae161c355eb29f31b77930a9a5",
-    "mergedSourceCommit": "6d831d80dfe63dd0a53524d421e4f12536b4e799",
-    "verifiedAt": "2026-10-21T15:07:43.552060+00:00",
-    "sha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
-    "integrity": "sha512-Gr21Zo3g7tHh0odYaYOZPCMkRWItZzXON5BKo1IrY4OdjXoxm/PEMVLhmIhZ/S/m/0vTc+MHMr1IYThK/ByplQ==",
-    "githubArchive": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz",
-    "publicVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/npm-registry-verification.json",
-    "previousNpmAttempt": {
-      "exitCode": 1,
-      "errorCode": "E404",
-      "phase": "web-authentication-wait",
-      "status": "expired-or-invalidated-web-authentication",
-      "processStillRunning": false,
-      "credentialsRecorded": false
-    },
-    "npmPublishedAt": "2026-10-21T15:03:08.439Z",
-    "npmDistTags": {
-      "latest": "0.3.0-rc.12",
-      "next": "0.3.0-rc.11"
-    },
-    "artifactVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/release-verification.json",
-    "npmPublishAttempt": {
-      "exitCode": 0,
-      "status": "public-verified",
-      "credentialsRecorded": false
-    },
-    "communitySubmission": {
-      "url": "https://github.com/ydhrdh/dsh-marketplace/pull/18",
-      "state": "open",
-      "draft": false,
-      "headSha": "33ebc6a89524e20f34f5ca21ecc14288a3fdd834",
-      "maintainerApproval": "pending",
-      "merged": false
-    },
-    "ownMarketRestored": true
+    "status": "source-candidate-unpublished-dependencies",
+    "registryPublished": false,
+    "githubPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.12",
+    "marketVersion": "0.3.0-rc.12"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -78,87 +40,31 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "9433a29d9a7c11ba712f3f8ae930d42fcd0373e7",
-      "version": "0.5.7-rc.64",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.64.tgz",
-      "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
-      "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q==",
-      "published": true,
-      "registryPublished": true,
-      "previousNpm": {
-        "version": "0.5.7-rc.57",
-        "integrity": "sha512-hdsCyamWN6+ZW1IpKCrGQLzBsMsqVaNlR3Fr7hM3w6T744ZcpfOQL8ki//5D4rMyvgGV15Geg1Zldky0N4ka6A=="
-      },
-      "githubUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.64/agent-mc-world-0.5.7-rc.64.tgz",
-      "npm": "agent-mc-world@0.5.7-rc.64",
-      "registry": "https://registry.npmjs.org/",
-      "sourceBaseCommit": "79aba267055d4a8ab41d00232b6c907df8a64913",
-      "githubPublished": true,
-      "githubPublicVerification": {
-        "time": "2026-10-21T20:42:44.97939+08:00",
-        "anonymousDownload": true,
-        "bytes": 59150580,
-        "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
-        "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q=="
-      },
-      "registryPublicVerification": {
-        "time": "2026-10-21T20:52:47.846709+08:00",
-        "endpoint": "https://registry.npmjs.org/agent-mc-world/0.5.7-rc.64",
-        "anonymous": true,
-        "version": "0.5.7-rc.64",
-        "httpStatus": 200,
-        "cacheAge": null,
-        "public": true,
-        "archiveUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.64.tgz",
-        "bytes": 59150580,
-        "sha256": "3d492011d61e0508ed8f8934ca4b6ef74bb5d75a1ffdc60b48e7eb502ce4063f",
-        "integrity": "sha512-w9TNIrdtOeD9b1KLt1Fl3QStdHHvWDvfKJBerP1Z9F36F1jeElbg48HDFJq56b6VEtDtHtyt5caU2Dh8togs6Q==",
-        "matchesTestedArtifact": true,
-        "productionTsxDependency": false
-      }
+      "commit": "5233334ee0add3cd484427311c9a6025ec2a882d",
+      "sourceStatus": "uncommitted-upstream-candidate",
+      "version": "0.5.7-rc.69",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.69.tgz",
+      "sha256": "357ebccf922395920e0390c980c399e10a556dfaf71dc49b6a52c0e8eab49d6e",
+      "integrity": "sha512-xvm2LsIixlTv2M80qiuaTQaO2YhfBpzYQwUJkOUS2cqRPzkVc2myjUuFDdsN4v7w8v/39jn9nV2zLKpYWSKCUA==",
+      "published": false,
+      "registryPublished": false,
+      "artifactFile": "core.tgz"
     },
     {
-      "role": "serverPack",
+      "role": "server-pack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "npm": "agent-mc-qiandengji@0.5.0-rc.10",
-      "registry": "https://registry.npmjs.org/",
-      "integrity": "sha512-VB8bQIzAfls/eirg4Qyj7/35xpdZvL0DbshgrbB2OWGEEW1YmHP76HlHLTxZc9MAcdeNH1GqSPlhpeVncSFmlA==",
-      "previousVendorCandidate": {
-        "file": "vendor/agent-mc-qiandengji-0.5.0-dev.20261019.7.tgz",
-        "commit": "4889e114bb42c049732e3dbb39e97ce1f09da3a3",
-        "sha256": "0083dfc261629f301704181b11b33802bf8c42fc3c46fcc776b3ae198ad77fad"
-      },
-      "published": true,
-      "previousNpm": {
-        "npm": "agent-mc-qiandengji@0.5.0-rc.3",
-        "integrity": "sha512-HZ9R/ad9LPB5Ke3/o4atpBrUuA+klFdzBylf/AbThvdrpWigIgSSK0/XFQlAmcg0Hz8AtijwFcvUs2tBjT2CAQ=="
-      },
-      "version": "0.5.0-rc.10",
-      "registryPublished": true,
-      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.10.tgz",
-      "sha256": "7b80683a298a28875e41686ac8fcac0530d400e441ec4a7d5671b55e9f72ac39",
-      "publicVerification": {
-        "time": "2026-10-21T12:58:57.934Z",
-        "endpoint": "https://registry.npmjs.org/agent-mc-qiandengji/0.5.0-rc.10",
-        "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.10.tgz",
-        "version": "0.5.0-rc.10",
-        "coreRange": "^0.5.7-rc.63",
-        "sourceMainObserved": "c69ad46bf169a0a142fc94feee610fa70ffb9802",
-        "integrity": "sha512-VB8bQIzAfls/eirg4Qyj7/35xpdZvL0DbshgrbB2OWGEEW1YmHP76HlHLTxZc9MAcdeNH1GqSPlhpeVncSFmlA==",
-        "sha256": "7b80683a298a28875e41686ac8fcac0530d400e441ec4a7d5671b55e9f72ac39",
-        "bytes": 155330,
-        "anonymousDownload": true
-      }
+      "commit": "e8ee226002cb88bb23697ac573f040a4dc2ad3ce",
+      "sourceStatus": "uncommitted-upstream-candidate",
+      "version": "0.5.0-rc.13",
+      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.13.tgz",
+      "sha256": "caedd2e9c1d2dd0776eb320f86eb1626cab18a457148d43c17aeecabf65cdd45",
+      "integrity": "sha512-siH5GfATTF36ijaZwKrP/3qVZM1Wjs40cYgayas6RSkNbvxB/LYiwtT4XOh6CaUFAskBqIdJH8+/x5IBl9xW+A==",
+      "published": false,
+      "registryPublished": false,
+      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.13.tgz"
     }
   ],
-  "coreSourceFilesSha256": "5f36ef2ee2ad55a96609ef0bbb3ecafeb06765e05f46a5e96179fc347eaebd21",
-  "sourceVerification": {
-    "sourceEntries": 406,
-    "runtimeEntries": 22143,
-    "buildInputVerification": "scripts/verify-build.mjs passed; full locked viewer and compiled training worker included",
-    "publicDeclarations": 328
-  },
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
     "commit": "1c404fbfa60a8c5ac2097eb371e15aa7b1d77c26",
@@ -170,93 +76,28 @@
       "uniqueFiles": 3691
     }
   },
-  "harness2": {
-    "repository": "https://github.com/google-research/harness2",
-    "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
-    "optional": true,
-    "automaticAdoption": false
-  },
-  "note": "rc.12 is public on npm latest and GitHub with identical archive hashes. Default official DSH/pnpm installs the registry package without a host patch, overrides, disabled protections or production tsx/esbuild. Package-embedded flags and older reports are immutable historical snapshots. Native Desktop pixels, live gameplay and community-maintainer acceptance are separate.",
-  "hostVerification": {
-    "status": "public-registry-stock-dsh-default-pnpm-and-harness2-verified",
-    "ordinaryTests": {
-      "passed": 96,
-      "failed": 0,
-      "optionalSkipped": 0
-    },
-    "stockOfficialDshLoad": true,
-    "officialWorkerResolverActive": true,
-    "workerLoad": true,
-    "sdkMcp": true,
-    "offlineEngineIpc": true,
-    "offlineGameMemory": true,
-    "offlinePhysicsInitialization": true,
-    "hostFileHashesUnchanged": true,
-    "hostResolverUnchanged": true,
-    "environmentRestored": true,
-    "defaultPnpmInstallVerified": true,
-    "publicRegistryInstallVerified": true,
-    "nativeDesktopPixels": false,
-    "liveGameConnections": 0,
-    "paidModelCalls": 0,
-    "productionReloads": 0,
-    "verifiedAt": "2026-10-21T15:07:43.552060+00:00",
-    "officialPluginLoader": true,
-    "adapterWasLocalCandidate": false,
-    "coreAndServerPackFromRegistry": true,
-    "dependencyGraph": {
-      "time": "2026-10-21T15:05:30.695Z",
-      "profile": "mc12-registry",
-      "core": "0.5.7-rc.64",
-      "installedCoreVersions": [
-        "0.5.7-rc.64"
-      ],
-      "sharedPhysicalCore": true,
-      "tsxInstalled": false,
-      "esbuildInstalled": false,
-      "override": false,
-      "defaultPnpmProtections": true,
-      "automaticFreshReleaseExclusions": true,
-      "modelRequests": 0,
-      "gameConnections": 0
-    },
-    "frameworkSha256": [
-      "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
-      "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+  "onboarding": {
+    "docs": [
+      "https://mc.kangqiang.site/join",
+      "https://mc.kangqiang.site/agent-api.html"
     ],
-    "harness2": {
-      "separateTestPassed": true,
-      "sameProcessOfficialResolver": true,
-      "loopbackResponses": 4,
-      "offlinePhysicalTrials": 6,
-      "paidModelCalls": 0,
-      "adopted": false
-    },
-    "panel": {
-      "clientTab": "mc-panel",
-      "ownerApi": 200,
-      "otherSessionDenied": true,
-      "delegateApi": 403,
-      "disposedApi": 404
-    },
-    "marketTests": {
-      "failed": 0,
-      "passed": 1
-    },
-    "publicGithubInstallVerified": true,
-    "adapterAndDependenciesFromRegistry": true,
-    "postPublicationMetadataTests": {
-      "passed": 7,
-      "failed": 0,
-      "skipped": 0
-    }
+    "skillVersion": "1.1.0",
+    "officialHelperSha256": "cfa9733c093a27093100b3c08b21de0727af24f486561a07bf5a7868d49ca5cd",
+    "server": "micro.kangqiang.site:25702",
+    "gameVersion": "1.21.1",
+    "modelRequests": 0,
+    "gameConnections": 0
   },
-  "previousRelease": {
-    "version": "0.3.0-rc.11",
-    "sourceCommit": "157fa6688f98af9318a0e12a8043032e416530c3",
-    "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.11",
-    "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.11/release-verification.json",
-    "requiredExplicitOldDshRepair": true,
-    "archivePreserved": true
+  "validation": {
+    "status": "isolated-packed-candidates-passed",
+    "localDependencyOverridesRequired": true,
+    "registryLockStatus": "prospective-exact-artifacts-not-yet-published",
+    "productionChanged": false,
+    "tests": 107,
+    "failed": 0,
+    "skipped": 0,
+    "nativeFrontendVerified": true,
+    "registryDefaultInstallVerified": false,
+    "verificationFile": "onboarding-verification-20261023.json"
   }
 }

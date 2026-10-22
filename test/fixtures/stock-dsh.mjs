@@ -52,7 +52,9 @@ if (!isMainThread) {
     await ctx.plugin(PluginPackages, { resolution }).await();
     const resolverBeforeImport = Module._resolveFilename;
     if (process.argv.includes('--negative')) {
-      await assert.rejects(load('agent-mc-world/client'), error => {
+      // The transitive path taken by a new core can change. Exercise the exact
+      // broken resolver request directly; positive cases still load the real SDK.
+      assert.throws(() => require.resolve('process/'), error => {
         assert.equal(error.name, 'TypeError');
         assert.match(error.message, /not iterable/);
         assert.match(error.stack, /ResolutionRouter\.routeScoped/);

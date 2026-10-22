@@ -8,6 +8,26 @@ import {createRequire} from 'node:module';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {connectionPreference,panelDescriptor,openHostConsole} from '../src/harness-panel.mjs';
 
+test('invitation status belongs to one DSH session and local snapshots do not query the website',async()=>{
+  const routes=[];let inject,states=0,queries=0;
+  const ctx={inject(_deps,cb){inject=cb;}};
+  const panel=await openHostConsole(ctx,async()=>({url:'http://127.0.0.1:17851/',async close(){}}),'owner',{
+    async state(){states++;return {state:'pending',gameReady:false};},
+    async query(){queries++;return {state:'ready',gameReady:false};},
+  });
+  await inject({webServer:{port:17850},connection:{fetch:{register(route){routes.push(route);}}}});
+  const access=routes.find(route=>route.path==='/api/mc-harness/access');assert.ok(access);
+  const request=(sessionId,action)=>new Request('http://localhost/api/mc-harness/access',{method:'POST',body:JSON.stringify({type:'client-request',rpcId:'access-fixture',method:'mc-harness/access',payload:{sessionId,action}})});
+  assert.equal((await(await access.fetch(request('other','query'))).json()).result.ok,false);
+  assert.equal(states+queries,0);
+  for(let i=0;i<3;i++)assert.equal((await(await access.fetch(request('owner','state'))).json()).result.value.access.state,'pending');
+  assert.equal(states,3);assert.equal(queries,0);
+  assert.equal((await(await access.fetch(request('owner','query'))).json()).result.value.access.gameReady,false);
+  assert.equal(queries,1);assert.equal((await access.fetch(request('owner','register'))).status,400);
+  await panel.close();
+  assert.equal((await access.fetch(request('owner','query'))).status,410);assert.equal(queries,1);
+});
+
 test('operator pause survives restart and invalid persisted state cannot reconnect',()=>{
   const dir = mkdtempSync(join(tmpdir(),'dsh-panel-'));
   try {
@@ -16,6 +36,18 @@ test('operator pause survives restart and invalid persisted state cannot reconne
     assert.equal(connectionPreference(file).paused,true);
     pref.set(false);assert.equal(connectionPreference(file,true).paused,false);
     writeFileSync(file,'{}');assert.throws(()=>connectionPreference(file));
+  } finally {assert.equal(dirname(dir),resolve(tmpdir()));rmSync(dir,{recursive:true});}
+});
+
+test('a newly staged identity cannot inherit an older connect intent; explicit approval survives restart',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'dsh-panel-'));
+  try {
+    const file=join(dir,'connection.json'),binding='11111111-1111-4111-8111-111111111111',next='22222222-2222-4222-8222-222222222222';
+    connectionPreference(file).set(false);
+    assert.equal(connectionPreference(file,false,binding).paused,true);
+    connectionPreference(file,false,binding).set(false);
+    assert.equal(connectionPreference(file,true,binding).paused,false);
+    assert.equal(connectionPreference(file,false,next).paused,true);
   } finally {assert.equal(dirname(dir),resolve(tmpdir()));rmSync(dir,{recursive:true});}
 });
 test('panel binding refuses unrelated sessions and contains no controls, credentials or prompts',()=>{

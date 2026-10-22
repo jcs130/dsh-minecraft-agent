@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+本分支新增 **rc.13 邀请接入候选**，复用千灯纪服务器包的官方身份模块，保留 DSH 的模型、人格与记忆，并区分 API 建号和真实游戏就绪。依赖 core rc.69 / server pack rc.13 尚未发布到 npm，当前市场仍为下述 rc.12。步骤与边界见[邀请接入](docs/qiandengji-invitation.md)。
+
 > rc.12 直接兼容官方最新版 DSH 0.2.1-rc.2：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。主进程、官方 profile Worker、SDK/MCP 和离线引擎已验证。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)，公开状态见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。

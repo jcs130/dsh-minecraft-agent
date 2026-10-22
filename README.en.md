@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+This branch adds the **rc.13 invitation-onboarding candidate**, using the neutral Qiandengji portal contract while preserving DSH models, persona, sessions and memory. API account readiness and authenticated game readiness are separate. Core rc.69 and server pack rc.13 are not yet on npm; the market still points to the published rc.12 below. See [onboarding](docs/qiandengji-invitation.md).
+
 > rc.12 supports the latest official DSH 0.2.1-rc.2 directly, using readable-stream's supported native Node backend during synchronous plugin initialization. No manual host repair is required. Official main/Worker resolution, SDK/MCP and offline engine checks passed. See [compatibility](docs/DSH-COMPAT.md) and the [release record](docs/registry-release.md) for distribution status.
 
 [简体中文](README.md) | English
