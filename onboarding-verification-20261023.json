@@ -1,0 +1,87 @@
+{
+  "schema": "dsh-minecraft.invitation-verification/v1",
+  "verifiedAt": "2026-10-22T19:12:39.589984+00:00",
+  "adapterVersion": "0.3.0-rc.13",
+  "sourceState": "isolated-feature-branch",
+  "artifact": {
+    "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.13.tgz",
+    "sha256": "4b8f61a488b32b4d87dbf1baa729e53825f10924b826c61fc809bb107ef92d2c",
+    "runtimeFilesCompared": 15,
+    "packedRuntimeMatchesInstalledAndSource": true
+  },
+  "tests": {
+    "total": 107,
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "ffaf6ca46862e13ce2cd24e8b88d86cbc97fdf0d77961eb8feef10b7dccd7983",
+    "includes": [
+      "official DSH main and Worker resolver",
+      "public packed SDK/MCP and offline engine IPC",
+      "official invitation helper through neutral server pack",
+      "pending and unknown original-request reconciliation",
+      "existing identity import",
+      "fresh creation and ready gate",
+      "role and realm binding",
+      "explicit first-connection approval",
+      "native provider cancellation and isolated Harness2 physics"
+    ]
+  },
+  "dependencies": {
+    "core": "0.5.7-rc.69",
+    "serverPack": "0.5.0-rc.13",
+    "dsh": "0.2.1-rc.2",
+    "node": "24.19.0",
+    "samePhysicalCore": true,
+    "productionTsx": false,
+    "validationMode": "local immutable archives with explicit isolated consumer overrides",
+    "registryDefaultInstallVerified": false,
+    "anonymousRegistryCheck": {
+      "checkedAt": "2026-10-22T19:06:31.596163+00:00",
+      "anonymous": true,
+      "packages": [
+        {
+          "package": "agent-mc-world",
+          "version": "0.5.7-rc.69",
+          "httpStatus": 404
+        },
+        {
+          "package": "agent-mc-qiandengji",
+          "version": "0.5.0-rc.13",
+          "httpStatus": 404
+        }
+      ]
+    }
+  },
+  "frontend": {
+    "passed": true,
+    "compiledNativeFrontend": true,
+    "browser": "headless Edge",
+    "pages": 3,
+    "localSnapshots": 6,
+    "explicitWebsiteQueries": 1,
+    "automaticWebsiteQueries": 0,
+    "apiReadyIsNotGameReady": true,
+    "sessionSwitchHidesOtherIdentity": true,
+    "viewport": {
+      "width": 520,
+      "height": 320,
+      "noScrollbars": true
+    },
+    "modelRequests": 0,
+    "gameConnections": 0,
+    "productionChanged": false
+  },
+  "externalModelRequests": 0,
+  "productionGameConnections": 0,
+  "realAccountRegistrations": 0,
+  "syntheticLoopbackModelFixturesUsed": true,
+  "productionChanged": false,
+  "publication": {
+    "adapterPublished": false,
+    "coreAndServerPackPublished": false,
+    "marketVersion": "0.3.0-rc.12",
+    "liveGameplayVerified": false,
+    "nativeDesktopPixelsVerified": false
+  }
+}

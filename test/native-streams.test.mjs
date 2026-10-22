@@ -12,7 +12,7 @@ function run(args, env = process.env) {
   return result.stdout;
 }
 
-test('untouched official DSH reproduces its original transitive process/ loading defect', () => {
+test('untouched official DSH reproduces its process/ resolver defect directly', () => {
   const env = { ...process.env }; delete env.READABLE_STREAM;
   const report = JSON.parse(run([fixture, '--negative'], env).trim().split('\n').at(-1));
   assert.equal(report.officialDefectReproduced, true);

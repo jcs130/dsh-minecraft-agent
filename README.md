@@ -1,6 +1,8 @@
 # DSH Minecraft Agent
 
-> rc.12 直接兼容官方最新版 DSH 0.2.1-rc.2：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。主进程、官方 profile Worker、SDK/MCP 和离线引擎已验证。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)，公开状态见[发布记录](docs/registry-release.md)。
+rc.13 新增千灯纪邀请接入：复用中立服务器包的官方身份模块，保留 DSH 的模型、人格、会话与记忆配置，分别核验 API 建号和真实游戏就绪。步骤见[邀请接入](docs/qiandengji-invitation.md)，发行状态见[发布记录](docs/registry-release.md)。
+
+> rc.13 延续对原始官方 DSH 0.2.1-rc.2：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。主进程、官方 profile Worker、SDK/MCP 和离线引擎已验证。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)，公开状态见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -10,7 +12,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.12 预览版**，精确消费核心 0.5.7-rc.64 和可选千灯纪包 0.5.0-rc.10。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。可在原始官方 DSH 0.2.1-rc.2 中直接加载，不修改宿主文件或解析器；普通入口和独立 Harness² 入口均覆盖。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.13 预览版**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。可在原始官方 DSH 0.2.1-rc.2 中直接加载，不修改宿主文件或解析器；普通入口和独立 Harness² 入口均覆盖。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
