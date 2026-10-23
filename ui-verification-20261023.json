@@ -1,0 +1,144 @@
+{
+  "schema": "dsh-minecraft.ui-verification/v1",
+  "verifiedAt": "2026-10-23T14:10:04.363103+00:00",
+  "adapterVersion": "0.3.0-rc.14",
+  "dshVersion": "0.2.1-rc.2",
+  "coreVersion": "0.5.7-rc.69",
+  "publicVersionAudited": "0.3.0-rc.12",
+  "publicArchiveSha256": "2beb51ba045226cd6802620063964b03fcaecfb405ff781a998803a4ab497184",
+  "publicClientShipped": true,
+  "publicSidebarEntry": false,
+  "candidateSidebarEntry": true,
+  "candidateSessionTabPreserved": true,
+  "tests": {
+    "perHost": 108,
+    "hostCount": 2,
+    "totalExecutions": 216,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browserAcceptance": {
+    "checkedAt": "2026-10-23T13:45:06.953Z",
+    "dshVersion": "0.2.1-rc.2",
+    "adapterVersion": "0.3.0-rc.14",
+    "coreVersion": "0.5.7-rc.69",
+    "browser": "in-app Chromium",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mainPanelWidth": 1000,
+    "horizontalOverflow": false,
+    "configuredFixture": {
+      "sidebarEntryVisible": true,
+      "blankConversation": true,
+      "embeddedGameEmptyState": true,
+      "connectionTab": true,
+      "metricsTab": true,
+      "experimentsTab": true,
+      "consoleErrors": []
+    },
+    "unconfiguredFixture": {
+      "sidebarEntryVisible": true,
+      "setupInstructionsVisible": true,
+      "retryCompleted": true
+    },
+    "fixturesAreLiveGameplay": false,
+    "nativeDesktopWindowVerified": false,
+    "externalModelCalls": 0,
+    "gameConnections": 0,
+    "screenshots": [
+      "dsh-minecraft-lab.png",
+      "dsh-minecraft-metrics.png",
+      "dsh-minecraft-connection.png",
+      "dsh-minecraft-unconfigured.png"
+    ]
+  },
+  "publication": {
+    "registryPublished": false,
+    "marketChanged": false,
+    "productionLoaded": false
+  },
+  "rollback": "Return to parent commit 972432c68f63fd373864f9cc170832324bc1b99e; installed production profiles were not changed.",
+  "files": {
+    "src/client.tsx": "08cb7e050b20056f51bc7da368dc84d1876d0270d8da3edf6b4b79427c7841a3",
+    "src/harness-panel.mjs": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89",
+    "lib/client.js": "fc29a388f90b52372e61d4148eb2380c85454a935d0943674fa597381c25e72a",
+    "lib/plugins/harness-panel.mjs": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89",
+    "package.json": "8dea67875071c8d6919578c0e661b06aca4aa31a0c76aecd17ccd8a9c104075c"
+  },
+  "releaseMatrix": [
+    {
+      "dshVersion": "0.2.1-rc.2",
+      "nodeVersion": "24.19.0",
+      "pnpmVersion": "11.28.5",
+      "tests": {
+        "tests": 108,
+        "pass": 108,
+        "fail": 0,
+        "skipped": 0
+      },
+      "officialPluginArchiveInstall": true,
+      "officialRegistryDependencies": true,
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "manualSecurityExemptions": false,
+      "dshGeneratedReleaseAgeExceptions": [
+        "agent-mc-world@0.5.7-rc.69",
+        "agent-mc-qiandengji@0.5.0-rc.13"
+      ],
+      "browserSidebarVerified": true,
+      "browserConfiguredFixture": false,
+      "unconfiguredBrowserStateVerified": true,
+      "officialHostFilesChanged": false
+    },
+    {
+      "dshVersion": "0.2.1-rc.3",
+      "nodeVersion": "24.19.0",
+      "pnpmVersion": "11.28.5",
+      "tests": {
+        "tests": 108,
+        "pass": 108,
+        "fail": 0,
+        "skipped": 0
+      },
+      "officialPluginArchiveInstall": true,
+      "officialRegistryDependencies": true,
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "manualSecurityExemptions": false,
+      "dshGeneratedReleaseAgeExceptions": [
+        "agent-mc-world@0.5.7-rc.69",
+        "agent-mc-qiandengji@0.5.0-rc.13"
+      ],
+      "browserSidebarVerified": true,
+      "browserConfiguredFixture": true,
+      "unconfiguredBrowserStateVerified": false,
+      "officialHostFilesChanged": false
+    }
+  ],
+  "releaseBrowserScreenshots": [
+    "installed-next-lab.png",
+    "installed-stable-unconfigured.png"
+  ],
+  "harness2Integration": {
+    "actualPythonWorker": true,
+    "physicsTrialsPerHost": 6,
+    "loopbackModelFixtureCallsPerHost": 4,
+    "externalModelCalls": 0,
+    "gameConnections": 0,
+    "adopted": false
+  },
+  "installMirrorLimitation": {
+    "mirror": "npmmirror",
+    "missingDependency": "agent-mc-world@0.5.7-rc.69",
+    "officialRegistryInstallPassed": true,
+    "globalRegistryChanged": false
+  },
+  "archivePrivacyAudit": {
+    "machineDeploymentPaths": 0,
+    "credentialShapes": 0,
+    "privateLogs": 0
+  },
+  "nativeDesktopWindowVerified": false
+}

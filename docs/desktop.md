@@ -1,6 +1,6 @@
 # DSH Desktop 与实验室
 
-> rc.13 直接兼容原始官方 DSH 0.2.1-rc.2，无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
+> 当前公开 npm 版为 rc.12，本分支 rc.14 候选尚未发布。原始官方 DSH 0.2.1-rc.2 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
@@ -9,15 +9,15 @@
 在 Desktop 的插件管理中填写已公开并通过默认安装验证的固定 npm 版本：
 
 ```text
-@jcs130/dsh-minecraft-agent@0.3.0-rc.13
+@jcs130/dsh-minecraft-agent@0.3.0-rc.12
 ```
 
-或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.13.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。
+或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。rc.14 常驻侧栏入口目前只在本地候选中验收。
 
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.13
+dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12 --registry=https://registry.npmjs.org
 ```
 
 重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
@@ -26,7 +26,9 @@ dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.13
 
 ## 实验室
 
-会话中打开 Minecraft → 实验室；本机面板同样支持 `http://127.0.0.1:<consolePort>/#experiments`。
+rc.14 源码补上常驻侧栏 Minecraft 入口，原会话中的 Minecraft 标签继续保留。两个入口使用同一个核心面板，不创建额外游戏账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；尚未配置 Agent 或 consolePort 时显示明确说明及重新检查按钮。rc.14 的源码、候选包与正式发布分别验收；此说明不代表 npm 已发布该版本。
+
+侧栏或会话中打开 Minecraft → 实验室；本机面板同样支持 `http://127.0.0.1:<consolePort>/#experiments`。
 
 配置 `harness2.enabled`、独立环境、明确的任务与预算后，Agent 通过 mc_practice 显式运行。页面展示阶段、心跳、预算、实际试跑、基线/候选对比、独立留出验证、用量覆盖、证据条数和游戏记忆投递。内置 physics 仅为离线平地碰撞物理，不能当成线上战斗、复杂地形或真实服务器验证。
 

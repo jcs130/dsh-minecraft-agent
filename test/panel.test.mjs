@@ -55,18 +55,49 @@ test('panel binding refuses unrelated sessions and contains no controls, credent
   assert.equal(panelDescriptor('owned','owned').ok,false);
   assert.deepEqual(panelDescriptor('owned','owned','http://127.0.0.1:17851/'),{ok:true,value:{sessionId:'owned',url:'http://127.0.0.1:17851/'}});
 });
-test('packaged native DSH browser half registers and uses actual session identity',()=>{
-  let module, tab;
+test('packaged native DSH browser half keeps a global page, sidebar entry and session view',()=>{
+  let module;const entries=[];
   vm.runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{
     URL,window:{__ModuleLoader__:{load(value){module=value.factory(name=>name==='react'?{}:{});}}},
   });
   assert.deepEqual([...module.inject],['slots','connection']);
-  module.apply({slots:{inject(_name,cb){cb();},register(options,view){tab={options,view};}}});
+  module.apply({slots:{inject(_name,cb){cb();},register(options,view){entries.push({options,view});}}});
+  const tab=entries.find(entry=>entry.options.name==='conversation.view');
   assert.equal(tab.options.id,'mc-panel');assert.equal(typeof tab.view,'function');
+  const main=entries.find(entry=>entry.options.name==='main');assert.equal(main.options.key,'minecraft');
+  const navigation=entries.find(entry=>entry.options.name==='sidebar.panellist');
+  assert.equal(navigation.options.id,main.options.key);assert.equal(navigation.options.label(),'Minecraft');
+  assert.equal(typeof main.view,'function');assert.equal(typeof navigation.view,'function');
   assert.equal(module.localPanelUrl('http://127.0.0.1:17851/'),'http://127.0.0.1:17851/');
   for(const url of ['https://remote.test/','javascript:alert(1)','http://user:pass@127.0.0.1:17851/','http://127.0.0.1:17851/?token=secret']) assert.equal(module.localPanelUrl(url),null);
   const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
   assert.equal(pkg.exports['./client'],'./lib/client.js');assert.ok(pkg.files.includes('lib/client.js'));
+});
+
+test('global discovery returns only the owned panel metadata and rejects malformed envelopes',async()=>{
+  let ready;const routes=[];
+  const panel=await openHostConsole({inject(_deps,fn){ready=fn;}},async()=>({url:'http://127.0.0.1:17851/',async close(){}}),'owned');
+  await ready({webServer:{port:17850},connection:{fetch:{register(route){routes.push(route);}}}});
+  const discovery=routes.find(route=>route.path==='/api/mc-harness/panel-info');assert.ok(discovery);
+  assert.deepEqual(discovery.methods,['POST']);
+  const request=(method='mc-harness/panel-info')=>new Request('http://localhost/api/mc-harness/panel-info',{
+    method:'POST',body:JSON.stringify({type:'client-request',rpcId:'discovery-fixture',method,payload:{}})});
+  const response=await discovery.fetch(request());assert.equal(response.headers.get('cache-control'),'no-store');
+  assert.deepEqual((await response.json()).result,{ok:true,value:{sessionId:'owned',url:'http://127.0.0.1:17851/'}});
+  assert.equal((await discovery.fetch(request('connect'))).status,400);
+  assert.equal((await discovery.fetch(new Request('http://localhost/api/mc-harness/panel-info',{method:'POST',body:'invalid'}))).status,400);
+  await panel.close();assert.equal((await discovery.fetch(request())).status,410);
+});
+
+test('global discovery distinguishes a disabled console without creating a body',async()=>{
+  let ready;const routes=[];
+  const panel=await openHostConsole({inject(_deps,fn){ready=fn;}},undefined,'owned');
+  await ready({webServer:{port:17850},connection:{fetch:{register(route){routes.push(route);}}}});
+  const discovery=routes.find(route=>route.path==='/api/mc-harness/panel-info');
+  const result=await(await discovery.fetch(new Request('http://localhost/api/mc-harness/panel-info',{method:'POST',body:JSON.stringify({
+    type:'client-request',rpcId:'disabled-fixture',method:'mc-harness/panel-info',payload:{}})}))).json();
+  assert.equal(result.result.ok,false);assert.equal(result.result.error.code,'unavailable');
+  await panel.close();
 });
 test('late DSH Web service binds the real port and authenticates the matching panel channel',async()=>{
   let ready,channel,handler,closed=0;const created=[];
@@ -100,10 +131,12 @@ test('native separated service providers register and dispose the authenticated 
     const make=()=>new Request('http://localhost/api/mc-harness/panel',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:'native-rpc',method:'mc-harness/panel',payload:{sessionId:'owned'}})});
     const owner={principal:{kind:'owner'}};
     assert.equal((await(await handler.fetch(make(),owner)).json()).result.value.sessionId,'owned');
-    if(req('@deepseek-ai/dsh/package.json').version==='0.2.1-rc.2')
-      assert.equal((await handler.fetch(make(),{principal:{kind:'delegate'}})).status,403);
+    const discover=()=>new Request('http://localhost/api/mc-harness/panel-info',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:'native-discovery',method:'mc-harness/panel-info',payload:{}})});
+    assert.equal((await(await handler.fetch(discover(),owner)).json()).result.value.sessionId,'owned');
+    for(const request of [make(),discover()]) assert.equal((await handler.fetch(request,{principal:{kind:'delegate'}})).status,403);
     await panel.close();await fiber.dispose();
     assert.equal((await handler.fetch(make(),owner)).status,404);
+    assert.equal((await handler.fetch(discover(),owner)).status,404);
   }finally{await panel.close();await fiber.dispose();await connection.dispose();await web.dispose();}
 });
 test('native DSH metadata reader resolves the localized package and its shipped icon',async()=>{
