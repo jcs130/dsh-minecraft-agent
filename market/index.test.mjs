@@ -13,9 +13,9 @@ test('official DSH parser accepts the exact public npm release and metadata',asy
   const plugin=index.plugins[0];
   assert.equal(plugin.name,'@jcs130/dsh-minecraft-agent');
   assert.equal(plugin.versions.length,1);
-  assert.equal(plugin.versions[0].version,'0.3.0-rc.12');
+  assert.equal(plugin.versions[0].version,'0.3.0-rc.15');
   assert.deepEqual(marketInstallTarget(plugin.name,plugin.versions[0]),
-    {spec:'@jcs130/dsh-minecraft-agent@0.3.0-rc.12',registry:'https://registry.npmjs.org/'});
+    {spec:'@jcs130/dsh-minecraft-agent@0.3.0-rc.15',registry:'https://registry.npmjs.org/'});
   assert.ok(Number.isInteger(plugin.versions[0].publishTimestamp));
-  assert.match(plugin.icon,/4f22222bb4a7d3ae161c355eb29f31b77930a9a5\/assets\/icon\.svg$/);
+  assert.match(plugin.icon,/99d4f8c6066284d34e0ae0332fd830a7a78a7303\/assets\/icon\.svg$/);
 });

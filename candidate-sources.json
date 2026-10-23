@@ -2,17 +2,31 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.15",
   "publication": {
-    "status": "github-released-npm-pending",
-    "registryPublished": false,
+    "status": "published",
+    "registryPublished": true,
     "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.12",
-    "marketVersion": "0.3.0-rc.12",
+    "marketVersion": "0.3.0-rc.15",
     "githubReleaseUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15",
     "githubVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/github-release-verification.json",
     "githubArchiveSha256": "aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0",
     "latestGithubVersion": "0.3.0-rc.15",
-    "latestNpmVersion": "0.3.0-rc.12",
-    "updatedAt": "2026-10-23T16:54:40.358Z"
+    "latestNpmVersion": "0.3.0-rc.15",
+    "updatedAt": "2026-10-23T17:20:22.814Z",
+    "npmSubmittedVersion": "0.3.0-rc.15",
+    "npmReviewStatus": "Published",
+    "npmSubmissionRecord": "docs/npm-publish-rc15.json",
+    "npmPublishedAt": "2026-10-23T17:10:58.852Z",
+    "npmRegistryVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/npm-registry-verification.json",
+    "communitySubmission": {
+      "url": "https://github.com/ydhrdh/dsh-marketplace/pull/18",
+      "version": "0.3.0-rc.15",
+      "state": "open",
+      "draft": false,
+      "merged": false,
+      "maintainerApproval": "pending",
+      "headSha": "9d952aac6c4d79f3d94be2077e27133e7615fdb1"
+    }
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -116,6 +130,15 @@
     "previousArchiveVersion": "0.3.0-rc.14",
     "githubAnonymousDownloadVerified": true,
     "githubDefaultPluginInstallVerifiedVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "npmAnonymousDownloadVerified": true,
+    "npmDefaultPluginInstallVerifiedVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "npmStockRuntimeVerifiedVersions": [
       "0.2.1-rc.2",
       "0.2.1-rc.3"
     ]

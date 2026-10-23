@@ -1,6 +1,6 @@
 # Registry 分发记录
 
-## rc.15：首次配置与原生决策会话（GitHub 已公开，npm 待认证）
+## rc.15：首次配置与原生决策会话（npm / GitHub 已公开）
 
 PR #6 已合入 main，合并提交 `2d5d9087f5ba02f259c8eec38ce4ee784289941a`。[rc.15 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，主归档 SHA256 为 `aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0`，与先前 candidate06 验证包字节一致。匿名 HTTPS 下载、官方 DSH 0.2.1-rc.2 / rc.3 默认 pnpm 11.28.5 从公开 URL 安装均通过，运行文件哈希一致。最终验收见 [github-release-verification.json](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/github-release-verification.json)。
 
@@ -12,7 +12,7 @@ PR #6 已合入 main，合并提交 `2d5d9087f5ba02f259c8eec38ce4ee784289941a`�
 
 官方 DSH Web 与独立的本机 Java 1.21.1 协议测试世界完成无密码首次接入、只读工具调用、同账号重连与原会话保留。确定性的本机测试 provider 验证流式推理、工具回执和布局切换；这些文字与合成用量仅用于界面验收，不能用来证明真实模型游戏能力、缓存收益或线上反应速度。未调用外部模型，未变更现役 Agent。Desktop 原生窗口、微软首次授权交互和真实服务器游玩仍单独验收。
 
-两版 DSH 各 123 项全量回归通过，零失败、零跳过。npm 与市场仍保持 rc.12；registry 登录过期后已请求新的官方网页认证，后续 npm 分发需单独完成匿名下载与实际安装验证。已公开的 GitHub 归档不覆盖、不重打包。包内 README、candidate-sources.json 与 UI 验证文件是构建时快照，本仓库发行记录与 Release 附件提供后续公开状态。用法见[快速接入](quick-start.md)。
+两版 DSH 各 123 项全量回归通过，零失败、零跳过。2026-10-24 01:08（Asia/Shanghai）完成 npm 登录与本次发布认证，CLI 返回 0；版本曾短暂处于 Validating，匿名接口返回 404。01:12 的复查已得到 200，`latest` 指向 rc.15，归档 SHA256 与 GitHub 完全一致。随后官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm registry 安装、真实主进程/Worker、36 个 MCP 工具、离线编译引擎 IPC、游戏记忆与物理试验初始化；依赖共享同一个核心。没有放宽包管理器保护、覆盖宿主文件或调用外部模型。[npm 最终分发验收](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/npm-registry-verification.json)与[提交阶段历史](npm-publish-rc15.json)分别保留。自有市场索引已更新为 rc.15，社区 PR18 单独待审核。归档不覆盖、不重打包；包内 README 和状态文件为构建时快照，当前公开状态以本记录及 Release 附件为准。用法见[快速接入](quick-start.md)。
 
 ## rc.14：常驻 UI 入口（未发布）
 

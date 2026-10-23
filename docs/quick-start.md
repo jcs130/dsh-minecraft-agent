@@ -2,12 +2,12 @@
 
 ![通用服务器首次接入表单](screenshots/quick-setup.png)
 
-安装插件后，在 DSH 内完成少量配置即可进服，不要求用户写 Agent JSON。[rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开并通过匿名下载及默认安装验证；npm 当前仍为 rc.12，新功能使用[安装指南](../README-INSTALL.md)中的 rc.15 归档地址。不同分发渠道与真实服务器验收分别记录。
+安装插件后，在 DSH 内完成少量配置即可进服，不要求用户写 Agent JSON。[rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开并通过匿名下载及默认安装验证；npm rc.15 也已公开，默认 registry 安装与运行验证通过，直接使用[安装指南](../README-INSTALL.md)中的固定 npm 版本。不同分发渠道与真实服务器验收分别记录。
 
 ## 在 DSH 里连接
 
 1. 使用 Node.js 24 和 DSH，在宿主里配置凭据并选好默认模型。插件复用该模型、凭据和所选思考等级。
-2. 安装 rc.15 发行归档，打开侧栏 **Minecraft**。
+2. 安装 rc.15 插件，打开侧栏 **Minecraft**。
 3. 填服务器地址（如 `mc.example.com:25565`）、登录方式和角色名。默认 Java 协议为 `1.21.1`，可在可选设置修改为实际版本或 `auto`。
 4. 点击 **保存并连接游戏**。已有登录服账号需要 `/login` 密码时，在可选设置填写；这里只登录已有账号，不注册账号。正版首次连接仍需完成微软授权。
 5. 等待核心的连接、认证和世界状态就绪，再通过右侧原生 DSH 输入框下达任务。首次任务可以留空，这时只建立游戏连接，不开始游戏推理。

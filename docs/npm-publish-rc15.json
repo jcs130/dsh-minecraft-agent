@@ -1,0 +1,54 @@
+{
+  "schema": "dsh-minecraft-npm-submission/v1",
+  "version": "0.3.0-rc.15",
+  "archiveSha256": "aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0",
+  "receipt": {
+    "observedAt": "2026-10-23T17:08:57.643Z",
+    "package": "@jcs130/dsh-minecraft-agent",
+    "version": "0.3.0-rc.15",
+    "exitCode": 0,
+    "status": "registry-processing",
+    "tag": "latest",
+    "access": "public",
+    "credentialsRecorded": false,
+    "archiveRepacked": false,
+    "historicalStage": true
+  },
+  "registryPublished": true,
+  "defaultRegistryInstallVerified": true,
+  "immutableArchiveRepacked": false,
+  "productionChanged": false,
+  "stage": "public-verified",
+  "verifiedAt": "2026-10-23T17:16:21.044Z",
+  "verificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/npm-registry-verification.json",
+  "priorReviewObservation": {
+    "observedAt": "2026-10-23T17:11:03.532Z",
+    "version": "0.3.0-rc.15",
+    "page": "https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent?activeTab=versions",
+    "status": "Validating",
+    "explanation": "Automated review has not finished. The version remains unavailable until review completes.",
+    "registryHttpStatus": 404,
+    "latestPublicVersion": "0.3.0-rc.12",
+    "credentialsRecorded": false
+  },
+  "postPublicationMetadataTests": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "environment": "dependency-complete-isolated-consumer-and-official-market-parser"
+  },
+  "communityLocalValidation": {
+    "registryEntriesValid": 8,
+    "webBuildPassed": true,
+    "verifiedBadge": false
+  },
+  "communitySubmission": {
+    "url": "https://github.com/ydhrdh/dsh-marketplace/pull/18",
+    "version": "0.3.0-rc.15",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "maintainerApproval": "pending",
+    "headSha": "9d952aac6c4d79f3d94be2077e27133e7615fdb1"
+  }
+}

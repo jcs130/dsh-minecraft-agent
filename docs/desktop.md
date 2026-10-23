@@ -1,12 +1,12 @@
 # DSH Desktop 与实验室
 
-> rc.15 已在 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 公开，npm 当前仍为 rc.12。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
+> rc.15 已在 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 公开，npm 同版已公开，两版官方 DSH 的默认 registry 安装均通过。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
 ## 安装
 
-在 Desktop 的插件管理中使用已公开的固定 rc.15 归档地址。该归档已通过官方 Web/CLI 的默认插件安装验证，Desktop 消费同一插件契约：
+在 Desktop 的插件管理中使用 `@jcs130/dsh-minecraft-agent@0.3.0-rc.15`，registry 选择 `https://registry.npmjs.org`。也可使用同字节的固定 rc.15 归档地址。该归档已通过官方 Web/CLI 的默认插件安装验证，Desktop 消费同一插件契约：
 
 ```text
 https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz
@@ -17,12 +17,12 @@ https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz --registry=https://registry.npmjs.org
+dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.15 --registry=https://registry.npmjs.org
 ```
 
 rc.15 重新打开后，侧栏 Minecraft 提供首次接入表单：复用 DSH 默认模型，填写服务器与账号，再显式保存并连接。普通离线服无需密码；正版走微软授权；仅登录服需要可选 `/login` 密码。端口和数据目录由插件分配，同账号保留原会话。游戏与决策并排，推理和工具使用 DSH 原生组件，可切换只看游戏。详见[快速接入](quick-start.md)。
 
-公开 rc.12 和高级部署仍设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
+高级部署仍可设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
 
 发行包包含画面、纹理、字体、原版声音目录和原创 BGM；体积较大的原版音频按需单独从 Mojang 下载。需要完整原版游戏音效时，显式执行安装包提供的 `dsh-minecraft-assets <私有缓存目录>`，将输出的目录写入 `minecraft.viewerAssetsDir`。也可用 Node 执行安装目录的 bin/prepare-assets.mjs。准备过程验证大小与哈希，可续用已验证缓存，不启动游戏或模型，不改写 node_modules。首次音频准备需要网络；未准备不能称为离线音频完整。
 

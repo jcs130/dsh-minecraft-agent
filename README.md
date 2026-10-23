@@ -1,8 +1,8 @@
 # DSH Minecraft Agent
 
-[rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。npm 当前仍为 rc.12；使用新功能请按[安装指南](README-INSTALL.md)安装 rc.15 发行归档。用法见[快速接入](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
+[rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。[npm rc.15](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向该版；按[安装指南](README-INSTALL.md)直接安装。用法见[快速接入](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
 
-> rc.15 兼容原始官方 DSH：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)。GitHub 归档的匿名下载和两版 DSH 默认安装已通过，npm 分发单独核验。
+> rc.15 兼容原始官方 DSH：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)。npm / GitHub 归档字节一致，两版 DSH 的默认 registry 安装与真实主进程/Worker 验证均通过。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -12,7 +12,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.15 GitHub 发行版**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.15 npm / GitHub 发行版**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
