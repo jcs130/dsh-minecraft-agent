@@ -133,8 +133,7 @@ test('native separated service providers register and dispose the authenticated 
     assert.equal((await(await handler.fetch(make(),owner)).json()).result.value.sessionId,'owned');
     const discover=()=>new Request('http://localhost/api/mc-harness/panel-info',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'client-request',rpcId:'native-discovery',method:'mc-harness/panel-info',payload:{}})});
     assert.equal((await(await handler.fetch(discover(),owner)).json()).result.value.sessionId,'owned');
-    if(req('@deepseek-ai/dsh/package.json').version==='0.2.1-rc.2')
-      for(const request of [make(),discover()]) assert.equal((await handler.fetch(request,{principal:{kind:'delegate'}})).status,403);
+    for(const request of [make(),discover()]) assert.equal((await handler.fetch(request,{principal:{kind:'delegate'}})).status,403);
     await panel.close();await fiber.dispose();
     assert.equal((await handler.fetch(make(),owner)).status,404);
     assert.equal((await handler.fetch(discover(),owner)).status,404);

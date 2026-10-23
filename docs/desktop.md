@@ -17,7 +17,7 @@
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
+dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12 --registry=https://registry.npmjs.org
 ```
 
 重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。

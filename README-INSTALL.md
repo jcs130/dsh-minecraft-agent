@@ -9,10 +9,12 @@
 通过 DSH 安装已验证的固定 npm 版本：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.12
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.12 --registry=https://registry.npmjs.org
 ```
 
 版本及标签以发布记录为准。也可安装 [GitHub 的相同归档](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz)；无需运行 doctor 或修改 DSH 程序文件。常驻侧栏入口目前需使用明确标注 rc.14 的本地候选归档。
+
+如果镜像源报 `ERR_PNPM_NO_MATCHING_VERSION`，先确认其是否同步了插件锁定的核心及可选服务器包。本轮 npmmirror 尚缺核心 rc.69，显式使用上面的官方 registry 可以完成安装；这不会改写全局 registry、放宽 pnpm 安全配置或更换依赖版本。不要通过降级核心、关闭安装保护或混用现役 profile 来绕过镜像未同步。
 
 源码开发：
 

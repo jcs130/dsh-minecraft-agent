@@ -80,6 +80,7 @@
     "locales",
     "examples/harness",
     "candidate-sources.json",
+    "ui-verification-20261023.json",
     "data/transmigrators",
     "README.md",
     "README.en.md",

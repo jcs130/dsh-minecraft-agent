@@ -1,6 +1,6 @@
 {
   "schema": "dsh-minecraft.ui-verification/v1",
-  "verifiedAt": "2026-10-23T13:46:01.906962+00:00",
+  "verifiedAt": "2026-10-23T14:10:04.363103+00:00",
   "adapterVersion": "0.3.0-rc.14",
   "dshVersion": "0.2.1-rc.2",
   "coreVersion": "0.5.7-rc.69",
@@ -11,12 +11,12 @@
   "candidateSidebarEntry": true,
   "candidateSessionTabPreserved": true,
   "tests": {
-    "tests": 108,
-    "pass": 107,
-    "fail": 0,
-    "skipped": 1
+    "perHost": 108,
+    "hostCount": 2,
+    "totalExecutions": 216,
+    "failed": 0,
+    "skipped": 0
   },
-  "optionalSkippedTest": "external Harness2 packed physical integration",
   "browserAcceptance": {
     "checkedAt": "2026-10-23T13:45:06.953Z",
     "dshVersion": "0.2.1-rc.2",
@@ -65,6 +65,80 @@
     "src/harness-panel.mjs": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89",
     "lib/client.js": "fc29a388f90b52372e61d4148eb2380c85454a935d0943674fa597381c25e72a",
     "lib/plugins/harness-panel.mjs": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89",
-    "package.json": "89cc5c98c025c66eac4d2c7e249545f1deedcb3619b72bd0716761a591987e9b"
-  }
+    "package.json": "8dea67875071c8d6919578c0e661b06aca4aa31a0c76aecd17ccd8a9c104075c"
+  },
+  "releaseMatrix": [
+    {
+      "dshVersion": "0.2.1-rc.2",
+      "nodeVersion": "24.19.0",
+      "pnpmVersion": "11.28.5",
+      "tests": {
+        "tests": 108,
+        "pass": 108,
+        "fail": 0,
+        "skipped": 0
+      },
+      "officialPluginArchiveInstall": true,
+      "officialRegistryDependencies": true,
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "manualSecurityExemptions": false,
+      "dshGeneratedReleaseAgeExceptions": [
+        "agent-mc-world@0.5.7-rc.69",
+        "agent-mc-qiandengji@0.5.0-rc.13"
+      ],
+      "browserSidebarVerified": true,
+      "browserConfiguredFixture": false,
+      "unconfiguredBrowserStateVerified": true,
+      "officialHostFilesChanged": false
+    },
+    {
+      "dshVersion": "0.2.1-rc.3",
+      "nodeVersion": "24.19.0",
+      "pnpmVersion": "11.28.5",
+      "tests": {
+        "tests": 108,
+        "pass": 108,
+        "fail": 0,
+        "skipped": 0
+      },
+      "officialPluginArchiveInstall": true,
+      "officialRegistryDependencies": true,
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "manualSecurityExemptions": false,
+      "dshGeneratedReleaseAgeExceptions": [
+        "agent-mc-world@0.5.7-rc.69",
+        "agent-mc-qiandengji@0.5.0-rc.13"
+      ],
+      "browserSidebarVerified": true,
+      "browserConfiguredFixture": true,
+      "unconfiguredBrowserStateVerified": false,
+      "officialHostFilesChanged": false
+    }
+  ],
+  "releaseBrowserScreenshots": [
+    "installed-next-lab.png",
+    "installed-stable-unconfigured.png"
+  ],
+  "harness2Integration": {
+    "actualPythonWorker": true,
+    "physicsTrialsPerHost": 6,
+    "loopbackModelFixtureCallsPerHost": 4,
+    "externalModelCalls": 0,
+    "gameConnections": 0,
+    "adopted": false
+  },
+  "installMirrorLimitation": {
+    "mirror": "npmmirror",
+    "missingDependency": "agent-mc-world@0.5.7-rc.69",
+    "officialRegistryInstallPassed": true,
+    "globalRegistryChanged": false
+  },
+  "archivePrivacyAudit": {
+    "machineDeploymentPaths": 0,
+    "credentialShapes": 0,
+    "privateLogs": 0
+  },
+  "nativeDesktopWindowVerified": false
 }

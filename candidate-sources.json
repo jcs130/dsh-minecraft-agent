@@ -2,7 +2,7 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.14",
   "publication": {
-    "status": "ui-navigation-fix-not-published",
+    "status": "validated-archive-ready-for-publish",
     "registryPublished": false,
     "githubPublished": false,
     "previousPublishedVersion": "0.3.0-rc.12",
@@ -33,7 +33,10 @@
       "hostFilesModified": false,
       "hostResolverModified": false,
       "manualDoctorRequired": false
-    }
+    },
+    "additionallyVerifiedVersions": [
+      "0.2.1-rc.3"
+    ]
   },
   "candidates": [
     {
@@ -89,16 +92,21 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "isolated-packed-candidates-passed",
-    "localDependencyOverridesRequired": true,
-    "registryLockStatus": "prospective-exact-artifacts-not-yet-published",
+    "status": "official-dsh-stable-and-next-archive-install-and-browser-passed",
+    "localDependencyOverridesRequired": false,
+    "registryLockStatus": "core-and-server-pack-public-adapter-unpublished",
     "productionChanged": false,
-    "tests": 107,
+    "testsPerHost": 108,
+    "hosts": 2,
     "failed": 0,
     "skipped": 0,
-    "nativeFrontendVerified": true,
+    "sharedWebFrontendVerified": true,
+    "nativeDesktopWindowVerified": false,
+    "defaultArchiveInstallVerified": true,
+    "registryDependencyResolutionVerified": true,
     "registryDefaultInstallVerified": false,
-    "verificationFile": "onboarding-verification-20261023.json",
+    "verificationFile": "ui-verification-20261023.json",
+    "harness2PhysicalIntegrationVerified": true,
     "serverPackRefreshedToCommittedGuides": true
   }
 }

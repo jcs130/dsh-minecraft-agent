@@ -9,7 +9,11 @@ import { modelToolSchema, measuredStream } from '../src/harness-bridge.mjs';
 test('DSH built-in DeepSeek sends native Messages, session identity, thinking-off and compatible tuples', async () => {
   const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.json'));
   const { DeepSeekAdapter, resolveAdapterOptions } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm-deepseek')));
-  const { default: Ajv2020 } = await import(pathToFileURL(createRequire(require.resolve('agent-mc-world/package.json')).resolve('ajv/dist/2020.js')));
+  // A stock DSH installation does not own the game's dependencies. Resolve them
+  // through the actual installed plugin profile, including isolated pnpm layouts.
+  const profile = createRequire(resolve(process.env.MC_DSH_PROFILE ?? '.', 'package.json'));
+  const pluginRequire = createRequire(profile.resolve('@jcs130/dsh-minecraft-agent/package.json'));
+  const { default: Ajv2020 } = await import(pathToFileURL(createRequire(pluginRequire.resolve('agent-mc-world/package.json')).resolve('ajv/dist/2020.js')));
   const schema = { type: 'object', properties: { angles: { type: 'array', minItems: 3, maxItems: 3,
     items: [{ type: 'number', minimum: -90, maximum: 90 }, { type: 'number' }, { type: 'number', exclusiveMinimum: 0 }] } } };
   const translated = modelToolSchema(schema), validate = new Ajv2020({ strict: false }).compile(translated);

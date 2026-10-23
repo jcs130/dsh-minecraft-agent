@@ -11,7 +11,7 @@ const require=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json')
 test('native plugin admission accepts both supported DSH generations without exemptions',async()=>{
   const {evaluatePluginCompatibility}=await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-app-boot')));
   const manifest=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-  for(const version of ['0.2.0-rc.2','0.2.1-rc.2'])
+  for(const version of ['0.2.0-rc.2','0.2.1-rc.2','0.2.1-rc.3'])
     assert.equal(evaluatePluginCompatibility(manifest,{},version),undefined);
   const refused=evaluatePluginCompatibility(manifest,{},'0.1.7-rc.2');
   assert.equal(refused.exempted,false);
