@@ -1,8 +1,8 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.14",
+  "adapterVersion": "0.3.0-rc.15",
   "publication": {
-    "status": "validated-archive-ready-for-publish",
+    "status": "source-candidate-validated-not-published",
     "registryPublished": false,
     "githubPublished": false,
     "previousPublishedVersion": "0.3.0-rc.12",
@@ -92,21 +92,21 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "official-dsh-stable-and-next-archive-install-and-browser-passed",
-    "localDependencyOverridesRequired": false,
-    "registryLockStatus": "core-and-server-pack-public-adapter-unpublished",
+    "status": "passed-isolated-runtime-and-web",
+    "verification": "ui-verification-20261024.json",
     "productionChanged": false,
-    "testsPerHost": 108,
-    "hosts": 2,
+    "nativeDesktopWindowVerified": false,
+    "testsPerHost": 123,
     "failed": 0,
     "skipped": 0,
-    "sharedWebFrontendVerified": true,
-    "nativeDesktopWindowVerified": false,
-    "defaultArchiveInstallVerified": true,
-    "registryDependencyResolutionVerified": true,
-    "registryDefaultInstallVerified": false,
-    "verificationFile": "ui-verification-20261023.json",
-    "harness2PhysicalIntegrationVerified": true,
-    "serverPackRefreshedToCommittedGuides": true
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "isolatedProtocolVersion": "1.21.1",
+    "realServerGameplayVerified": false,
+    "externalModelApiCalls": 0,
+    "previousArchiveVerification": "ui-verification-20261023.json",
+    "previousArchiveVersion": "0.3.0-rc.14"
   }
 }

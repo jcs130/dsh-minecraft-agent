@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.14",
+  "version": "0.3.0-rc.15",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -45,6 +45,7 @@
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-sidebar",
         "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-session",
         "@deepseek-ai/dsh-client-connection"
       ]
@@ -74,13 +75,15 @@
     "docs/harness-migration.md",
     "docs/harness2.md",
     "docs/desktop.md",
+    "docs/quick-start.md",
+    "docs/screenshots",
+    "ui-verification-20261024.json",
     "docs/registry-release.md",
     "docs/upstream",
     "assets/icon.svg",
     "locales",
     "examples/harness",
     "candidate-sources.json",
-    "ui-verification-20261023.json",
     "data/transmigrators",
     "README.md",
     "README.en.md",
@@ -93,6 +96,7 @@
     "docs/DSH-COMPAT.md",
     "lib/plugins/dsh-native-streams.mjs",
     "lib/plugins/qiandengji-access.mjs",
+    "lib/plugins/quick-setup.mjs",
     "bin/join-qiandengji.mjs",
     "docs/qiandengji-invitation.md"
   ],
@@ -102,8 +106,8 @@
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-llm": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2 || ^0.2.1-rc.2"
@@ -111,6 +115,7 @@
   "peerDependenciesMeta": {},
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.2",
     "@deepseek-ai/dsh-session": "0.2.1-rc.2",
     "esbuild": "^0.25.0"
   },

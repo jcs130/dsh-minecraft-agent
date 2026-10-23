@@ -58,16 +58,23 @@ test('panel binding refuses unrelated sessions and contains no controls, credent
 test('packaged native DSH browser half keeps a global page, sidebar entry and session view',()=>{
   let module;const entries=[];
   vm.runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{
-    URL,window:{__ModuleLoader__:{load(value){module=value.factory(name=>name==='react'?{}:{});}}},
+    URL,window:{__ModuleLoader__:{load(value){module=value.factory(name=>name==='react/jsx-runtime'?{jsx:()=>null,jsxs:()=>null}:{});}}},
   });
-  assert.deepEqual([...module.inject],['slots','connection']);
-  module.apply({slots:{inject(_name,cb){cb();},register(options,view){entries.push({options,view});}}});
+  assert.deepEqual([...module.inject],['slots','connection','sessions']);
+  module.apply({slots:{inject(_name,cb){cb();},register(options,view){entries.push({options,view});},registerFactory(options,view){entries.push({options,view,factory:true});}}});
   const tab=entries.find(entry=>entry.options.name==='conversation.view');
   assert.equal(tab.options.id,'mc-panel');assert.equal(typeof tab.view,'function');
   const main=entries.find(entry=>entry.options.name==='main');assert.equal(main.options.key,'minecraft');
   const navigation=entries.find(entry=>entry.options.name==='sidebar.panellist');
   assert.equal(navigation.options.id,main.options.key);assert.equal(navigation.options.label(),'Minecraft');
   assert.equal(typeof main.view,'function');assert.equal(typeof navigation.view,'function');
+  assert.equal(tab.options.children,undefined);assert.equal(main.options.children['minecraft.panel'].scope,'session');
+  const decision=entries.find(entry=>entry.options.name==='minecraft.decision');assert.ok(decision);
+  let rendered;
+  decision.view({useSession:select=>select({openState:'open',running:false}),useProjection:()=>({goal:{objective:'Find a safe home',phase:'active'}}),
+    renderFactorySlot:(name,owner,options)=>{rendered={name,owner,options};return null;}});
+  assert.equal(rendered.name,'conversation.content');assert.equal(rendered.owner.variant,'embedded');
+  rendered.options.slots.views({renderSlot:(name,owner)=>{assert.equal(name,'conversation.session');assert.equal(owner.view,'chat');return null;}});
   assert.equal(module.localPanelUrl('http://127.0.0.1:17851/'),'http://127.0.0.1:17851/');
   for(const url of ['https://remote.test/','javascript:alert(1)','http://user:pass@127.0.0.1:17851/','http://127.0.0.1:17851/?token=secret']) assert.equal(module.localPanelUrl(url),null);
   const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
@@ -87,6 +94,54 @@ test('global discovery returns only the owned panel metadata and rejects malform
   assert.equal((await discovery.fetch(request('connect'))).status,400);
   assert.equal((await discovery.fetch(new Request('http://localhost/api/mc-harness/panel-info',{method:'POST',body:'invalid'}))).status,400);
   await panel.close();assert.equal((await discovery.fetch(request())).status,410);
+});
+
+test('the original session tab keeps the native outer composer and never recursively embeds conversation.content',()=>{
+  for(const globalEntry of [false,true]){
+    const values=[{sessionId:'owned',url:'http://127.0.0.1:17851/'},undefined,false],entries=[],factories=[];
+    const jsx=(type,props)=>({type,props});let entry;
+    vm.runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{
+      URL,window:{__ModuleLoader__:{load(value){entry=value.factory(name=>name==='react'?{useEffect(){},useState:()=>[values.shift(),()=>{}]}:{jsx,jsxs:jsx});}}},
+    });
+    entry.apply({sessions:{},slots:{inject(_name,cb){cb();},register(options,view){entries.push({options,view});},registerFactory(){}}});
+    const panel=entries.find(e=>e.options.name==='conversation.view').view;
+    const tree=panel({sessionId:'owned',embeddedComposer:globalEntry,renderFactorySlot(name){factories.push(name);return null;}});
+    assert.ok(tree);assert.deepEqual(factories,globalEntry?['minecraft.decision']:[]);
+  }
+});
+
+test('native SlotCore accepts both Minecraft entry points without reclaiming any upstream slot',async()=>{
+  const req=createRequire(new URL('../package.json',import.meta.url));
+  const {SlotCore}=await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-client-ui-slots')));
+  const core=new SlotCore();const empty=()=>null;
+  core.register({name:'root',children:{main:{kind:'keyed',scope:'root'},'sidebar.panellist':{kind:'list',scope:'root'},'conversation.session':{kind:'single',scope:'session'}}},empty);
+  core.register({name:'conversation.session',children:{'conversation.view':{kind:'list',scope:'session'}}},empty);
+  let entry;vm.runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{
+    URL,window:{__ModuleLoader__:{load(value){entry=value.factory(()=>({}));}}},
+  });
+  entry.apply({sessions:{},slots:{inject(_name,fn){fn();},register:core.register.bind(core),registerFactory:core.registerFactory.bind(core)}});
+  assert.equal(core.specDynamic('minecraft.panel').scope,'session');assert.ok(core.factory('minecraft.decision'));
+  assert.ok(core.entriesOfSlot('conversation.view').some(value=>value.options.id==='mc-panel'));
+});
+
+test('global Minecraft viewer retains only the supplied existing session and releases once after unmount',async()=>{
+  let entry;vm.runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{
+    URL,AbortController,window:{__ModuleLoader__:{load(value){entry=value.factory(()=>({}));}}},
+  });
+  let release=0,resolveReady,shown=0;const ready=new Promise(resolve=>{resolveReady=resolve;});let signal;
+  const stop=entry.retainPanelSession({retain(id,options){assert.equal(id,'owned-session');assert.equal(options.source,'minecraftPanel');signal=options.signal;return{ready,release(){release++;}};}},'owned-session',()=>{shown++;});
+  stop();stop();resolveReady();await new Promise(resolve=>setImmediate(resolve));assert.equal(release,1);assert.equal(shown,0);assert.equal(signal.aborted,true);
+});
+
+test('failed native session preparation releases its retained reference before asking the user to retry',async()=>{
+  let entry;vm.runInNewContext(readFileSync(new URL('../lib/client.js',import.meta.url),'utf8'),{
+    URL,AbortController,window:{__ModuleLoader__:{load(value){entry=value.factory(()=>({}));}}},
+  });
+  let release=0,reported=0;
+  const stop=entry.retainPanelSession({retain(){return{ready:Promise.reject(Error('private host error')),release(){release++;}};}},'owned-session',(value,error)=>{
+    assert.equal(value,undefined);assert.ok(error&&!error.includes('private'));reported++;
+  });
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(release,1);assert.equal(reported,1);stop();assert.equal(release,1);
 });
 
 test('global discovery distinguishes a disabled console without creating a body',async()=>{
