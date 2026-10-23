@@ -1,6 +1,6 @@
 # 安装 DSH Minecraft Agent
 
-当前公开 npm 版为 rc.12。rc.13 的邀请接入与本分支 rc.14 的常驻侧栏入口尚未发布到 npm，请勿把候选版本当作已上架版本安装。邀请接入步骤见[指南](docs/qiandengji-invitation.md)；实际分发与安装验证状态见[发布记录](docs/registry-release.md)。
+当前公开 npm 版为 rc.12。本分支 rc.15 候选提供首次配置表单和游戏旁的原生决策会话，尚未发布到 npm，请勿把候选版本当作已上架版本安装。邀请接入步骤见[指南](docs/qiandengji-invitation.md)；实际分发与安装验证状态见[发布记录](docs/registry-release.md)。
 
 > 公开 rc.12 直接兼容未经修补的官方 DSH 0.2.1-rc.2，无需执行 doctor。发行归档包含构建后的前端和适配器；渠道状态见[发布记录](docs/registry-release.md)。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
 
@@ -12,7 +12,7 @@
 dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.12 --registry=https://registry.npmjs.org
 ```
 
-版本及标签以发布记录为准。也可安装 [GitHub 的相同归档](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz)；无需运行 doctor 或修改 DSH 程序文件。常驻侧栏入口目前需使用明确标注 rc.14 的本地候选归档。
+版本及标签以发布记录为准。也可安装 [GitHub 的相同归档](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.12/jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz)；无需运行 doctor 或修改 DSH 程序文件。首次配置与决策旁栏需使用明确标注 rc.15 的候选归档，见[快速接入](docs/quick-start.md)。
 
 如果镜像源报 `ERR_PNPM_NO_MATCHING_VERSION`，先确认其是否同步了插件锁定的核心及可选服务器包。本轮 npmmirror 尚缺核心 rc.69，显式使用上面的官方 registry 可以完成安装；这不会改写全局 registry、放宽 pnpm 安全配置或更换依赖版本。不要通过降级核心、关闭安装保护或混用现役 profile 来绕过镜像未同步。
 
@@ -67,7 +67,9 @@ npm install ./vendor/agent-mc-world-<版本>.tgz ./vendor/agent-mc-qiandengji-<�
 
 只有需要千灯纪服务器协议时才配置 `serverPack: qiandengji`。普通服务器使用 `none`，不启用服务器专用规则。核心和适配器不需要 Cortico 主项目。
 
-按 DSH bundle 流程将本包加载到独立 profile，再把该 profile 中 `mc-harness.config.configFile` 设为自己的私有 Agent JSON 绝对路径。参考 [Agent JSON](examples/harness/agent.json) 和 [DeepSeek provider](examples/harness/deepseek.patch.yml)，将路径、账号、主机、环境变量改成自己的。示例默认 `enabled: false`，填写完成再启用。
+rc.15 候选的普通接入：先在 DSH 选好默认模型，打开侧栏 Minecraft，填地址、角色名和登录方式，点击保存并连接。一般离线服不需要密码；仅明确要求 `/login` 的已有账号填写可选密码。首次任务可留空，进服后通过右侧原会话输入指令。不需要手写 JSON、选择端口或另填模型密钥。
+
+公开 rc.12 和高级部署仍按 DSH bundle 流程加载本包，并将 `mc-harness.config.configFile` 设为私有 Agent JSON 绝对路径。参考 [Agent JSON](examples/harness/agent.json) 和 [DeepSeek provider](examples/harness/deepseek.patch.yml)，将路径、账号、主机、环境变量改成自己的。示例默认 `enabled: false`，填写完成再启用。已有 configFile 不受首次配置覆盖。
 
 DeepSeek 官方云端的密钥只放本机环境变量，Agent JSON 使用 `reasoningEffort: off` 显式关闭思考。不要把凭据放进提示词、聊天或仓库。服务器登录密码也应使用该服务器/账号专属的私有配置。
 

@@ -12,6 +12,7 @@ import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
 import { applyGoalControl } from './harness-goal.mjs';
+import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
 import { compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
 
 prepareDshNativeStreams();
@@ -35,8 +36,23 @@ const merge = (a, b) => Object.fromEntries([...new Set([...Object.keys(a), ...Ob
 
 /** DSH owns persona, goals, memory, model selection and continuation. One neutral client owns the body. */
 export async function apply(ctx, options = {}) {
-  if (!options.configFile) return; // Installation alone never opens a game/model connection.
-  const config = JSON.parse(readFileSync(resolve(options.configFile), 'utf8'));
+  if(options.configFile)return startConfiguredAgent(ctx,JSON.parse(readFileSync(resolve(options.configFile),'utf8')));
+  if(options.quickSetup!==true)return; // The passive browser row owns no body or setup service.
+  const profile=ctx.get('profileContext');
+  if(!profile?.dir)return;
+  const setup=await createQuickSetup({directory:join(resolve(profile.dir),'minecraft-agent'),
+    parseAddress:coreClient.parseMinecraftServerAddress,
+    selection:()=>ctx.get('agentDefaultModel')?.currentSelection(),
+    modelInfo:(provider,model,signal)=>ctx.llm.resolveModelInfo(provider,model,signal),
+    launch:config=>{
+      const child=ctx.plugin({name:'minecraft-configured-agent',inject,apply:scoped=>startConfiguredAgent(scoped,config)});
+      return {ready:child.await(),dispose:()=>child.dispose()};
+    }});
+  attachQuickSetup(ctx,setup);
+}
+
+/** Called only for a previously enabled private config or explicit first-run connection. */
+async function startConfiguredAgent(ctx,config) {
   if (config.enabled !== true) return;
   config.contextTokens ??= DEFAULT_CONTEXT_TOKENS;
   const agentOptions = agentModelOptions(config);
@@ -68,16 +84,19 @@ export async function apply(ctx, options = {}) {
   }, ...Object.fromEntries(['trace','debug','info','warn','error'].map(level =>
     [level, (...args) => nativeLog[level === 'trace' ? 'debug' : level](...args)])) };
   let cfg, runtime, onboarding = '';
+  // Enabling the host explicitly enables its body unless the caller supplied
+  // enabled:false for an offline SDK/engine fixture. Neutral SDK defaults stay inert.
+  const minecraft={enabled:true,...config.minecraft};
   const runtimeOptions = { dataDir: join(dataDir, 'body'), timezone: config.timezone ?? 'Asia/Shanghai',
     agentName: config.name, log, modelFacts: { model: () => config.model,
       contextWindow: () => config.contextTokens, accepts: () => false } };
   if (config.serverPack === 'qiandengji') {
     const { MymcAgentRuntime, MYMC_DEFAULTS, readServerGuide } = await import('agent-mc-qiandengji');
-    cfg = merge(MYMC_DEFAULTS, config.minecraft);
+    cfg = merge(MYMC_DEFAULTS, minecraft);
     runtime = new MymcAgentRuntime({ ...runtimeOptions, cfg });
     if (portalAccess) onboarding = readServerGuide('onboarding').text;
   } else if (!config.serverPack || config.serverPack === 'none') {
-    cfg = merge(MINECRAFT_CLIENT_DEFAULTS, config.minecraft);
+    cfg = merge(MINECRAFT_CLIENT_DEFAULTS, minecraft);
     runtime = new MinecraftAgentClient({ ...runtimeOptions, cfg });
   } else throw Error('Unknown explicit Minecraft server pack');
   const lifetime = new AbortController();

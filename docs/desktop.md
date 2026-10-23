@@ -1,6 +1,6 @@
 # DSH Desktop 与实验室
 
-> 当前公开 npm 版为 rc.12，本分支 rc.14 候选尚未发布。原始官方 DSH 0.2.1-rc.2 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
+> 当前公开 npm 版为 rc.12，本分支 rc.15 候选尚未发布。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
@@ -12,7 +12,7 @@
 @jcs130/dsh-minecraft-agent@0.3.0-rc.12
 ```
 
-或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。rc.14 常驻侧栏入口目前只在本地候选中验收。
+或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。rc.15 的首次配置与决策旁栏目前在候选中验收。
 
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
@@ -20,13 +20,15 @@ Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Des
 dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12 --registry=https://registry.npmjs.org
 ```
 
-重新打开后，在该 profile 的配置中设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
+rc.15 候选重新打开后，侧栏 Minecraft 提供首次接入表单：复用 DSH 默认模型，填写服务器与账号，再显式保存并连接。普通离线服无需密码；正版走微软授权；仅登录服需要可选 `/login` 密码。端口和数据目录由插件分配，同账号保留原会话。游戏与决策并排，推理和工具使用 DSH 原生组件，可切换只看游戏。详见[快速接入](quick-start.md)。
+
+公开 rc.12 和高级部署仍设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
 
 发行包包含画面、纹理、字体、原版声音目录和原创 BGM；体积较大的原版音频按需单独从 Mojang 下载。需要完整原版游戏音效时，显式执行安装包提供的 `dsh-minecraft-assets <私有缓存目录>`，将输出的目录写入 `minecraft.viewerAssetsDir`。也可用 Node 执行安装目录的 bin/prepare-assets.mjs。准备过程验证大小与哈希，可续用已验证缓存，不启动游戏或模型，不改写 node_modules。首次音频准备需要网络；未准备不能称为离线音频完整。
 
 ## 实验室
 
-rc.14 源码补上常驻侧栏 Minecraft 入口，原会话中的 Minecraft 标签继续保留。两个入口使用同一个核心面板，不创建额外游戏账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；尚未配置 Agent 或 consolePort 时显示明确说明及重新检查按钮。rc.14 的源码、候选包与正式发布分别验收；此说明不代表 npm 已发布该版本。
+rc.15 保留常驻侧栏 Minecraft 入口和原会话标签。两个入口使用同一个核心面板，不创建额外账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；未配置时显示首次接入表单。高级配置的面板不可用时仍可显式重新检查。源码、候选包与正式发布分别验收；此说明不代表 npm 已发布该版本。
 
 侧栏或会话中打开 Minecraft → 实验室；本机面板同样支持 `http://127.0.0.1:<consolePort>/#experiments`。
 

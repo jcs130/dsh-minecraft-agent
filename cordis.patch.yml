@@ -1,4 +1,4 @@
-# Installing the bundle does not connect. Set an explicit private runtime configFile.
+# Installing the bundle exposes setup only; connecting requires an explicit configuration.
 - insert:
     # Bare package row registers the browser half; its empty config opens no body.
     - id: mc-frontend
@@ -9,3 +9,4 @@
       name: '@jcs130/dsh-minecraft-agent/lib/plugins/mc-harness.mjs'
       config:
         configFile: ''
+        quickSetup: true

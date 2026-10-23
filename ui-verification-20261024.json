@@ -1,0 +1,114 @@
+{
+  "schema": "dsh-minecraft-ui-verification/v1",
+  "sampledAt": "2026-10-23T16:28:22.484Z",
+  "adapterVersion": "0.3.0-rc.15",
+  "status": "passed-isolated-runtime-and-web",
+  "distribution": {
+    "npmPublished": false,
+    "githubPublished": false,
+    "publicNpmVersion": "0.3.0-rc.12",
+    "marketVersion": "0.3.0-rc.12"
+  },
+  "dependencies": {
+    "core": "0.5.7-rc.69",
+    "serverPack": "0.5.0-rc.13"
+  },
+  "hosts": [
+    {
+      "version": "0.2.1-rc.2",
+      "passed": 123,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "version": "0.2.1-rc.3",
+      "passed": 123,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "runtime": [
+    {
+      "file": "lib/client.js",
+      "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62"
+    },
+    {
+      "file": "lib/plugins/mc-harness.mjs",
+      "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe"
+    },
+    {
+      "file": "lib/plugins/quick-setup.mjs",
+      "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d"
+    }
+  ],
+  "install": {
+    "stockOfficialDsh": true,
+    "defaultPnpm": "11.28.5",
+    "registry": "https://registry.npmjs.org",
+    "manualSymlinks": false,
+    "dependencyOverrides": false,
+    "hostFilesPatched": false,
+    "securityFlagsOverridden": false
+  },
+  "browser": {
+    "stockOfficialDshVersion": "0.2.1-rc.2",
+    "realChromium": true,
+    "firstRunForm": true,
+    "genericPasswordlessConnection": true,
+    "modelInvocationsBeforeExplicitTask": 0,
+    "actualReturnedReasoning": true,
+    "nativeToolName": "mc_tool_help",
+    "nativeToolTerminalReceipt": true,
+    "sameSessionAcrossViews": true,
+    "layoutSwitchModelCalls": 0,
+    "sessionTabNativeOuterComposer": true,
+    "recursiveConversationFactoryAvoided": true,
+    "globalAndSessionEntryVerified": true,
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "documentWidth": 1280
+    },
+    "narrowViewport": {
+      "width": 760,
+      "height": 720,
+      "documentWidth": 760,
+      "layout": "column"
+    },
+    "images": [
+      "docs/screenshots/quick-setup.png",
+      "docs/screenshots/game-and-reasoning.png"
+    ],
+    "qaComposition": "Explicit deterministic local provider only; isolated protocol world. Browser tested reviewed frontend bytes through an atomic replacement in a private profile, with the same unchanged packaged backend. Final package consumption is checked separately."
+  },
+  "protocol": {
+    "version": "1.21.1",
+    "loopbackOnly": true,
+    "passwordRequired": false,
+    "joinedAndSpawned": true,
+    "sameAccountReconnectRetainedSession": true,
+    "errors": 0,
+    "fixturesIncludePreflightProbe": true,
+    "stoppedAfterTest": true,
+    "explicitStopSurvivedHostRestart": true,
+    "noAdditionalJoinsAfterStoppedRestart": true
+  },
+  "safety": {
+    "externalModelApiCalls": 0,
+    "productionChanged": false,
+    "narutoStarted": false,
+    "liveServicesReloaded": false,
+    "realServerJoined": false,
+    "newPrivatePromptOrReasoningTelemetry": false,
+    "skillsAdopted": false
+  },
+  "limits": {
+    "nativeDesktopWindowVerified": false,
+    "microsoftFirstAuthorizationUiVerified": false,
+    "realServerGameplayVerified": false,
+    "realModelGameplayPerformanceVerified": false,
+    "displayedUsageIsSyntheticFixture": true,
+    "serverLoginCommandRoundTripVerified": false
+  },
+  "rollback": "Stop only this plugin-owned Agent, retain the profile and minecraft-agent data/session files, then restore the previous locked package/profile. Advanced configFile deployments remain supported."
+}
