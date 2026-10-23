@@ -9,6 +9,43 @@ export function localPanelUrl(value: unknown): string | null {
   } catch { return null; }
 }
 export function apply(ctx: any) {
+  function Dashboard() {
+    const [binding, setBinding] = useState<{sessionId:string;url:string}>();
+    const [error, setError] = useState('');
+    const [attempt, setAttempt] = useState(0);
+    useEffect(() => {
+      const controller = new AbortController();
+      let revision = 0;
+      const refresh = async () => {
+        const currentRevision = ++revision;
+        setBinding(undefined);setError('');
+        try {
+          const result = await ctx.connection.rpc.call('/api','mc-harness/panel-info',{},controller.signal);
+          if (controller.signal.aborted || currentRevision !== revision) return;
+          const value = result.ok && result.value;
+          const url = value && localPanelUrl(value.url);
+          if (url && typeof value.sessionId === 'string' && value.sessionId.length > 0) setBinding({sessionId:value.sessionId,url});
+          else setError('Minecraft 面板尚未启用。');
+        } catch {
+          if (!controller.signal.aborted && currentRevision === revision) setError('Minecraft 面板暂未连接。');
+        }
+      };
+      void refresh();
+      const stop = ctx.on('connection/reset',refresh);
+      return () => { controller.abort();stop(); };
+    },[attempt]);
+    if (binding) return <Panel key={binding.sessionId} sessionId={binding.sessionId} />;
+    return <div style={{height:'100%',boxSizing:'border-box',padding:32,overflow:'auto',background:'#10151b',color:'#dcebe5'}}>
+      <h1 style={{fontSize:22,marginTop:0}}>Minecraft 控制台</h1>
+      <p role="status">{error || '正在读取 Minecraft 面板…'}</p>
+      {error && <>
+        <p>插件界面已加载。配置并启用 Minecraft Agent 后，这里会显示游戏画面、连接管理、运行指标和实验室。</p>
+        <p>请检查插件的 configFile，以及 Agent 配置中的 consolePort。打开此页面不会启动模型或连接游戏。</p>
+        <button type="button" onClick={() => setAttempt(value => value + 1)}>重新检查面板</button>{' '}
+        <a href="https://github.com/jcs130/dsh-minecraft-agent/blob/main/docs/desktop.md" target="_blank" rel="noopener noreferrer" style={{color:'#98d6b4'}}>查看配置说明</a>
+      </>}
+    </div>;
+  }
   function Panel({sessionId}: {sessionId:string}) {
     const [state, setState] = useState<{sessionId:string;url?:string;error?:string}>();
     const [access, setAccess] = useState<{sessionId:string;value?:any;error?:string}>();
@@ -79,4 +116,12 @@ export function apply(ctx: any) {
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name:'conversation.view',id:'mc-panel',order:100,label:()=>'Minecraft',
   }, Panel));
+  // Root navigation remains visible when DSH hides blank-session views.
+  // Both entries render the same shared console; neither creates a body/session.
+  ctx.slots.inject('main', () => ctx.slots.register({name:'main',key:'minecraft'}, Dashboard));
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name:'sidebar.panellist',id:'minecraft',order:100,label:()=>'Minecraft',
+  }, ({size = 18}: {size?:number}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="m12 3 9 5v8l-9 5-9-5V8l9-5Zm0 0v9m-9-4 9 4 9-4m-9 4v9" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+  </svg>));
 }

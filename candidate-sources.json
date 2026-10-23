@@ -1,8 +1,8 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.13",
+  "adapterVersion": "0.3.0-rc.14",
   "publication": {
-    "status": "release-prepared-awaiting-registry-authentication",
+    "status": "ui-navigation-fix-not-published",
     "registryPublished": false,
     "githubPublished": false,
     "previousPublishedVersion": "0.3.0-rc.12",
@@ -46,8 +46,8 @@
       "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.69.tgz",
       "sha256": "357ebccf922395920e0390c980c399e10a556dfaf71dc49b6a52c0e8eab49d6e",
       "integrity": "sha512-xvm2LsIixlTv2M80qiuaTQaO2YhfBpzYQwUJkOUS2cqRPzkVc2myjUuFDdsN4v7w8v/39jn9nV2zLKpYWSKCUA==",
-      "published": false,
-      "registryPublished": false,
+      "published": true,
+      "registryPublished": true,
       "artifactFile": "agent-mc-world-0.5.7-rc.69.tgz"
     },
     {
@@ -60,8 +60,8 @@
       "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.13.tgz",
       "sha256": "49f4d451eaad1ed41a794bb971ca1f86ca0ce9e32a6bb5da9ce1d0fa45c15c40",
       "integrity": "sha512-SxeAdJDns/tO6XnmTZPY4GCp4o6dyPXjsdVcj9W9XtYzH1Lnatl1/cNStMPtqYOZXZpyOvEzc2RSEMo8DiEdiw==",
-      "published": false,
-      "registryPublished": false,
+      "published": true,
+      "registryPublished": true,
       "artifactFile": "agent-mc-qiandengji-0.5.0-rc.13.tgz"
     }
   ],

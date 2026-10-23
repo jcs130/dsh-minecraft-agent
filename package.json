@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.13",
+  "version": "0.3.0-rc.14",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -42,6 +42,8 @@
     "client": {
       "platform": "web",
       "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-session",
         "@deepseek-ai/dsh-client-connection"

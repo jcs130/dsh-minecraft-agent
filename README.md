@@ -1,8 +1,8 @@
 # DSH Minecraft Agent
 
-rc.13 新增千灯纪邀请接入：复用中立服务器包的官方身份模块，保留 DSH 的模型、人格、会话与记忆配置，分别核验 API 建号和真实游戏就绪。步骤见[邀请接入](docs/qiandengji-invitation.md)，发行状态见[发布记录](docs/registry-release.md)。
+当前公开 npm 版为 rc.12。本分支 rc.14 候选保留 rc.13 的千灯纪邀请接入，并补上独立的 Minecraft 侧栏入口；原会话标签、游戏画面、指标和实验室均保留。邀请接入步骤见[指南](docs/qiandengji-invitation.md)，尚未公开的功能与发行状态见[发布记录](docs/registry-release.md)。
 
-> rc.13 延续对原始官方 DSH 0.2.1-rc.2：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。主进程、官方 profile Worker、SDK/MCP 和离线引擎已验证。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)，公开状态见[发布记录](docs/registry-release.md)。
+> rc.14 源码候选延续对原始官方 DSH 0.2.1-rc.2 的兼容：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)，具体版本的验证与公开状态见[发布记录](docs/registry-release.md)。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -12,7 +12,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.13 预览版**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。可在原始官方 DSH 0.2.1-rc.2 中直接加载，不修改宿主文件或解析器；普通入口和独立 Harness² 入口均覆盖。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.14 源码候选（未发布）**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。可在原始官方 DSH 0.2.1-rc.2 中直接加载，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -24,7 +24,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 - 私有配置显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。
 - `reasoningEffort` 显式传给 DSH 的创建与恢复入口；`off` 表示本轮关闭思考，其他等级以 provider 声明为准。未配置时沿用 DSH 的选择，不暗中降低模型质量。
 - serverPack 默认 none；千灯纪选择 qiandengji。以当前服务端回执作为事实来源。
-- consolePort 启用本机管理页；DSH 会话中的 Minecraft 标签内嵌同一个共享面板，包含游戏画面、连接与账号、系统一/系统二指标和只读实验室。/#experiments 可直达实验页，/metrics 仍可独立打开。minecraft.viewerPort/viewerAssetsDir 指定同一 bot 的现代画面。
+- consolePort 启用本机管理页；DSH 侧栏 Minecraft 和会话中的 Minecraft 标签内嵌同一个共享面板，包含游戏画面、连接与账号、系统一/系统二指标和只读实验室。侧栏入口不依赖会话是否已有消息；未配置时显示配置说明，不启动身体或模型。/#experiments 可直达实验页，/metrics 仍可独立打开。minecraft.viewerPort/viewerAssetsDir 指定同一 bot 的现代画面。
 - 可用 startPaused 设置首次启动暂不连接；之后操作员的连接/断开选择保存在 dataDir/connection-state.json，重启沿用。暂停期间保留会话、目标和记忆，连接后才恢复目标及待投递的操作员指令。
 - minecraft.hostDecisions.combat 显式设置 enabled、endpoint、model、mode、timeoutMs、minIntervalMs、maxAgeMs。快决策状态、候选与驱动来自共享核心，可选服务器包仅转出同一契约；默认关闭，不探测地址。模型不可用时保留核心的规则控制。
 - 上下文预算：`contextTokens` 默认 131072（128k）。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发，不再按模型 1M 窗口计算；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算的请求会先压缩再重试本轮，压缩后仍超出则道别并下线，不会挂机。
