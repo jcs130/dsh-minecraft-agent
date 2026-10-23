@@ -1,14 +1,14 @@
 # DSH Minecraft Agent
 
-The public npm release remains rc.12. This unpublished rc.15 candidate adds in-page setup and the native DSH conversation beside the game. Choose your default model in DSH, open Minecraft, enter the server and account, then click Save and connect. No additional model key or handwritten JSON is required. Game controls, metrics, experiments and invitation onboarding remain available. See [quick start](docs/quick-start.md) and the [release record](docs/registry-release.md).
+[rc.15 is publicly available on GitHub](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15). It adds in-page setup and the native DSH conversation beside the game. Choose your default model in DSH, open Minecraft, enter the server and account, then click Save and connect. No additional model key or handwritten JSON is required. The npm channel remains rc.12; use the rc.15 release archive for these features. See [installation](README-INSTALL.md), [quick start](docs/quick-start.md) and the [release record](docs/registry-release.md).
 
-> The rc.15 source candidate retains stock official DSH compatibility, using readable-stream's supported native Node backend during synchronous plugin initialization. No manual host repair is required. Source availability and registry publication are separate milestones; see [compatibility](docs/DSH-COMPAT.md) and the [release record](docs/registry-release.md).
+> rc.15 retains stock official DSH compatibility, using readable-stream's supported native Node backend during synchronous plugin initialization. No manual host repair is required. Anonymous GitHub downloads and default installs on both verified DSH releases have passed. Registry publication is checked separately; see [compatibility](docs/DSH-COMPAT.md) and the [release record](docs/registry-release.md).
 
 [简体中文](README.md) | English
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The unpublished source candidate is **0.3.0-rc.15**, consuming core **0.5.7-rc.69** and optional server pack **0.5.0-rc.13**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
+The public GitHub release is **0.3.0-rc.15**, consuming core **0.5.7-rc.69** and optional server pack **0.5.0-rc.13**. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
 
 The default lean tool set now retains `*_script` for on-demand shared routine and method discovery; explicit `tools.exclude` is respected.
 

@@ -1,8 +1,8 @@
 # DSH Minecraft Agent
 
-当前公开 npm 版为 rc.12。本分支 rc.15 候选提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。候选功能见[快速接入与决策面板](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
+[rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。npm 当前仍为 rc.12；使用新功能请按[安装指南](README-INSTALL.md)安装 rc.15 发行归档。用法见[快速接入](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
 
-> rc.15 源码候选延续对原始官方 DSH 的兼容：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)。候选源码已具备功能不等于 npm 已发布。
+> rc.15 兼容原始官方 DSH：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)。GitHub 归档的匿名下载和两版 DSH 默认安装已通过，npm 分发单独核验。
 
 DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
 
@@ -12,7 +12,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.15 源码候选（未发布）**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.15 GitHub 发行版**，精确消费核心 0.5.7-rc.69 和可选千灯纪包 0.5.0-rc.13。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -20,7 +20,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 配置
 
-- Node.js 24，在 DSH 中配置并选择默认模型。安装候选包后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
+- Node.js 24，在 DSH 中配置并选择默认模型。安装 rc.15 后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
 - 协议默认 1.21.1，按实际服务器选择；正版首次连接需微软授权。已有登录服账号可在可选设置填 `/login` 密码，插件不自动注册账号。千灯纪邀请身份请沿用[专用接入流程](docs/qiandengji-invitation.md)，不能绕过激活直接建号。
 - 首次配置保存在当前 DSH profile 的私有目录；同一服务器与身份续用自己的数据和会话，不同身份隔离。**停止并配置**先正常停止本插件的身体，保留目标、会话与记忆，然后允许修改。停止意图会持久化，重启不会擅自恢复。
 - 高级部署仍可将 mc-harness 的 configFile 指向私有 JSON，显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。该路径不受首次配置覆盖。

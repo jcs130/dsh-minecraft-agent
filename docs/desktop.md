@@ -1,26 +1,26 @@
 # DSH Desktop 与实验室
 
-> 当前公开 npm 版为 rc.12，本分支 rc.15 候选尚未发布。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
+> rc.15 已在 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 公开，npm 当前仍为 rc.12。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
 ## 安装
 
-在 Desktop 的插件管理中填写已公开并通过默认安装验证的固定 npm 版本：
+在 Desktop 的插件管理中使用已公开的固定 rc.15 归档地址。该归档已通过官方 Web/CLI 的默认插件安装验证，Desktop 消费同一插件契约：
 
 ```text
-@jcs130/dsh-minecraft-agent@0.3.0-rc.12
+https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz
 ```
 
-或者使用本仓库发布页的 `jcs130-dsh-minecraft-agent-0.3.0-rc.12.tgz` 安装包。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。rc.15 的首次配置与决策旁栏目前在候选中验收。
+也可从发布页下载 `jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz` 再安装。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。首次配置与决策旁栏已通过 Web 和本机协议测试世界验收；原生桌面窗口另行验收。
 
 Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
 
 ```sh
-dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.12 --registry=https://registry.npmjs.org
+dsh plugin --profile desktop add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz --registry=https://registry.npmjs.org
 ```
 
-rc.15 候选重新打开后，侧栏 Minecraft 提供首次接入表单：复用 DSH 默认模型，填写服务器与账号，再显式保存并连接。普通离线服无需密码；正版走微软授权；仅登录服需要可选 `/login` 密码。端口和数据目录由插件分配，同账号保留原会话。游戏与决策并排，推理和工具使用 DSH 原生组件，可切换只看游戏。详见[快速接入](quick-start.md)。
+rc.15 重新打开后，侧栏 Minecraft 提供首次接入表单：复用 DSH 默认模型，填写服务器与账号，再显式保存并连接。普通离线服无需密码；正版走微软授权；仅登录服需要可选 `/login` 密码。端口和数据目录由插件分配，同账号保留原会话。游戏与决策并排，推理和工具使用 DSH 原生组件，可切换只看游戏。详见[快速接入](quick-start.md)。
 
 公开 rc.12 和高级部署仍设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
 
@@ -28,7 +28,7 @@ rc.15 候选重新打开后，侧栏 Minecraft 提供首次接入表单：复用
 
 ## 实验室
 
-rc.15 保留常驻侧栏 Minecraft 入口和原会话标签。两个入口使用同一个核心面板，不创建额外账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；未配置时显示首次接入表单。高级配置的面板不可用时仍可显式重新检查。源码、候选包与正式发布分别验收；此说明不代表 npm 已发布该版本。
+rc.15 保留常驻侧栏 Minecraft 入口和原会话标签。两个入口使用同一个核心面板，不创建额外账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；未配置时显示首次接入表单。高级配置的面板不可用时仍可显式重新检查。GitHub 发行和 npm 分发分别核验。
 
 侧栏或会话中打开 Minecraft → 实验室；本机面板同样支持 `http://127.0.0.1:<consolePort>/#experiments`。
 

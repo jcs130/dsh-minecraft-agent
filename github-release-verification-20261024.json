@@ -1,0 +1,140 @@
+{
+  "verifiedAt": "2026-10-23T16:45:29.090Z",
+  "repository": "jcs130/dsh-minecraft-agent",
+  "tag": "v0.3.0-rc.15",
+  "sourceCommit": "2d5d9087f5ba02f259c8eec38ce4ee784289941a",
+  "githubPublished": true,
+  "draft": false,
+  "prerelease": true,
+  "releaseUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15",
+  "authenticationSent": false,
+  "cookiesSent": false,
+  "assets": [
+    {
+      "name": "jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz",
+      "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz",
+      "status": 200,
+      "bytes": 258316,
+      "sha256": "aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0",
+      "localBytesIdentical": true
+    },
+    {
+      "name": "build-verification.json",
+      "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/build-verification.json",
+      "status": 200,
+      "bytes": 4848,
+      "sha256": "f860540d058c90eac39fa22520ca0b1030eb3cda9e349b7aaaa3fe2eb4680b2c",
+      "localBytesIdentical": true
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/SHA256SUMS.txt",
+      "status": 200,
+      "bytes": 199,
+      "sha256": "b14795c70ce374436566501537e92c4b3aa668a65b0af80781e786dd0f502493",
+      "localBytesIdentical": true
+    }
+  ],
+  "npmPublished": false,
+  "productionChanged": false,
+  "completedAt": "2026-10-23T16:52:45.014Z",
+  "verification": "anonymous-https-and-stock-default-plugin-install",
+  "publicInstallations": [
+    {
+      "verifiedAt": "2026-10-23T16:46:33.989Z",
+      "dsh": "0.2.1-rc.2",
+      "adapter": "0.3.0-rc.15",
+      "core": "0.5.7-rc.69",
+      "stages": [
+        {
+          "stage": "official-profile-init",
+          "exitCode": 0
+        },
+        {
+          "stage": "public-default-plugin-add",
+          "exitCode": 0
+        }
+      ],
+      "source": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz",
+      "registry": "https://registry.npmjs.org",
+      "runtime": [
+        {
+          "file": "lib/client.js",
+          "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/mc-harness.mjs",
+          "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/quick-setup.mjs",
+          "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d",
+          "bytesIdentical": true
+        }
+      ],
+      "defaultWorkspace": "packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nminimumReleaseAgeExclude:\n  - agent-mc-qiandengji@0.5.0-rc.13\n  - agent-mc-world@0.5.7-rc.69\n",
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "hostFilesPatched": false,
+      "securityFlagsOverridden": false,
+      "modelCalls": 0,
+      "gameConnections": 0,
+      "productionChanged": false
+    },
+    {
+      "verifiedAt": "2026-10-23T16:46:33.989Z",
+      "dsh": "0.2.1-rc.3",
+      "adapter": "0.3.0-rc.15",
+      "core": "0.5.7-rc.69",
+      "stages": [
+        {
+          "stage": "official-profile-init",
+          "exitCode": 0
+        },
+        {
+          "stage": "public-default-plugin-add",
+          "exitCode": 0
+        }
+      ],
+      "source": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz",
+      "registry": "https://registry.npmjs.org",
+      "runtime": [
+        {
+          "file": "lib/client.js",
+          "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/mc-harness.mjs",
+          "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/quick-setup.mjs",
+          "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d",
+          "bytesIdentical": true
+        }
+      ],
+      "defaultWorkspace": "packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nminimumReleaseAgeExclude:\n  - agent-mc-qiandengji@0.5.0-rc.13\n  - agent-mc-world@0.5.7-rc.69\n",
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "hostFilesPatched": false,
+      "securityFlagsOverridden": false,
+      "modelCalls": 0,
+      "gameConnections": 0,
+      "productionChanged": false
+    }
+  ],
+  "sourceTreeMatchesReviewedPullRequest": true,
+  "testsPerHost": 123,
+  "testFailures": 0,
+  "testSkips": 0,
+  "packageFilesAreBuildTimeSnapshots": true,
+  "archiveRepacked": false,
+  "marketVersion": "0.3.0-rc.12",
+  "npmStatus": "awaiting-renewed-official-web-login",
+  "nativeDesktopWindowVerified": false,
+  "realModelGameplayVerified": false
+}

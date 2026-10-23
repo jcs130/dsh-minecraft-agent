@@ -2,11 +2,17 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.15",
   "publication": {
-    "status": "source-candidate-validated-not-published",
+    "status": "github-released-npm-pending",
     "registryPublished": false,
-    "githubPublished": false,
+    "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.12",
-    "marketVersion": "0.3.0-rc.12"
+    "marketVersion": "0.3.0-rc.12",
+    "githubReleaseUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15",
+    "githubVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/github-release-verification.json",
+    "githubArchiveSha256": "aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0",
+    "latestGithubVersion": "0.3.0-rc.15",
+    "latestNpmVersion": "0.3.0-rc.12",
+    "updatedAt": "2026-10-23T16:54:40.358Z"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -107,6 +113,11 @@
     "realServerGameplayVerified": false,
     "externalModelApiCalls": 0,
     "previousArchiveVerification": "ui-verification-20261023.json",
-    "previousArchiveVersion": "0.3.0-rc.14"
+    "previousArchiveVersion": "0.3.0-rc.14",
+    "githubAnonymousDownloadVerified": true,
+    "githubDefaultPluginInstallVerifiedVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ]
   }
 }

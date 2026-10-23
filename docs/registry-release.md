@@ -1,6 +1,8 @@
 # Registry 分发记录
 
-## rc.15：首次配置与原生决策会话（候选，未发布）
+## rc.15：首次配置与原生决策会话（GitHub 已公开，npm 待认证）
+
+PR #6 已合入 main，合并提交 `2d5d9087f5ba02f259c8eec38ce4ee784289941a`。[rc.15 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，主归档 SHA256 为 `aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0`，与先前 candidate06 验证包字节一致。匿名 HTTPS 下载、官方 DSH 0.2.1-rc.2 / rc.3 默认 pnpm 11.28.5 从公开 URL 安装均通过，运行文件哈希一致。最终验收见 [github-release-verification.json](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/github-release-verification.json)。
 
 安装后从侧栏 Minecraft 填服务器地址、角色名和认证方式，复用 DSH 默认模型与思考等级。通用离线服务器不需要密码；仅明确要求 `/login` 的已有账号配置可选密码。初始任务可以留空，只连接身体。端口自动分配，账号数据、原会话和停止意图保存在当前 profile；高级 configFile 路径继续独立工作。
 
@@ -10,7 +12,7 @@
 
 官方 DSH Web 与独立的本机 Java 1.21.1 协议测试世界完成无密码首次接入、只读工具调用、同账号重连与原会话保留。确定性的本机测试 provider 验证流式推理、工具回执和布局切换；这些文字与合成用量仅用于界面验收，不能用来证明真实模型游戏能力、缓存收益或线上反应速度。未调用外部模型，未变更现役 Agent。Desktop 原生窗口、微软首次授权交互和真实服务器游玩仍单独验收。
 
-当前 npm 与市场仍保持公开 rc.12。rc.15 源码与候选验证不代表已公开分发；后续发布须校验最终归档、匿名 registry 下载与实际安装，不覆盖旧版不可变归档。用法见[快速接入](quick-start.md)。
+两版 DSH 各 123 项全量回归通过，零失败、零跳过。npm 与市场仍保持 rc.12；registry 登录过期后已请求新的官方网页认证，后续 npm 分发需单独完成匿名下载与实际安装验证。已公开的 GitHub 归档不覆盖、不重打包。包内 README、candidate-sources.json 与 UI 验证文件是构建时快照，本仓库发行记录与 Release 附件提供后续公开状态。用法见[快速接入](quick-start.md)。
 
 ## rc.14：常驻 UI 入口（未发布）
 
