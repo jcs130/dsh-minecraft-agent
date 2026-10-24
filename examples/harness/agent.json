@@ -15,7 +15,7 @@
     "host": "localhost",
     "port": 25565,
     "username": "ExampleAgent",
-    "version": "1.21.1",
+    "version": "auto",
     "viewerPort": 17852
   },
   "compaction": {

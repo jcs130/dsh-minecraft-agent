@@ -72,7 +72,8 @@ test('chat guard enforces the public line cap, spacing and the reserved goodbye'
   assert.equal(guard.check('mymc_do', { steps: [{ skill: 'chat', text: '/msg ag_CorMy 你好' }] }), null); // whisper not counted
   now += 30000; assert.equal(say('第二句'), null);
   now += 30000; assert.equal(say('第三句'), null);
-  now += 30000; assert.match(say('第四句'), /上限（3 句，另留 1 句下线道别/);
+  now += 30000; const refusal=say('第四句');assert.match(refusal, /上限（3 句，另留 1 句下线道别/);
+  assert.doesNotMatch(refusal,/私聊请用|\/msg/);assert.match(refusal,/不要改用私聊绕过限额/);
   assert.equal(guard.check('mymc_goal', { done: 1 }), null);
   assert.equal(guard.takeGoodbye(), '我先下线啦，再见～');
   assert.equal(guard.takeGoodbye(), null);

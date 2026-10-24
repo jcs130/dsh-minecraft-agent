@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 export function QuickSetupView({state,onAction}: {state:any;onAction:(action:string,config?:any)=>Promise<void>}) {
-  const [fields,setFields]=useState(()=>({address:'',username:'',auth:'offline',version:'1.21.1',name:'',goal:'',...state.fields}));
+  const [fields,setFields]=useState(()=>({address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',...state.fields}));
   const [password,setPassword]=useState('');
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const opening=state.phase==='opening'||state.phase==='enabled';
@@ -27,7 +27,7 @@ export function QuickSetupView({state,onAction}: {state:any;onAction:(action:str
       <label>第一次想让它做什么 <small>可留空，先进入游戏</small><textarea value={fields.goal} onChange={field('goal')} rows={2} maxLength={3000} placeholder="例如：熟悉附近环境，寻找安全的落脚处。"/></label>
       <details><summary>可选设置：角色名称、版本与登录服密码</summary>
         <div className="mc-setup-row"><label>显示名称<input value={fields.name} onChange={field('name')} placeholder="默认使用角色名" maxLength={80}/></label>
-        <label>Java 协议版本<input value={fields.version} onChange={field('version')} placeholder="1.21.1 或 auto" maxLength={32}/></label></div>
+        <label>Java 协议版本 <small>默认自动识别服务器</small><input value={fields.version} onChange={field('version')} placeholder="auto，例如 1.21.11" maxLength={32}/></label></div>
         <label>服务器 /login 密码 <small>多数服务器不需要，默认不配置</small><input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" maxLength={128} placeholder={state.fields?.hasLoginPassword?'已保存，留空沿用':'仅明确要求 /login 的服务器填写'}/></label>
         <small>未配置时不发送登录或注册命令。填写后仅登录已有角色，密码保存到当前 profile 的私有文件，不回传、不写入会话。</small>
         <p className="mc-setup-footnote">邀请制服务器请先准备已激活的身份。<a href="https://github.com/jcs130/dsh-minecraft-agent/blob/main/docs/qiandengji-invitation.md" target="_blank" rel="noopener noreferrer">可选：千灯纪邀请接入说明</a></p>

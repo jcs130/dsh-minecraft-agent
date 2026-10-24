@@ -1,0 +1,124 @@
+{
+  "schema": "dsh-minecraft-viewer-verification/v1",
+  "verifiedAt": "2026-10-24T16:49:11.081Z",
+  "adapterVersion": "0.3.0-rc.18",
+  "publication": {
+    "status": "verified-unpublished-candidate",
+    "registryStatus": [
+      {
+        "name": "core",
+        "status": 404
+      },
+      {
+        "name": "adapter",
+        "status": 404
+      }
+    ],
+    "marketVersion": "0.3.0-rc.17",
+    "productionDeployed": false
+  },
+  "core": {
+    "version": "0.5.7-rc.85",
+    "file": "agent-mc-world-0.5.7-rc.85.tgz",
+    "bytes": 75267153,
+    "sha256": "8bb01430f2f8e9a8259df5f3105449bfdcc3b0c77a7fd8a46c33a72fa52b3936",
+    "integrity": "sha512-Rtb8UNK7OhgFadAgdz5tVUPEj2S4zDQtvQTvZiqCmhV1R8dYMXqO6JDhnmwhVGcG9inxGiH0aJ5oTaSzVyQZPw==",
+    "sourceCommit": "ae4f036612144a5ebd771c285c070caf6c50b794"
+  },
+  "viewer": {
+    "repository": "https://github.com/jcs130/mc-visual-console",
+    "commit": "60e611737a44edb43d195487f9300149402d4c66",
+    "archiveSha256": "148e9ec42290258bfe99f78bb4f5e510e81454bc18e6cb26d88356e3ce29c41f",
+    "clientJarSha256": "1473c9489ac50fda3c435049a76a70d61a10b8610db27f5ba9d8756b686cd3bd",
+    "validatedBlockStates": 29671
+  },
+  "validation": {
+    "core": {
+      "passed": 2060,
+      "skipped": 1,
+      "workers": 4
+    },
+    "rendererTools": {
+      "passed": 1263,
+      "skipped": 38
+    },
+    "dsh": [
+      {
+        "version": "0.2.1-rc.2",
+        "passed": 125,
+        "skipped": 1
+      },
+      {
+        "version": "0.2.1-rc.3",
+        "passed": 125,
+        "skipped": 1
+      }
+    ],
+    "skippedDshReason": "External Harness2 worker not configured; no experiment or training was run.",
+    "consumerInstallation": "Staged unpublished tarballs in an isolated npm profile; not a public-registry installation claim.",
+    "physicalCoreCount": 1,
+    "frameworkPatched": false,
+    "peerChecksBypassed": false,
+    "manualSymlinks": false
+  },
+  "browser": {
+    "checkedAt": "2026-10-24T16:47:12.818Z",
+    "officialDsh": "0.2.1-rc.3",
+    "adapter": "0.3.0-rc.18",
+    "core": "0.5.7-rc.85",
+    "actualVersion": "1.21.11",
+    "protocol": 774,
+    "gameAndDecisionPanelVisible": true,
+    "terrainRendered": true,
+    "fontUnavailableNotice": false,
+    "optionalParticleAndAudioAvailable": false,
+    "nativeLauncherControlsDisplayed": false,
+    "externalModelCalls": 0,
+    "completeSceneParityVerified": false,
+    "unattributedImageDecodeDiagnosticObserved": true,
+    "sameSessionAfterReload": true,
+    "unconfiguredNativeLauncherActionsRejected": true,
+    "staleSceneRemovedOnDisconnect": true
+  },
+  "chat": {
+    "ordinaryDefault": "public",
+    "privateRequiresExplicitIntentAndKnownServerSupport": true,
+    "privateToPublicFallback": false,
+    "privateBudgetBypassSuggested": false
+  },
+  "runtime": [
+    {
+      "file": "lib/client.js",
+      "sha256": "9aabb87cb6ba92b09fb45a0e57411cc7373e1f7a61c8f26ace8aacc7ce36a371"
+    },
+    {
+      "file": "lib/plugins/mc-harness.mjs",
+      "sha256": "6f415a1c3f86503ba0aaa1f8c37771c6368876a7d7c7527fd2f7f80df4b95a0f"
+    },
+    {
+      "file": "lib/plugins/quick-setup.mjs",
+      "sha256": "3c97e098b5573c1b48bd8e645768c5d2b1eac96a26725eef9bdc87e08e646a11"
+    },
+    {
+      "file": "lib/plugins/harness-budget.mjs",
+      "sha256": "f3b9ac988463f4705293dc9aaec0a474cfc0b3b1dd4eebeb377a45b683e8e913"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "docs/screenshots/rc18-vanilla-12111.jpg",
+      "sha256": "a245dfd18f1ba7fb392651ca7863dab5869c2e57f6cca52e3d3cbc8a1f12923b"
+    },
+    {
+      "file": "docs/screenshots/rc18-agent-only-connection.jpg",
+      "sha256": "0380f2c5fea4d5b5bf2f3dbc0087599d704323257beed2b8d034b8a3c5d730f3"
+    }
+  ],
+  "limits": [
+    "1.21.11 original audio not included",
+    "1.21.11 map/particle extension not enabled",
+    "new entities and full Java scene parity unverified",
+    "native Desktop window not inspected",
+    "unattributed non-blocking image decode diagnostic observed in browser instrumentation; origin not established; not a zero-console-error claim"
+  ]
+}
