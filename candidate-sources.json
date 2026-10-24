@@ -2,13 +2,24 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.19",
   "publication": {
-    "status": "validated-development-candidate",
+    "status": "published-github-npm-pending-authentication",
     "registryPublished": false,
-    "githubPublished": false,
+    "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.17",
     "marketVersion": "0.3.0-rc.17",
     "latestNpmVersion": "0.3.0-rc.17",
-    "updatedAt": "2026-10-24T18:48:35.816Z"
+    "updatedAt": "2026-10-24T19:25:28.834Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19",
+    "mergedCommit": "6e283ee2b5abf0974196094e2e1c71f05b738ce2",
+    "verification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/github-release-verification.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz",
+      "sha256": "4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e",
+      "integrity": "sha512-8h6pQul1T8UVAd/Eb/1yDVKHcZV3093eW6D6NZ1rvQvazm6gT1IQBAQA+GS7zyASfAaX7Ct2ULP+Mrbiu/Nf/A==",
+      "bytes": 659019,
+      "publishedAt": "2026-10-24T19:20:48Z"
+    },
+    "npmPendingReason": "independent web authentication expired; no successful npm submission"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -51,11 +62,12 @@
       "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.86.tgz",
       "sha256": "350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0",
       "integrity": "sha512-+bWa0OZExY3o+zRQT+xRVdNYBp/Qfi+tAO1lBiLmvTwK/ymFU9D91PQBmcuFC9unuMfAAm6cWvpG3k6aDYnxDw==",
-      "published": false,
-      "registryPublished": false,
+      "published": true,
+      "registryPublished": true,
       "artifactFile": "agent-mc-world-0.5.7-rc.86.tgz",
       "mergedCommit": "dd7915b88213d239a295f60cb680e4a6d5c89d39",
-      "mergedPullRequest": "https://github.com/jcs130/minecraft-ai-friend/pull/4"
+      "mergedPullRequest": "https://github.com/jcs130/minecraft-ai-friend/pull/4",
+      "publishedAt": "2026-10-24T19:07:38.959Z"
     },
     {
       "role": "server-pack",
@@ -116,9 +128,15 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-core-packed-consumers-and-official-dsh-web-ui",
-    "consumerInstallation": "npm staged local unpublished archives with normal dependency resolution",
-    "verification": "profile-verification-20261025.json",
+    "status": "passed-public-github-and-official-dsh-installation",
+    "verification": "docs/github-publish-rc19.json",
+    "defaultGithubInstallVerified": true,
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "sharedPhysicalCore": true,
+    "externalModelApiCalls": 0,
     "productionChanged": false
   },
   "previousPublication": {
@@ -174,5 +192,11 @@
     "publicInstallVerification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/github-stable-01.json",
     "publicationVerification": "docs/npm-publish-rc17.json"
   },
-  "profileVerification": "profile-verification-20261025.json"
+  "profileVerification": "profile-verification-20261025.json",
+  "profileValidation": {
+    "status": "passed-core-packed-consumers-and-official-dsh-web-ui",
+    "consumerInstallation": "npm staged local unpublished archives with normal dependency resolution",
+    "verification": "profile-verification-20261025.json",
+    "productionChanged": false
+  }
 }

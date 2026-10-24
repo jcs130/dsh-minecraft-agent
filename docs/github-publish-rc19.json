@@ -1,0 +1,326 @@
+{
+  "schema": "dsh-minecraft-public-github-verification/v1",
+  "verifiedAt": "2026-10-24T19:25:28.834Z",
+  "source": {
+    "mergedCommit": "6e283ee2b5abf0974196094e2e1c71f05b738ce2",
+    "pullRequest": "https://github.com/jcs130/dsh-minecraft-agent/pull/9"
+  },
+  "coreRegistry": {
+    "checkedAt": "2026-10-24T19:08:32.247Z",
+    "name": "agent-mc-world",
+    "version": "0.5.7-rc.86",
+    "httpStatus": 200,
+    "anonymous": true,
+    "verifiedAt": "2026-10-24T19:08:34.685Z",
+    "metadataUrl": "https://registry.npmjs.org/agent-mc-world/0.5.7-rc.86",
+    "archiveUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.86.tgz",
+    "available": true,
+    "exactArchiveMatched": true,
+    "sha256": "350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0",
+    "integrity": "sha512-+bWa0OZExY3o+zRQT+xRVdNYBp/Qfi+tAO1lBiLmvTwK/ymFU9D91PQBmcuFC9unuMfAAm6cWvpG3k6aDYnxDw==",
+    "bytes": 75275652,
+    "distTags": {
+      "latest": "0.5.7-rc.47",
+      "next": "0.5.7-rc.86"
+    },
+    "publishedAt": "2026-10-24T19:07:38.959Z"
+  },
+  "github": {
+    "core": {
+      "schema": "agent-mc-public-github-verification/v1",
+      "verifiedAt": "2026-10-24T19:10:08.971Z",
+      "kind": "core",
+      "anonymous": true,
+      "httpStatus": 200,
+      "url": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.86",
+      "tag": "agent-mc-world-v0.5.7-rc.86",
+      "commit": "dd7915b88213d239a295f60cb680e4a6d5c89d39",
+      "publishedAt": "2026-10-24T19:09:20Z",
+      "archiveUrl": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.86/agent-mc-world-0.5.7-rc.86.tgz",
+      "sha256": "350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0",
+      "bytes": 75275652,
+      "exactArchiveMatched": true
+    },
+    "adapter": {
+      "schema": "agent-mc-public-github-verification/v1",
+      "verifiedAt": "2026-10-24T19:21:26.396Z",
+      "kind": "adapter",
+      "anonymous": true,
+      "httpStatus": 200,
+      "url": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19",
+      "tag": "v0.3.0-rc.19",
+      "commit": "6e283ee2b5abf0974196094e2e1c71f05b738ce2",
+      "publishedAt": "2026-10-24T19:20:48Z",
+      "archiveUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz",
+      "sha256": "4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e",
+      "bytes": 659019,
+      "exactArchiveMatched": true
+    }
+  },
+  "defaultGithubInstalls": [
+    {
+      "verifiedAt": "2026-10-24T19:22:45.847Z",
+      "dsh": "0.2.1-rc.2",
+      "adapter": "0.3.0-rc.19",
+      "core": "0.5.7-rc.86",
+      "serverPack": "0.5.0-rc.22",
+      "channel": "github",
+      "source": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz",
+      "registry": "https://registry.npmjs.org",
+      "stages": [
+        {
+          "stage": "profile-init",
+          "exitCode": 0
+        },
+        {
+          "stage": "default-plugin-add",
+          "exitCode": 0
+        }
+      ],
+      "sharedPhysicalCore": true,
+      "runtime": [
+        {
+          "file": "lib/plugins/mc-harness.mjs",
+          "sha256": "11d2fb7da842232f18c0a9f3c7ed10a5a05b2e98d431aa3da631f595f7de5f63",
+          "expectedSha256": "11d2fb7da842232f18c0a9f3c7ed10a5a05b2e98d431aa3da631f595f7de5f63"
+        },
+        {
+          "file": "lib/plugins/harness-bridge.mjs",
+          "sha256": "6054d58e3836ee6ae5b4b4050dbd18c50f6109f221ce7b496fcb0c25a42b4ee9",
+          "expectedSha256": "6054d58e3836ee6ae5b4b4050dbd18c50f6109f221ce7b496fcb0c25a42b4ee9"
+        },
+        {
+          "file": "lib/plugins/harness-panel.mjs",
+          "sha256": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89",
+          "expectedSha256": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89"
+        },
+        {
+          "file": "lib/plugins/harness-lifecycle.mjs",
+          "sha256": "8f993b0fcb63506736efebe62298b371555f195f9785a1e9310eb189d41ce698",
+          "expectedSha256": "8f993b0fcb63506736efebe62298b371555f195f9785a1e9310eb189d41ce698"
+        },
+        {
+          "file": "lib/plugins/harness-goal.mjs",
+          "sha256": "e14c487dfef42afb7e924b3c44d03e98f221b93f996a440b98411ca6cfa4c484",
+          "expectedSha256": "e14c487dfef42afb7e924b3c44d03e98f221b93f996a440b98411ca6cfa4c484"
+        },
+        {
+          "file": "lib/plugins/harness2.mjs",
+          "sha256": "586f6bbfbf740fad95a43cc7a9a6618574834f2281356fa44216b1cd198ca968",
+          "expectedSha256": "586f6bbfbf740fad95a43cc7a9a6618574834f2281356fa44216b1cd198ca968"
+        },
+        {
+          "file": "lib/plugins/harness-budget.mjs",
+          "sha256": "f3b9ac988463f4705293dc9aaec0a474cfc0b3b1dd4eebeb377a45b683e8e913",
+          "expectedSha256": "f3b9ac988463f4705293dc9aaec0a474cfc0b3b1dd4eebeb377a45b683e8e913"
+        },
+        {
+          "file": "lib/plugins/event-condenser-fallback.mjs",
+          "sha256": "8cbe9f7975c7334676a3f960a52b814715f620d6d2036cc36e95ed93d45d5a9f",
+          "expectedSha256": "8cbe9f7975c7334676a3f960a52b814715f620d6d2036cc36e95ed93d45d5a9f"
+        },
+        {
+          "file": "lib/client.js",
+          "sha256": "31eacc17c61895f0da4ac3274ad803423cecb50efdac6f05f173eef77584f917",
+          "expectedSha256": "31eacc17c61895f0da4ac3274ad803423cecb50efdac6f05f173eef77584f917"
+        },
+        {
+          "file": "lib/plugins/dsh-compat.mjs",
+          "sha256": "158d3f7cd07fee030c31b08eb31885a4562c8421cb6f549150a2e9af3dc287a9",
+          "expectedSha256": "158d3f7cd07fee030c31b08eb31885a4562c8421cb6f549150a2e9af3dc287a9"
+        },
+        {
+          "file": "lib/plugins/dsh-native-streams.mjs",
+          "sha256": "31398a31bc536baa17755a7badf7be46d47bbe4e56133a16a20f0acc2d3db518",
+          "expectedSha256": "31398a31bc536baa17755a7badf7be46d47bbe4e56133a16a20f0acc2d3db518"
+        },
+        {
+          "file": "lib/plugins/qiandengji-access.mjs",
+          "sha256": "3ab553c92ae2804d407aba524f4d616ef862e9e3672480c0a0e6ad8fed298c8f",
+          "expectedSha256": "3ab553c92ae2804d407aba524f4d616ef862e9e3672480c0a0e6ad8fed298c8f"
+        },
+        {
+          "file": "lib/plugins/quick-setup.mjs",
+          "sha256": "f5556cbeb29d71ce31eb5b65bca09556d9bf190538b8dc7e34e4af1837860e1e",
+          "expectedSha256": "f5556cbeb29d71ce31eb5b65bca09556d9bf190538b8dc7e34e4af1837860e1e"
+        },
+        {
+          "file": "lib/plugins/profile-settings.mjs",
+          "sha256": "31eec73df3fed2712d194f97084dc14d94d917a6fb812925899100ae07222a47",
+          "expectedSha256": "31eec73df3fed2712d194f97084dc14d94d917a6fb812925899100ae07222a47"
+        },
+        {
+          "file": "lib/plugins/harness-composition.mjs",
+          "sha256": "47d9e110de28f69cca98ee9fcdd60f7d0c62600e1c3c33469e73a834fec8ded7",
+          "expectedSha256": "47d9e110de28f69cca98ee9fcdd60f7d0c62600e1c3c33469e73a834fec8ded7"
+        }
+      ],
+      "stock": {
+        "dsh": "0.2.1-rc.2",
+        "modelRequests": 0,
+        "gameConnections": 0,
+        "moduleLoaded": true,
+        "officialPluginLoader": true,
+        "mcpTools": 37,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true,
+        "serverPackLoaded": true,
+        "physicsFixtures": 2,
+        "workerLoaded": true,
+        "workerOfficialResolverActive": true,
+        "environmentRestored": true,
+        "resolverUnchanged": true,
+        "frameworkSha256": [
+          "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+          "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+        ],
+        "frameworkUnchanged": true
+      },
+      "defaultWorkspace": "packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nminimumReleaseAgeExclude:\n  - agent-mc-qiandengji@0.5.0-rc.22\n  - agent-mc-world@0.5.7-rc.86\n",
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "hostFilesPatched": false,
+      "securityFlagsOverridden": false,
+      "modelCalls": 0,
+      "gameConnections": 0,
+      "productionChanged": false
+    },
+    {
+      "verifiedAt": "2026-10-24T19:23:53.316Z",
+      "dsh": "0.2.1-rc.3",
+      "adapter": "0.3.0-rc.19",
+      "core": "0.5.7-rc.86",
+      "serverPack": "0.5.0-rc.22",
+      "channel": "github",
+      "source": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz",
+      "registry": "https://registry.npmjs.org",
+      "stages": [
+        {
+          "stage": "profile-init",
+          "exitCode": 0
+        },
+        {
+          "stage": "default-plugin-add",
+          "exitCode": 0
+        }
+      ],
+      "sharedPhysicalCore": true,
+      "runtime": [
+        {
+          "file": "lib/plugins/mc-harness.mjs",
+          "sha256": "11d2fb7da842232f18c0a9f3c7ed10a5a05b2e98d431aa3da631f595f7de5f63",
+          "expectedSha256": "11d2fb7da842232f18c0a9f3c7ed10a5a05b2e98d431aa3da631f595f7de5f63"
+        },
+        {
+          "file": "lib/plugins/harness-bridge.mjs",
+          "sha256": "6054d58e3836ee6ae5b4b4050dbd18c50f6109f221ce7b496fcb0c25a42b4ee9",
+          "expectedSha256": "6054d58e3836ee6ae5b4b4050dbd18c50f6109f221ce7b496fcb0c25a42b4ee9"
+        },
+        {
+          "file": "lib/plugins/harness-panel.mjs",
+          "sha256": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89",
+          "expectedSha256": "474b779d058b16be2b8dc2a2736117184620a91df5b39e09db9b39deb4aebf89"
+        },
+        {
+          "file": "lib/plugins/harness-lifecycle.mjs",
+          "sha256": "8f993b0fcb63506736efebe62298b371555f195f9785a1e9310eb189d41ce698",
+          "expectedSha256": "8f993b0fcb63506736efebe62298b371555f195f9785a1e9310eb189d41ce698"
+        },
+        {
+          "file": "lib/plugins/harness-goal.mjs",
+          "sha256": "e14c487dfef42afb7e924b3c44d03e98f221b93f996a440b98411ca6cfa4c484",
+          "expectedSha256": "e14c487dfef42afb7e924b3c44d03e98f221b93f996a440b98411ca6cfa4c484"
+        },
+        {
+          "file": "lib/plugins/harness2.mjs",
+          "sha256": "586f6bbfbf740fad95a43cc7a9a6618574834f2281356fa44216b1cd198ca968",
+          "expectedSha256": "586f6bbfbf740fad95a43cc7a9a6618574834f2281356fa44216b1cd198ca968"
+        },
+        {
+          "file": "lib/plugins/harness-budget.mjs",
+          "sha256": "f3b9ac988463f4705293dc9aaec0a474cfc0b3b1dd4eebeb377a45b683e8e913",
+          "expectedSha256": "f3b9ac988463f4705293dc9aaec0a474cfc0b3b1dd4eebeb377a45b683e8e913"
+        },
+        {
+          "file": "lib/plugins/event-condenser-fallback.mjs",
+          "sha256": "8cbe9f7975c7334676a3f960a52b814715f620d6d2036cc36e95ed93d45d5a9f",
+          "expectedSha256": "8cbe9f7975c7334676a3f960a52b814715f620d6d2036cc36e95ed93d45d5a9f"
+        },
+        {
+          "file": "lib/client.js",
+          "sha256": "31eacc17c61895f0da4ac3274ad803423cecb50efdac6f05f173eef77584f917",
+          "expectedSha256": "31eacc17c61895f0da4ac3274ad803423cecb50efdac6f05f173eef77584f917"
+        },
+        {
+          "file": "lib/plugins/dsh-compat.mjs",
+          "sha256": "158d3f7cd07fee030c31b08eb31885a4562c8421cb6f549150a2e9af3dc287a9",
+          "expectedSha256": "158d3f7cd07fee030c31b08eb31885a4562c8421cb6f549150a2e9af3dc287a9"
+        },
+        {
+          "file": "lib/plugins/dsh-native-streams.mjs",
+          "sha256": "31398a31bc536baa17755a7badf7be46d47bbe4e56133a16a20f0acc2d3db518",
+          "expectedSha256": "31398a31bc536baa17755a7badf7be46d47bbe4e56133a16a20f0acc2d3db518"
+        },
+        {
+          "file": "lib/plugins/qiandengji-access.mjs",
+          "sha256": "3ab553c92ae2804d407aba524f4d616ef862e9e3672480c0a0e6ad8fed298c8f",
+          "expectedSha256": "3ab553c92ae2804d407aba524f4d616ef862e9e3672480c0a0e6ad8fed298c8f"
+        },
+        {
+          "file": "lib/plugins/quick-setup.mjs",
+          "sha256": "f5556cbeb29d71ce31eb5b65bca09556d9bf190538b8dc7e34e4af1837860e1e",
+          "expectedSha256": "f5556cbeb29d71ce31eb5b65bca09556d9bf190538b8dc7e34e4af1837860e1e"
+        },
+        {
+          "file": "lib/plugins/profile-settings.mjs",
+          "sha256": "31eec73df3fed2712d194f97084dc14d94d917a6fb812925899100ae07222a47",
+          "expectedSha256": "31eec73df3fed2712d194f97084dc14d94d917a6fb812925899100ae07222a47"
+        },
+        {
+          "file": "lib/plugins/harness-composition.mjs",
+          "sha256": "47d9e110de28f69cca98ee9fcdd60f7d0c62600e1c3c33469e73a834fec8ded7",
+          "expectedSha256": "47d9e110de28f69cca98ee9fcdd60f7d0c62600e1c3c33469e73a834fec8ded7"
+        }
+      ],
+      "stock": {
+        "dsh": "0.2.1-rc.3",
+        "modelRequests": 0,
+        "gameConnections": 0,
+        "moduleLoaded": true,
+        "officialPluginLoader": true,
+        "mcpTools": 37,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true,
+        "serverPackLoaded": true,
+        "physicsFixtures": 2,
+        "workerLoaded": true,
+        "workerOfficialResolverActive": true,
+        "environmentRestored": true,
+        "resolverUnchanged": true,
+        "frameworkSha256": [
+          "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+          "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+        ],
+        "frameworkUnchanged": true
+      },
+      "defaultWorkspace": "packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nminimumReleaseAgeExclude:\n  - agent-mc-qiandengji@0.5.0-rc.22\n  - agent-mc-world@0.5.7-rc.86\n",
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "hostFilesPatched": false,
+      "securityFlagsOverridden": false,
+      "modelCalls": 0,
+      "gameConnections": 0,
+      "productionChanged": false
+    }
+  ],
+  "npm": {
+    "adapterVersion": "0.3.0-rc.19",
+    "adapterPublic": false,
+    "latest": "0.3.0-rc.17",
+    "pending": "independent web authentication expired; no successful npm submission"
+  },
+  "externalModelCalls": 0,
+  "gameConnections": 0,
+  "productionChanged": false,
+  "realNativeDesktopWindowVerified": false
+}

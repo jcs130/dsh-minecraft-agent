@@ -1,18 +1,16 @@
 # 安装 DSH Minecraft Agent
 
-[rc.17 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 已公开，提供首次配置表单和游戏旁的原生决策会话。npm rc.17 已公开且 `latest` 指向该版；新安装使用下方固定 npm 版本。邀请接入步骤见[指南](docs/qiandengji-invitation.md)，渠道状态见[发布记录](docs/registry-release.md)。
+[rc.19 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 已公开，包含角色、皮肤、服务器笔记、网页画面和游戏旁的原生决策会话。核心 agent-mc-world@0.5.7-rc.86 已在 npm 公开，可选千灯纪包为 rc.22。
 
-> rc.17 在未经修补的官方 DSH 0.2.1-rc.2 / rc.3 中通过默认安装验证，无需执行 doctor。发行归档包含构建后的前端和适配器。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。
-
-需要 Node.js 24，官方 DSH 0.2.1-rc.2 / rc.3 已验证，Java 1.21.1 主维护。rc.17 锁定 agent-mc-world@0.5.7-rc.84 与 agent-mc-qiandengji@0.5.0-rc.22。生产引擎、脚本与训练模拟器使用编译版，不要求 tsx。
-
-通过 DSH 从官方 registry 安装已验证的固定版本：
+npm 插件 rc.19 的独立网页认证超时，尚未完成提交；npm latest 与市场入口暂为 rc.17。当前安装已验证的固定 GitHub 归档，不使用未公开的 npm rc.19：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.17 --registry=https://registry.npmjs.org
+dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz --registry=https://registry.npmjs.org
 ```
 
-安装包的匿名下载与已验证归档字节一致，运行文件与审阅源码一致，见 [GitHub 分发验收](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/github-release-verification.json)。包内 README 和状态文件是构建时快照，当前分发状态以 Release 与本仓库记录为准；不重新打包同一版本。npm 归档与 GitHub 归档完全一致，官方 DSH rc.2 / rc.3 的默认 registry 安装、SDK/MCP 和主进程/Worker 验证均通过，见 [npm 分发验收](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/npm-registry-verification.json)。也可安装相同字节的 [GitHub 归档](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/jcs130-dsh-minecraft-agent-0.3.0-rc.17.tgz)。本仓库的市场索引已更新为 rc.17；社区市场仍需维护者审核。首次配置与决策旁栏用法见[快速接入](docs/quick-start.md)。
+需要 Node.js 24。官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 公开归档安装、真实主进程/Worker、SDK/MCP 与一份物理核心检查；未放宽保护或修改宿主。归档 SHA256 4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e，与验收候选相同。见[公开分发证据](docs/github-publish-rc19.json)及[Release 验收附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/github-release-verification.json)。包内候选状态是构建时快照，不重新打包同一版本。
+
+安装后复用 DSH 模型，侧栏打开 Minecraft 填服务器与角色。协议默认 auto，已验证 1.21.11 原版服，普通服务器无需密码；安装本身不连接游戏或调用模型。见[角色与笔记](docs/character-notebook.md)、[快速接入](docs/quick-start.md)、[登录说明](docs/authme-login.md)及[发布记录](docs/registry-release.md)。原生 Desktop 窗口与长期模型表现仍单独验收。
 
 如果镜像源报 `ERR_PNPM_NO_MATCHING_VERSION`，先确认其是否同步了插件锁定的核心及可选服务器包。镜像尚未同步时，显式使用上面的官方 registry；这不会改写全局 registry、放宽 pnpm 安全配置或更换依赖版本。不要通过降级核心、关闭安装保护或混用现役 profile 来绕过镜像未同步。
 
