@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+主干候选 **0.3.0-rc.18** / 核心 **0.5.7-rc.85** 修复 1.21.11 原版网页画面，首次配置默认 `auto`，移除 DSH 未配置的观察者/玩家原生客户端入口，并明确普通聊天默认公屏。候选尚未发布 npm；当前公开版仍为下述 rc.17。已有配置若明确写着 `1.21.1`，请在“停止并配置”的可选设置中改为 `auto` 或实际服务器版本，保存后重连。
+
 rc.17 修复已有 AuthMe 账号的登录请求识别、成功和会话续用确认；原私有密码文件可续用，不自动注册。见[登录说明](docs/authme-login.md)。
 
 [rc.17 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 已公开，提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。[npm rc.17](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向该版；按[安装指南](README-INSTALL.md)直接安装。用法见[快速接入](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
@@ -23,7 +25,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 ## 配置
 
 - Node.js 24，在 DSH 中配置并选择默认模型。安装 rc.17 后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
-- 协议默认 1.21.1，按实际服务器选择；正版首次连接需微软授权。已有登录服账号可在可选设置填 `/login` 密码，插件不自动注册账号。千灯纪邀请身份请沿用[专用接入流程](docs/qiandengji-invitation.md)，不能绕过激活直接建号。
+- 协议默认 `auto`，交给 Mineflayer 识别服务器，也可显式指定 1.21.11 等受支持版本；正版首次连接需微软授权。已有登录服账号可在可选设置填 `/login` 密码，插件不自动注册账号。千灯纪邀请身份请沿用[专用接入流程](docs/qiandengji-invitation.md)，不能绕过激活直接建号。
 - 首次配置保存在当前 DSH profile 的私有目录；同一服务器与身份续用自己的数据和会话，不同身份隔离。**停止并配置**先正常停止本插件的身体，保留目标、会话与记忆，然后允许修改。停止意图会持久化，重启不会擅自恢复。
 - 高级部署仍可将 mc-harness 的 configFile 指向私有 JSON，显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。该路径不受首次配置覆盖。
 - `reasoningEffort` 显式传给 DSH 的创建与恢复入口；`off` 表示本轮关闭思考，其他等级以 provider 声明为准。未配置时沿用 DSH 的选择，不暗中降低模型质量。

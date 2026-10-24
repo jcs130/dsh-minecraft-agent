@@ -12,8 +12,8 @@ test('offline dry run lists the real tool catalog without a model, key or networ
   assert.ok(lines.some(l => l.startsWith('tools (')));
 });
 
-test('connect mode requires explicit server settings and defaults to 1.21.1', () => {
+test('connect mode requires explicit server settings and defaults to server version negotiation', () => {
   assert.throws(() => dryRunConfig({}, true), /MC_HOST/);
   const cfg = dryRunConfig({ MC_HOST: 'example.invalid', MC_USERNAME: 'ag_demo', MC_PORT: '25702' }, true);
-  assert.equal(cfg.port, 25702); assert.equal(cfg.version, '1.21.1'); assert.equal(cfg.loginConfigFile, '');
+  assert.equal(cfg.port, 25702); assert.equal(cfg.version, 'auto'); assert.equal(cfg.loginConfigFile, '');
 });

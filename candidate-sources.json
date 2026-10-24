@@ -1,23 +1,14 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.17",
+  "adapterVersion": "0.3.0-rc.18",
   "publication": {
-    "status": "published-npm-and-github",
-    "registryPublished": true,
-    "githubPublished": true,
-    "previousPublishedVersion": "0.3.0-rc.15",
+    "status": "verified-source-candidate",
+    "registryPublished": false,
+    "githubPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.17",
     "marketVersion": "0.3.0-rc.17",
     "latestNpmVersion": "0.3.0-rc.17",
-    "updatedAt": "2026-10-24T11:52:24.053Z",
-    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17",
-    "mergedCommit": "ac6456460ad641a802674a3123a6d99e6f6af3ea",
-    "verification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/npm-registry-verification.json",
-    "archive": {
-      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.17.tgz",
-      "sha256": "768dfd8fbd096667285803a63c5bd6ef7431c8a9e51d831a79606f28e70113cb",
-      "integrity": "sha512-zLsvuFWSj3xUwY/vdNtbvJPn5nq3kZcrClKauNmdbM5EA4u1hMafYBm/PnPL+dfveJjOF1DPbZ5MDX8COvATlw==",
-      "publishedAt": "2026-10-24T11:47:58.593Z"
-    }
+    "updatedAt": "2026-10-24T16:49:11.081Z"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -54,16 +45,15 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "a125547b8f79d39f503ea925c00161973e233a22",
-      "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.7-rc.84",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.84.tgz",
-      "sha256": "d979eada41ecfb28ac0f3a2bbc74d38412a3cb297e257c53eac5420934637b78",
-      "integrity": "sha512-ly4N7cc37CO6pPO6CBhcI02p9s2B00LH7VkToebe9MLJKqGwRhv5tG6Qmfs034kmFAAZzrpiY6AjSAUJu4OA0w==",
-      "published": true,
-      "registryPublished": true,
-      "artifactFile": "agent-mc-world-0.5.7-rc.84.tgz",
-      "publishedAt": "2026-10-24T10:34:45.160Z"
+      "commit": "ae4f036612144a5ebd771c285c070caf6c50b794",
+      "sourceStatus": "merged-on-remote-main",
+      "version": "0.5.7-rc.85",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.85.tgz",
+      "sha256": "8bb01430f2f8e9a8259df5f3105449bfdcc3b0c77a7fd8a46c33a72fa52b3936",
+      "integrity": "sha512-Rtb8UNK7OhgFadAgdz5tVUPEj2S4zDQtvQTvZiqCmhV1R8dYMXqO6JDhnmwhVGcG9inxGiH0aJ5oTaSzVyQZPw==",
+      "published": false,
+      "registryPublished": false,
+      "artifactFile": "agent-mc-world-0.5.7-rc.85.tgz"
     },
     {
       "role": "server-pack",
@@ -84,13 +74,26 @@
   ],
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
-    "commit": "1c404fbfa60a8c5ac2097eb371e15aa7b1d77c26",
+    "commit": "60e611737a44edb43d195487f9300149402d4c66",
     "assetPack": "java-1.21.1",
-    "sha256": "06b82c75cadd012c3682051f303b94414bae6a6549c41970e3fd3d85515b8b6e",
-    "audio": {
-      "mode": "explicit-first-setup",
-      "files": 7388,
-      "uniqueFiles": 3691
+    "additionalPacks": [
+      "java-1.20.6",
+      "java-1.21.11"
+    ],
+    "preset": null,
+    "artifact": "vendor/mc-visual-console-java-1.21.1-60e61173.tgz",
+    "sha256": "148e9ec42290258bfe99f78bb4f5e510e81454bc18e6cb26d88356e3ce29c41f",
+    "soundPacks": [
+      "java-1.21.1-sounds",
+      "java-1.20.6-sounds",
+      "original-bgm"
+    ],
+    "completeAudio": false,
+    "publicOriginalBgmTracks": 8,
+    "audioCoverage": {
+      "1.21.1": "exact-version-separate-download",
+      "1.20.6": "exact-version-separate-download",
+      "1.21.11": "disabled-no-original-audio-pack"
     }
   },
   "onboarding": {
@@ -138,5 +141,24 @@
     "publishedGithubArchiveDefaultInstallVerified": true,
     "publicInstallVerification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/github-stable-01.json",
     "publicationVerification": "docs/npm-publish-rc17.json"
-  }
+  },
+  "previousPublication": {
+    "status": "published-npm-and-github",
+    "registryPublished": true,
+    "githubPublished": true,
+    "previousPublishedVersion": "0.3.0-rc.15",
+    "marketVersion": "0.3.0-rc.17",
+    "latestNpmVersion": "0.3.0-rc.17",
+    "updatedAt": "2026-10-24T11:52:24.053Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17",
+    "mergedCommit": "ac6456460ad641a802674a3123a6d99e6f6af3ea",
+    "verification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/npm-registry-verification.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.17.tgz",
+      "sha256": "768dfd8fbd096667285803a63c5bd6ef7431c8a9e51d831a79606f28e70113cb",
+      "integrity": "sha512-zLsvuFWSj3xUwY/vdNtbvJPn5nq3kZcrClKauNmdbM5EA4u1hMafYBm/PnPL+dfveJjOF1DPbZ5MDX8COvATlw==",
+      "publishedAt": "2026-10-24T11:47:58.593Z"
+    }
+  },
+  "viewerVerification": "viewer-verification-20261025.json"
 }

@@ -17,7 +17,7 @@ export function dryRunConfig(env = process.env, connect = false) {
   if (!connect) return { ...cfg, host: 'offline.invalid', username: 'DryRunAgent' };
   for (const key of ['MC_HOST', 'MC_USERNAME']) if (!env[key]) throw Error(`--connect needs ${key}`);
   return { ...cfg, host: env.MC_HOST, port: Number(env.MC_PORT ?? 25565), username: env.MC_USERNAME,
-    version: env.MC_VERSION ?? '1.21.1', ...(env.MC_LOGIN_CONFIG ? { loginConfigFile: resolve(env.MC_LOGIN_CONFIG) } : {}) };
+    version: env.MC_VERSION ?? 'auto', ...(env.MC_LOGIN_CONFIG ? { loginConfigFile: resolve(env.MC_LOGIN_CONFIG) } : {}) };
 }
 
 export async function dryRun({ connect = false, env = process.env, out = console.log, readyTimeoutMs = 60000 } = {}) {

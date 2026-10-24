@@ -11,6 +11,12 @@ const adapterRequire=createRequire(profileRequire.resolve('@jcs130/dsh-minecraft
 const {parseMinecraftServerAddress}=await import(pathToFileURL(adapterRequire.resolve('agent-mc-world/client')));
 
 const input={address:'example.test:25565',username:'DemoAgent',auth:'offline',version:'1.21.1',goal:''};
+test('first-run defaults to server negotiation and preserves explicit versions including 1.21.11',()=>{
+  assert.equal(setupFields({...input,version:undefined},parseMinecraftServerAddress).version,'auto');
+  for(const version of ['1.21.1','1.21.11','26.1','auto'])
+    assert.equal(setupFields({...input,version},parseMinecraftServerAddress).version,version);
+  assert.throws(()=>setupFields({...input,version:'../1.21.1'},parseMinecraftServerAddress),/INVALID_VERSION/);
+});
 async function fixture(t,overrides={}) {
   const directory=await mkdtemp(join(tmpdir(),'dsh-mc-setup-')),launches=[],models=[];let disposed=0,nextPort=18000;
   const options={directory,parseAddress:parseMinecraftServerAddress,selection:()=>({provider:'existing-dsh',model:'existing-model',reasoningEffort:'high'}),

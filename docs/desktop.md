@@ -1,5 +1,7 @@
 # DSH Desktop 与实验室
 
+主干 rc.18 候选默认自动协商 Mineflayer 协议，已在隔离 Mojang 原版 1.21.11 与官方 DSH Web 中验证网页画面。DSH 仅显示 Agent 账号和同连接网页画面；观察者/玩家原生窗口启动入口已移除。1.21.11 的音频及地图/粒子扩展不在本轮验收内。候选尚未发布，公开渠道状态以下述发布记录为准；本轮未操作真实 Desktop 原生窗口。
+
 > rc.15 已在 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 公开，npm 同版已公开，两版官方 DSH 的默认 registry 安装均通过。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
 
 采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。

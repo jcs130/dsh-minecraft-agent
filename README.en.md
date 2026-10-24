@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+The main-branch **0.3.0-rc.18** candidate uses core **0.5.7-rc.85**, adds exact vanilla 1.21.11 rendering, defaults new setup to `auto`, omits unconfigured native launcher controls and defaults ordinary conversation to public chat. It is not yet published to npm; rc.17 remains the public release below. Existing explicit versions are preserved: use Stop and configure to change an old `1.21.1` setting to `auto` or the actual supported server version.
+
 rc.17 fixes configured AuthMe login prompts, success and cached-session receipts while retaining existing private credentials. It adds no automatic registration; see the [login fix](docs/authme-login.md).
 
 [rc.17 is publicly available on GitHub](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17). It adds in-page setup and the native DSH conversation beside the game. Choose your default model in DSH, open Minecraft, enter the server and account, then click Save and connect. No additional model key or handwritten JSON is required. [npm rc.17](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) is also public and selected by latest; install the exact version through DSH. See [installation](README-INSTALL.md), [quick start](docs/quick-start.md) and the [release record](docs/registry-release.md).
