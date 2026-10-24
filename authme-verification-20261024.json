@@ -1,36 +1,48 @@
 {
-  "schema": "dsh-authme-candidate-verification/v1",
-  "verifiedAt": "2026-10-24T09:56:49.215Z",
-  "adapterVersion": "0.3.0-rc.16",
-  "status": "local-candidate-verified-registry-authentication-pending",
+  "schema": "dsh-authme-candidate-verification/v2",
+  "verifiedAt": "2026-10-24T10:53:59.956Z",
+  "adapterVersion": "0.3.0-rc.17",
+  "status": "local-rc17-candidate-verified-public-install-pending",
   "core": {
-    "schema": "agent-mc-authme-verification/v1",
-    "at": "2026-10-24T09:41:21.113Z",
     "core": {
-      "version": "0.5.7-rc.83",
-      "commit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
-      "sha256": "499dd49288eeda47a9b2dc66bf4bd96036b718254f692eb9860fedd13bfa166f",
-      "integrity": "sha512-ITiEhoPOOPxiqjPhgLvQjshcaAf+/UyKvxANOBccY4YY+66U/L295e4wd29cYX5HTgnW7TPekXiCc26Mp26GsQ==",
-      "bytes": 59240012
+      "version": "0.5.7-rc.84",
+      "commit": "a125547b8f79d39f503ea925c00161973e233a22",
+      "sha256": "d979eada41ecfb28ac0f3a2bbc74d38412a3cb297e257c53eac5420934637b78",
+      "integrity": "sha512-ly4N7cc37CO6pPO6CBhcI02p9s2B00LH7VkToebe9MLJKqGwRhv5tG6Qmfs034kmFAAZzrpiY6AjSAUJu4OA0w==",
+      "bytes": 59254400
     },
     "tests": {
+      "version": "0.5.7-rc.83",
+      "commit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
       "passed": 2035,
       "failed": 0,
       "skipped": 1
     },
-    "build": true,
-    "typecheck": true,
     "packedRuntime": true,
-    "independentSdkMcpProtocol": {
-      "scenarios": 2,
-      "passed": 2,
-      "version": "1.21.1",
-      "simulatedAuthMeReceipts": true,
-      "realAuthMePluginVerified": false
+    "consumerTypes": true,
+    "npmPublished": true
+  },
+  "serverPack": {
+    "preparedAt": "2026-10-24T10:46:26.541Z",
+    "name": "agent-mc-qiandengji",
+    "version": "0.5.0-rc.22",
+    "file": "agent-mc-qiandengji-0.5.0-rc.22-9d6a2bd2.tgz",
+    "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
+    "bytes": 166835,
+    "unpackedBytes": 455493,
+    "tests": {
+      "passed": 276,
+      "failed": 0,
+      "skipped": 0
     },
-    "externalModelCalls": 0,
+    "typecheck": true,
+    "build": true,
+    "api6Files": true,
+    "privateApi5Files": true,
+    "peerCore": "^0.5.7-rc.84",
+    "published": false,
     "productionChanged": false,
-    "npmPublished": false
+    "sourceCommit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a"
   },
   "hosts": [
     {
@@ -65,7 +77,7 @@
   "frontendSameAsRc15": true,
   "sharedPhysicalCore": true,
   "installation": {
-    "method": "explicit-local-core-archive",
+    "method": "explicit-local-core-and-server-archives",
     "registryDefaultDshInstallVerified": false,
     "hostFilesPatched": false,
     "manualSymlinks": false,
@@ -87,9 +99,16 @@
     "realAuthMePluginVerified": false,
     "liveServerGameplayVerified": false
   },
+  "withheldCandidate": {
+    "adapter": "0.3.0-rc.16",
+    "defaultInstall": "failed-shared-physical-core-check",
+    "published": false,
+    "evidencePreserved": true
+  },
   "publication": {
     "coreSourceMerged": true,
-    "coreRegistryPublished": false,
+    "coreRegistryPublished": true,
+    "serverPackRegistryPublished": false,
     "adapterRegistryPublished": false,
     "githubReleased": false,
     "marketVersion": "0.3.0-rc.15"

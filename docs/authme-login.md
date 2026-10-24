@@ -1,11 +1,11 @@
-# AuthMe 密码登录修复（rc.16 候选）
+# AuthMe 密码登录修复（rc.17 候选）
 
 rc.15 的侧栏已经保存了密码，但它使用的旧核心只按提示前缀匹配。
 AuthMe 英文提示在 Please 后有逗号，因而密码一次也没有提交。
 其标准成功回执也未被旧配置覆盖，只修请求匹配仍可能在提交后超时。
 消息定义可查 [AuthMe 官方资源](https://github.com/AuthMe/AuthMeReloaded/blob/master/authme-core/src/main/resources/messages/messages_en.yml)。
 
-修复在共享 `agent-mc-world@0.5.7-rc.83`，核心主干提交
+修复在共享 `agent-mc-world@0.5.7-rc.84`，核心主干提交
 `f8c09b2436f9a2ef04da3924ad5fccd715553475`。DSH 只更新锁定依赖，
 不复制登录逻辑。侧栏已有的私有密码文件和账号配置继续使用，
 普通离线服仍可不填密码。
