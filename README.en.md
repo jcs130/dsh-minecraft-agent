@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-The main-branch **0.3.0-rc.18** candidate uses core **0.5.7-rc.85**, adds exact vanilla 1.21.11 rendering, defaults new setup to `auto`, omits unconfigured native launcher controls and defaults ordinary conversation to public chat. It is not yet published to npm; rc.17 remains the public release below. Existing explicit versions are preserved: use Stop and configure to change an old `1.21.1` setting to `auto` or the actual supported server version.
+The development **0.3.0-rc.19** candidate uses core **0.5.7-rc.86** and adds editable personas, default-off mineral queries, local viewer skins, a shared server notebook with offline CPU token-vector retrieval, and official DSH capability preset integration. See [configuration and notebook](docs/character-notebook.md). This is not a neural semantic model and local skins do not change server/account skins. The candidate is unpublished; rc.17 remains the public release below. It retains rc.18 vanilla 1.21.11 rendering and `auto` negotiation; existing explicit versions are preserved.
 
 rc.17 fixes configured AuthMe login prompts, success and cached-session receipts while retaining existing private credentials. It adds no automatic registration; see the [login fix](docs/authme-login.md).
 

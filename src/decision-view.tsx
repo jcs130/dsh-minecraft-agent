@@ -42,7 +42,7 @@ export function DecisionView({renderFactorySlot,useSession,useProjection}: any) 
   </div>;
 }
 
-export function Workbench({game,decision,onConfigure}: {game:any;decision:any;onConfigure?:()=>void|Promise<void>}) {
+export function Workbench({game,decision,onConfigure,onSettings}: {game:any;decision:any;onConfigure?:()=>void|Promise<void>;onSettings?:()=>void}) {
   const [mode,setMode]=useState('split');
   const [configuring,setConfiguring]=useState(false),[configureError,setConfigureError]=useState('');
   const configure=async()=>{if(configuring||!onConfigure)return;setConfiguring(true);setConfigureError('');
@@ -52,7 +52,7 @@ export function Workbench({game,decision,onConfigure}: {game:any;decision:any;on
     <div className="mc-workbench-bar"><div className="mc-view-switch" aria-label="面板布局">
       {[['split','游戏 + 决策'],['game','只看游戏'],['decision','只看决策']].map(([id,label])=>
         <button key={id} type="button" aria-pressed={mode===id} onClick={()=>setMode(id)}>{label}</button>)}
-    </div><span className="mc-private-note">本人会话 · 直播时可切换只看游戏</span>{onConfigure&&<button className="mc-configure" type="button" disabled={configuring} onClick={configure}>{configuring?'正在停止…':'停止并配置'}</button>}</div>
+    </div><span className="mc-private-note">本人会话 · 直播时可切换只看游戏</span>{onSettings&&<button className="mc-configure" type="button" onClick={onSettings}>角色与笔记</button>}{onConfigure&&<button className="mc-configure" type="button" disabled={configuring} onClick={configure}>{configuring?'正在停止…':'停止并配置'}</button>}</div>
     {configureError&&<p role="alert" className="mc-configure-error">{configureError}</p>}
     <div className="mc-workbench-content">
       {mode!=='decision'&&<div className="mc-game-seat">{game}</div>}

@@ -8,6 +8,28 @@ const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.j
 const { Session } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-session')).href);
 const { createUserMessage } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm')).href);
 
+test('real DSH ancestor preset tools survive selected composition, while the default Agent keeps its game-only boundary',async()=>{
+  const {Context}=await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
+  const {ToolRuntime}=await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-tools')).href);
+  const {createScope,scopeOf}=await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-scope')).href);
+  const {constrainMinecraftTools}=await import('../src/harness-composition.mjs');
+  const root=new Context();
+  const prompt=await root.plugin({name:'fixture-prompt',apply(ctx){ctx.provide('systemPrompt',{tools(){}});}}).await();
+  const tools=await root.plugin({name:'fixture-tools',inject:['systemPrompt'],apply(ctx){new ToolRuntime(ctx);}}).await();
+  let owner;
+  const consumer=await root.plugin({name:'fixture-scope-owner',inject:['tools'],apply(ctx){owner=ctx;}}).await();
+  const parent=createScope(owner,{}),selected=createScope(owner,{}, {parent:scopeOf(parent.ctx)}),plain=createScope(owner,{});
+  const definition=name=>({name,description:'Local fixture',parameters:{type:'object'},output:{schema:{type:'object'},render:()=>[]},execute:async()=>({})});
+  try {
+    root.tools.register(definition('global_fixture'));
+    parent.ctx.tools.register(definition('memory_fixture'));
+    for(const scope of [selected,plain])scope.ctx.tools.register(definition('mc_fixture'));
+    constrainMinecraftTools(selected.ctx,{composed:true});constrainMinecraftTools(plain.ctx,{composed:false});
+    assert.ok(root.tools.schemas(scopeOf(selected.ctx)).some(t=>t.name==='memory_fixture'));
+    assert.deepEqual(root.tools.schemas(scopeOf(plain.ctx)).map(t=>t.name),['mc_fixture']);
+  } finally {await selected.dispose();await plain.dispose();await parent.dispose();await consumer.dispose();await tools.dispose();await prompt.dispose();}
+});
+
 test('real DSH tool pipeline preserves a failed action conclusion and projects ordinary MCP failures as errors', async () => {
   const { Context } = await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
   const { ToolRuntime } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-tools')).href);

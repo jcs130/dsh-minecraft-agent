@@ -38,7 +38,7 @@ test('generic Mineflayer servers need no password, login commands or server-spec
   const f=await fixture(t);await f.setup.configure(input);await settled(f.setup);
   const config=f.launches[0];assert.equal(config.serverPack,'none');assert.equal(config.minecraft.auth,'offline');
   assert.equal(config.minecraft.loginConfigFile,undefined);assert.equal(f.setup.snapshot().fields.hasLoginPassword,false);
-  assert.deepEqual((await readdir(config.dataDir)).sort(),['connection-state.json','persona.md']);
+  assert.deepEqual((await readdir(config.dataDir)).sort(),['character.json','connection-state.json','persona.md']);
   await f.setup.stop();await f.setup.configure({...input,auth:'microsoft',username:'microsoft-fixture@example.test'});await settled(f.setup);
   assert.equal(f.launches[1].minecraft.auth,'microsoft');assert.equal(f.launches[1].minecraft.loginConfigFile,undefined);
 });
@@ -101,6 +101,50 @@ test('explicit stop cancels a pending startup, persists disabled intent and keep
   await new Promise(r=>setImmediate(r));await f.setup.stop();assert.equal(f.setup.snapshot().phase,'configured');assert.equal(f.launches.length,0);
   assert.equal(JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8')).config.enabled,false);
   f.setup.resume();assert.equal(f.setup.snapshot().phase,'configured');resolveInfo({context:{contextWindow:32768}});
+});
+
+test('profile can be saved without a model or connection; presets and offline CPU notebook defaults survive a display rename',async t=>{
+  const f=await fixture(t,{selection:()=>undefined});
+  await f.setup.save({...input,personaPreset:'naruto',name:'鸣人',initialMemory:'喜欢记下发现的矿点。'});
+  assert.equal(f.launches.length,0);assert.equal(f.models.length,0);assert.equal(f.setup.snapshot().phase,'configured');
+  let saved=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8'));
+  assert.equal(saved.config.enabled,false);assert.equal(saved.config.minecraft.memory.mode,'local-vector');assert.equal(saved.config.minecraft.perception.mineralVision,false);
+  const owner=saved.config.minecraft.memoryAgentId;
+  assert.match(await readFile(saved.config.personaFile,'utf8'),/漩涡鸣人/);assert.match(await readFile(saved.config.personaFile,'utf8'),/未经当前现场核验/);
+  await f.setup.save({...input,name:'鸣人新名字'});saved=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8'));
+  assert.equal(saved.config.minecraft.memoryAgentId,owner);assert.equal(f.setup.snapshot().fields.personaPreset,'naruto');
+  const restored=await createQuickSetup(f.options);t.after(()=>restored.close());restored.resume();
+  assert.equal(restored.snapshot().fields.name,'鸣人新名字');assert.equal(restored.snapshot().fields.personality,f.setup.snapshot().fields.personality);assert.equal(f.launches.length,0);
+});
+
+test('explicit preferences reach the shared core and disabled viewer starts no viewer port',async t=>{
+  const f=await fixture(t);await f.setup.configure({...input,mineralVision:true,viewerEnabled:false,toolProfile:'full'});await settled(f.setup);
+  const c=f.launches[0];assert.equal(c.minecraft.perception.mineralVision,true);assert.equal(c.minecraft.viewerPort,0);assert.equal(c.tools.profile,'full');
+  await f.setup.stop();await assert.rejects(f.setup.save({...input,mineralVision:'yes'}),/配置无效/);
+  await assert.rejects(f.setup.save({...input,useLocalSkin:true}),/PNG/);
+  await assert.rejects(f.setup.save({...input,skinPngBase64:'not png'}),/PNG/);
+});
+
+test('only declared usable DSH presets are admitted, and existing session capability bindings stay fixed',async t=>{
+  const f=await fixture(t,{listPresets:async()=>[{id:'memory-tools',name:'记忆与搜索'},{id:'broken',broken:'private diagnostic'}]});
+  assert.equal((await f.setup.describe()).dshPresets[1].broken,true);assert.ok(!JSON.stringify(await f.setup.describe()).includes('private diagnostic'));
+  await assert.rejects(f.setup.save({...input,dshPreset:'missing'}),/预设当前不可用/);
+  await f.setup.configure({...input,dshPreset:'memory-tools'});await settled(f.setup);const c=f.launches[0];assert.equal(c.dshPreset,'memory-tools');
+  await f.setup.stop();await writeFile(join(c.dataDir,'session-id.txt'),'original-session');
+  await assert.rejects(f.setup.save({...input,dshPreset:''}),/原会话已建立/);
+  assert.equal(await readFile(join(c.dataDir,'session-id.txt'),'utf8'),'original-session');
+  await f.setup.save({...input,dshPreset:'',newSession:true,goal:'Do not replay this stale goal'});
+  const next=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8'));
+  assert.equal(next.config.dataDir,c.dataDir);assert.equal(next.config.minecraft.memoryAgentId,c.minecraft.memoryAgentId);
+  assert.match(next.config.sessionKey,/^[a-f0-9-]{36}$/);assert.equal(next.config.goal,undefined);assert.equal(next.fields.goal,'');
+  assert.equal(await readFile(join(c.dataDir,'session-id.txt'),'utf8'),'original-session');assert.equal(f.setup.snapshot().fields.hasSession,false);
+});
+
+test('owner notebook port attributes user notes and performs no launch; arbitrary operations are rejected',async t=>{
+  const received=[];const f=await fixture(t,{notebook:async(config,args)=>{received.push({config,args});return{saved:true};}});
+  await f.setup.save(input);await f.setup.notebook({action:'remember',kind:'resource',summary:'矿点',content:'主世界 (1,2,3)，数量未知',dimension:'overworld',source:{kind:'runtime_observation'}});
+  assert.equal(received[0].args.source.kind,'user_report');assert.equal(received[0].args.source.speaker,'owner');assert.match(received[0].args.source.reference,/^dsh-owner-notebook:/);
+  assert.equal(f.launches.length,0);assert.equal(f.models.length,0);await assert.rejects(f.setup.notebook({action:'service'}));
 });
 test('setup Fetch API inherits native DSH owner authorization and only explicitly configured actions write/start',async t=>{
   const req=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));

@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.18",
+  "version": "0.3.0-rc.19",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -82,6 +82,7 @@
     "authme-verification-20261024.json",
     "viewer-verification-20261025.json",
     "docs/viewer-fixes-20261025.md",
+    "docs/character-notebook.md",
     "docs/registry-release.md",
     "docs/upstream",
     "assets/icon.svg",
@@ -101,12 +102,15 @@
     "lib/plugins/dsh-native-streams.mjs",
     "lib/plugins/qiandengji-access.mjs",
     "lib/plugins/quick-setup.mjs",
+    "lib/plugins/profile-settings.mjs",
+    "lib/plugins/harness-composition.mjs",
     "bin/join-qiandengji.mjs",
-    "docs/qiandengji-invitation.md"
+    "docs/qiandengji-invitation.md",
+    "profile-verification-20261025.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.85",
+    "agent-mc-world": "0.5.7-rc.86",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {

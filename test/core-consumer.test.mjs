@@ -23,6 +23,30 @@ test('installed core matches the adapter pin and exposes the authored-method lif
     assert.ok(METHOD_LIBRARY_SCHEMA.properties.op.enum.includes(op));
 });
 
+test('owner and Agent use the same packed notebook, retain revision checks and leave the decision turn untouched',async()=>{
+  const {MinecraftWorld}=await import('agent-mc-world/extension');
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-core-'));
+  const cfg={...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'notebook-fixture.invalid',username:'NotebookQA',memoryAgentId:'dsh:stable-notebook',memory:{mode:'local-vector'}};
+  const engine=new MinecraftWorld({cfg,dataDir:dir,timezone:'UTC',botName:'DisplayName'});
+  const runtime=new MinecraftAgentClient({cfg,dataDir:dir,agentName:'DisplayName',log:nullLogger()},
+    {id:'notebook-offline-fixture',tools:()=>withToolHelp(engine.tools(),'mc_tool_help'),envPromptVars:()=>({}),async start(){},async stop(){}});
+  const server=createMinecraftMcpServer(runtime,'notebook-consumer',{catalog:'compact'}),client=new Client({name:'notebook-consumer',version:'1'});
+  const[left,right]=InMemoryTransport.createLinkedPair();
+  try{
+    await server.connect(left);await client.connect(right);await runtime.connect();
+    const before=runtime.beginTurn('original-notebook-turn');
+    const owner=await runtime.notebook({action:'remember',kind:'resource',summary:'西山铁矿',content:'(-12,40,35)，只见两格，深处未知。',dimension:'overworld',source:{kind:'user_report',speaker:'owner',reference:'fixture:owner'}});
+    const read=await client.callTool({name:'mc_memory',arguments:{action:'get',id:owner.entry.id}});
+    assert.notEqual(read.isError,true);assert.equal(JSON.parse(read.structuredContent.text).entry.summary,'西山铁矿');
+    const agent=await client.callTool({name:'mc_memory',arguments:{action:'revise',id:owner.entry.id,expectedRevision:1,kind:'resource',summary:'西山暴露铁矿已采完',content:'原来两格已采完，其他未知。',source:{kind:'agent_note',reference:'fixture:mine-receipt'}}});
+    assert.notEqual(agent.isError,true);
+    assert.equal((await runtime.notebook({action:'get',id:owner.entry.id})).entry.revision,2);
+    await assert.rejects(runtime.notebook({action:'revise',id:owner.entry.id,expectedRevision:1,kind:'resource',summary:'旧修改',content:'不能覆盖新记录',source:{kind:'user_report',speaker:'owner',reference:'fixture:stale'}}),/Revision conflict/);
+    assert.deepEqual(runtime.beginTurn(before.id),before);
+    await runtime.endTurn(before.id);
+  }finally{await runtime.disconnect();await server.close();await removeFixture(dir);}
+});
+
 async function removeFixture(dir) {
   assert.equal(dirname(dir), resolve(tmpdir()));
   assert.match(dir.split(/[\\/]/).at(-1), /^dsh-packed-core-/);
