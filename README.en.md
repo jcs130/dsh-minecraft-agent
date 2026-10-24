@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+> rc.16 is the AuthMe login-fix candidate, consuming shared core 0.5.7-rc.83. It reuses existing private credentials, handles standard login/session receipts and preserves the timeout phase. See the [login fix](docs/authme-login.md) and [publication record](docs/registry-release.md). The rc.15 instructions below still describe the current public release.
+
 [rc.15 is publicly available on GitHub](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15). It adds in-page setup and the native DSH conversation beside the game. Choose your default model in DSH, open Minecraft, enter the server and account, then click Save and connect. No additional model key or handwritten JSON is required. [npm rc.15](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) is also public and selected by latest; install the exact version through DSH. See [installation](README-INSTALL.md), [quick start](docs/quick-start.md) and the [release record](docs/registry-release.md).
 
 > rc.15 retains stock official DSH compatibility, using readable-stream's supported native Node backend during synchronous plugin initialization. No manual host repair is required. Anonymous npm/GitHub archives match exactly. Default registry installs and stock main/Worker checks have passed on both verified DSH releases; see [compatibility](docs/DSH-COMPAT.md) and the [release record](docs/registry-release.md).

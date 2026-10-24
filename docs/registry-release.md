@@ -1,5 +1,12 @@
 # Registry 分发记录
 
+## rc.16：AuthMe 请求、成功回执与超时诊断（候选）
+
+共享核心的 AuthMe 修复已合入主干 `f8c09b2436f9a2ef04da3924ad5fccd715553475`，版本为 `0.5.7-rc.83`。
+适配器候选 `0.3.0-rc.16` 更新核心依赖，并增加侧栏配置到真实 Java 1.21.1 协议测试世界的 SDK/MCP 回归。
+修复与验证范围见 [AuthMe 登录说明](authme-login.md)。核心与插件 npm 分发仍待完成，
+市场继续保持已公开的 rc.15，不把源码提交当作已发布或现役已加载。
+
 ## rc.15：首次配置与原生决策会话（npm / GitHub 已公开）
 
 PR #6 已合入 main，合并提交 `2d5d9087f5ba02f259c8eec38ce4ee784289941a`。[rc.15 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，主归档 SHA256 为 `aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0`，与先前 candidate06 验证包字节一致。匿名 HTTPS 下载、官方 DSH 0.2.1-rc.2 / rc.3 默认 pnpm 11.28.5 从公开 URL 安装均通过，运行文件哈希一致。最终验收见 [github-release-verification.json](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/github-release-verification.json)。

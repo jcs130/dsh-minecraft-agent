@@ -1,32 +1,14 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.15",
+  "adapterVersion": "0.3.0-rc.16",
   "publication": {
-    "status": "published",
-    "registryPublished": true,
-    "githubPublished": true,
-    "previousPublishedVersion": "0.3.0-rc.12",
+    "status": "candidate",
+    "registryPublished": false,
+    "githubPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.15",
     "marketVersion": "0.3.0-rc.15",
-    "githubReleaseUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15",
-    "githubVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/github-release-verification.json",
-    "githubArchiveSha256": "aad91e1c34f3f67f782200e6f1a63c10355a26860a62636558389714be8b18b0",
-    "latestGithubVersion": "0.3.0-rc.15",
     "latestNpmVersion": "0.3.0-rc.15",
-    "updatedAt": "2026-10-23T17:20:22.814Z",
-    "npmSubmittedVersion": "0.3.0-rc.15",
-    "npmReviewStatus": "Published",
-    "npmSubmissionRecord": "docs/npm-publish-rc15.json",
-    "npmPublishedAt": "2026-10-23T17:10:58.852Z",
-    "npmRegistryVerificationUrl": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/npm-registry-verification.json",
-    "communitySubmission": {
-      "url": "https://github.com/ydhrdh/dsh-marketplace/pull/18",
-      "version": "0.3.0-rc.15",
-      "state": "open",
-      "draft": false,
-      "merged": false,
-      "maintainerApproval": "pending",
-      "headSha": "9d952aac6c4d79f3d94be2077e27133e7615fdb1"
-    }
+    "updatedAt": "2026-10-24T09:41:21.112Z"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -63,15 +45,15 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "ae880ce037728d73c8ea98d8604bbdb0cf36e68b",
+      "commit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
       "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.7-rc.69",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.69.tgz",
-      "sha256": "357ebccf922395920e0390c980c399e10a556dfaf71dc49b6a52c0e8eab49d6e",
-      "integrity": "sha512-xvm2LsIixlTv2M80qiuaTQaO2YhfBpzYQwUJkOUS2cqRPzkVc2myjUuFDdsN4v7w8v/39jn9nV2zLKpYWSKCUA==",
-      "published": true,
-      "registryPublished": true,
-      "artifactFile": "agent-mc-world-0.5.7-rc.69.tgz"
+      "version": "0.5.7-rc.83",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.83.tgz",
+      "sha256": "499dd49288eeda47a9b2dc66bf4bd96036b718254f692eb9860fedd13bfa166f",
+      "integrity": "sha512-ITiEhoPOOPxiqjPhgLvQjshcaAf+/UyKvxANOBccY4YY+66U/L295e4wd29cYX5HTgnW7TPekXiCc26Mp26GsQ==",
+      "published": false,
+      "registryPublished": false,
+      "artifactFile": "agent-mc-world-0.5.7-rc.83.tgz"
     },
     {
       "role": "server-pack",
@@ -112,35 +94,27 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-isolated-runtime-and-web",
-    "verification": "ui-verification-20261024.json",
+    "status": "passed-isolated-core-sdk-mcp-and-two-hosts",
     "productionChanged": false,
-    "nativeDesktopWindowVerified": false,
-    "testsPerHost": 123,
+    "coreTests": {
+      "passed": 2035,
+      "failed": 0,
+      "skipped": 1
+    },
+    "sdkMcpProtocolScenarios": 2,
+    "isolatedProtocolVersion": "1.21.1",
+    "realAuthMePluginVerified": false,
+    "realServerGameplayVerified": false,
+    "externalModelApiCalls": 0,
+    "verification": "authme-verification-20261024.json",
+    "testsPerHost": 125,
     "failed": 0,
     "skipped": 0,
     "stockDshVersions": [
       "0.2.1-rc.2",
       "0.2.1-rc.3"
     ],
-    "isolatedProtocolVersion": "1.21.1",
-    "realServerGameplayVerified": false,
-    "externalModelApiCalls": 0,
-    "previousArchiveVerification": "ui-verification-20261023.json",
-    "previousArchiveVersion": "0.3.0-rc.14",
-    "githubAnonymousDownloadVerified": true,
-    "githubDefaultPluginInstallVerifiedVersions": [
-      "0.2.1-rc.2",
-      "0.2.1-rc.3"
-    ],
-    "npmAnonymousDownloadVerified": true,
-    "npmDefaultPluginInstallVerifiedVersions": [
-      "0.2.1-rc.2",
-      "0.2.1-rc.3"
-    ],
-    "npmStockRuntimeVerifiedVersions": [
-      "0.2.1-rc.2",
-      "0.2.1-rc.3"
-    ]
+    "defaultRegistryInstallVerified": false,
+    "frontendSameAsPreviousRelease": true
   }
 }

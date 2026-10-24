@@ -1,0 +1,99 @@
+{
+  "schema": "dsh-authme-candidate-verification/v1",
+  "verifiedAt": "2026-10-24T09:56:49.215Z",
+  "adapterVersion": "0.3.0-rc.16",
+  "status": "local-candidate-verified-registry-authentication-pending",
+  "core": {
+    "schema": "agent-mc-authme-verification/v1",
+    "at": "2026-10-24T09:41:21.113Z",
+    "core": {
+      "version": "0.5.7-rc.83",
+      "commit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
+      "sha256": "499dd49288eeda47a9b2dc66bf4bd96036b718254f692eb9860fedd13bfa166f",
+      "integrity": "sha512-ITiEhoPOOPxiqjPhgLvQjshcaAf+/UyKvxANOBccY4YY+66U/L295e4wd29cYX5HTgnW7TPekXiCc26Mp26GsQ==",
+      "bytes": 59240012
+    },
+    "tests": {
+      "passed": 2035,
+      "failed": 0,
+      "skipped": 1
+    },
+    "build": true,
+    "typecheck": true,
+    "packedRuntime": true,
+    "independentSdkMcpProtocol": {
+      "scenarios": 2,
+      "passed": 2,
+      "version": "1.21.1",
+      "simulatedAuthMeReceipts": true,
+      "realAuthMePluginVerified": false
+    },
+    "externalModelCalls": 0,
+    "productionChanged": false,
+    "npmPublished": false
+  },
+  "hosts": [
+    {
+      "dsh": "0.2.1-rc.2",
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "officialMainAndWorker": true
+    },
+    {
+      "dsh": "0.2.1-rc.3",
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "officialMainAndWorker": true
+    }
+  ],
+  "runtime": [
+    {
+      "file": "lib/client.js",
+      "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62"
+    },
+    {
+      "file": "lib/plugins/mc-harness.mjs",
+      "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe"
+    },
+    {
+      "file": "lib/plugins/quick-setup.mjs",
+      "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d"
+    }
+  ],
+  "frontendSameAsRc15": true,
+  "sharedPhysicalCore": true,
+  "installation": {
+    "method": "explicit-local-core-archive",
+    "registryDefaultDshInstallVerified": false,
+    "hostFilesPatched": false,
+    "manualSymlinks": false,
+    "dependencyOverrides": false,
+    "securityFlagsOverridden": false
+  },
+  "authMeProtocol": {
+    "version": "1.21.1",
+    "scenarios": [
+      "first-password-login",
+      "existing-session-reconnection"
+    ],
+    "generatedQuickSetupConfiguration": true,
+    "sdkAndMcp": true,
+    "confirmationRequired": true,
+    "oneCredentialSubmissionPerConnection": true,
+    "noAutomaticRegistration": true,
+    "credentialsOutsideStatusAndEvents": true,
+    "realAuthMePluginVerified": false,
+    "liveServerGameplayVerified": false
+  },
+  "publication": {
+    "coreSourceMerged": true,
+    "coreRegistryPublished": false,
+    "adapterRegistryPublished": false,
+    "githubReleased": false,
+    "marketVersion": "0.3.0-rc.15"
+  },
+  "externalModelCalls": 0,
+  "productionChanged": false
+}

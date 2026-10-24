@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+> rc.16 是 AuthMe 登录修复候选，使用共享核心 0.5.7-rc.83。现有密码文件可续用；修复请求识别、成功与会话续用回执，并保留真实超时阶段。候选验证与当前分发状态见 [AuthMe 登录说明](docs/authme-login.md)和[发布记录](docs/registry-release.md)。下面的 rc.15 安装信息仍指向当前公开版本。
+
 [rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。[npm rc.15](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向该版；按[安装指南](README-INSTALL.md)直接安装。用法见[快速接入](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
 
 > rc.15 兼容原始官方 DSH：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)。npm / GitHub 归档字节一致，两版 DSH 的默认 registry 安装与真实主进程/Worker 验证均通过。
