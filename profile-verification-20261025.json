@@ -1,0 +1,136 @@
+{
+  "schema": "dsh-minecraft-profile-verification/v1",
+  "checkedAt": "2026-10-24T18:48:35.816Z",
+  "adapterVersion": "0.3.0-rc.19",
+  "source": {
+    "core": {
+      "file": "agent-mc-world-0.5.7-rc.86.tgz",
+      "bytes": 75275652,
+      "sha256": "350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0",
+      "integrity": "sha512-+bWa0OZExY3o+zRQT+xRVdNYBp/Qfi+tAO1lBiLmvTwK/ymFU9D91PQBmcuFC9unuMfAAm6cWvpG3k6aDYnxDw==",
+      "version": "0.5.7-rc.86",
+      "sourceCommit": "8159c205f511fa2e9f5a982368a1aef84ab5faec",
+      "mergedPullRequest": "https://github.com/jcs130/minecraft-ai-friend/pull/4",
+      "mergedCommit": "dd7915b88213d239a295f60cb680e4a6d5c89d39"
+    },
+    "viewer": {
+      "commit": "4da993d1d96e79c7ba195ef38d49976250a621aa",
+      "mergedPullRequest": "https://github.com/jcs130/mc-visual-console/pull/3"
+    }
+  },
+  "installation": {
+    "method": "npm staged local unpublished archives with normal dependency resolution",
+    "officialRegistryDependencies": true,
+    "overrides": false,
+    "peerBypass": false,
+    "hostFilesChanged": false,
+    "hostResolverChanged": false,
+    "realNativeDesktopWindowVerified": false
+  },
+  "tests": {
+    "core": {
+      "passed": 2065,
+      "skipped": 1,
+      "failed": 0,
+      "build": true,
+      "publicDeclarations": 348,
+      "typecheck": true
+    },
+    "officialDsh": [
+      {
+        "version": "0.2.1-rc.2",
+        "passed": 133,
+        "skipped": 1,
+        "failed": 0
+      },
+      {
+        "version": "0.2.1-rc.3",
+        "passed": 133,
+        "skipped": 1,
+        "failed": 0
+      }
+    ],
+    "skip": "Optional external Harness2 worker not configured; no experiment or training performed",
+    "sdkMcpSharedNotebook": true,
+    "revisionConflictRejected": true,
+    "defaultGameOnlyToolBoundary": true,
+    "presetAncestorToolsRetained": true
+  },
+  "ui": {
+    "host": "official DSH 0.2.1-rc.3 Web",
+    "server": "isolated loopback vanilla Minecraft 1.21.11",
+    "account": "DSHNotebookQA",
+    "defaultMineralVision": false,
+    "saveWithoutConnection": true,
+    "personaPresets": [
+      "naruto",
+      "kirito",
+      "edward"
+    ],
+    "personaAndSkinPersistAfterRestart": true,
+    "notebook": {
+      "cpuRetrieval": "offline token-vector cosine and lexical rank fusion; not neural semantic embeddings",
+      "createSearchRevise": true,
+      "revision": 2,
+      "source": "user_report",
+      "historicalLabel": true,
+      "persistAfterRestart": true,
+      "usableWhileConnected": true,
+      "paginationUsesCoreNextOffset": true
+    },
+    "skin": {
+      "model": "slim",
+      "skinId": "local:f5658be7db0facda697e7f1dd93dcb4c64f0994c46275765584fbfb8187dbe49:slim",
+      "status": "applied",
+      "scope": "own local web avatar only; server/Mojang identity unchanged"
+    },
+    "composition": {
+      "fixtureCalls": 2,
+      "externalModelCalls": 0,
+      "fixturePluginToolVisible": true,
+      "fixturePluginPromptVisible": true,
+      "presetPersonaShadowed": true,
+      "configuredPersonaVisible": true,
+      "toolCount": 30,
+      "measuredRun": "post-fix existing-conversation request",
+      "earlierSyntheticFixtureCalls": 3
+    },
+    "layout": [
+      {
+        "width": 1280,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 390,
+        "documentWidth": 390,
+        "panelWidth": 329,
+        "panelScrollWidth": 329,
+        "horizontalOverflow": false,
+        "method": "temporary CDP device metrics, cleared after inspection"
+      }
+    ]
+  },
+  "screenshots": [
+    {
+      "file": "docs/screenshots/rc19-server-notebook.png",
+      "sha256": "8d22c522933e1e72ad33d67533428348a614a201b063a90228b91041f2f04013"
+    },
+    {
+      "file": "docs/screenshots/rc19-character-settings.png",
+      "sha256": "ea6f0d7f1ea786892722ac0f908701da04c02c553adc863e30b374e151f46f6f"
+    },
+    {
+      "file": "docs/screenshots/rc19-local-skin.png",
+      "sha256": "0e945caeda5f7f6f9f98409d447dc19870eeb2305437b38930e544b6955ce06d"
+    }
+  ],
+  "limits": {
+    "automaticMiningOrIntelligenceGainMeasured": false,
+    "otherPlayersSeeUploadedSkin": false,
+    "neuralEmbeddingModelBundled": false,
+    "publicRegistryInstallationVerified": false,
+    "npmPublished": false,
+    "marketPublished": false,
+    "productionChanged": false
+  }
+}
