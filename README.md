@@ -1,16 +1,16 @@
 # DSH Minecraft Agent
 
-当前开发候选 **0.3.0-rc.19** / 核心 **0.5.7-rc.86** 增加[角色、感知、皮肤、服务器笔记与 DSH 插件配置](docs/character-notebook.md)。矿物透视默认关闭，三个人格预设可编辑，笔记供用户和 Agent 共用，默认提供离线 CPU 词元向量混合检索。候选尚未发布 npm；当前公开版仍为下述 rc.17。
+[0.3.0-rc.19 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 已公开，精确依赖已公开的核心 **0.5.7-rc.86**。官方 DSH 0.2.1-rc.2 / rc.3 已从公开归档完成默认安装及真实主进程/Worker 验证。
 
-沿用 rc.18 的 1.21.11 原版网页画面、首次配置 `auto`、移除未配置原生客户端入口与公屏聊天默认。已有配置若明确写着 `1.21.1`，请在“停止并配置”中改为 `auto` 或实际服务器版本，保存后重连。
+新增[角色、感知、皮肤、服务器笔记与 DSH 插件配置](docs/character-notebook.md)。三个人格预设可编辑，矿物透视默认关闭；用户和 Agent 共用按服务器、账号与维度隔离的版本化笔记，默认离线 CPU 词元向量加关键词检索，也可接自有 embeddings。上传皮肤只影响本人本地网页画面，CPU 词元向量不是神经语义模型。包含原版 1.21.11 网页画面、auto 协议匹配和默认公屏聊天；原有原生推理/回答/工具会话、指标及实验室保留。
 
-rc.17 修复已有 AuthMe 账号的登录请求识别、成功和会话续用确认；原私有密码文件可续用，不自动注册。见[登录说明](docs/authme-login.md)。
+npm 插件 rc.19 的独立网页认证已超时，尚未完成 npm 提交；npm latest 与市场入口仍为 rc.17。当前请安装已验证的固定 GitHub 归档：
 
-[rc.17 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 已公开，提供页面内首次配置：复用 DSH 默认模型，填服务器和角色，点击连接后即可在同一页面看游戏、模型实际返回的推理、回答和工具回执。原会话标签、运行指标、实验室及千灯纪邀请接入均保留。[npm rc.17](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向该版；按[安装指南](README-INSTALL.md)直接安装。用法见[快速接入](docs/quick-start.md)，渠道状态见[发布记录](docs/registry-release.md)。
+```sh
+dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz --registry=https://registry.npmjs.org
+```
 
-> rc.17 兼容原始官方 DSH：插件引导采用依赖自带的 Node 原生流模式，无需手动修补 DSH。实现与旧版回滚见[兼容指南](docs/DSH-COMPAT.md)。npm / GitHub 归档字节一致，两版 DSH 的默认 registry 安装与真实主进程/Worker 验证均通过。
-
-DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型；独立 agent-mc-world 负责一个 Minecraft 身体、SDK/MCP 和现代可视化。可显式选择 agent-mc-qiandengji 服务器资料包。
+见[安装](README-INSTALL.md)、[公开分发验收](docs/github-publish-rc19.json)和[发布记录](docs/registry-release.md)。归档保持已验收的原字节；包内候选状态是构建时快照，当前分发状态以 Release 附件与主干文档为准。安装不启动游戏或模型。
 
 ## 核心归属
 
@@ -18,7 +18,7 @@ DeepSeek Harness 宿主适配器。DSH 负责人格、目标、会话和模型�
 
 ## 当前版本
 
-**0.3.0-rc.17 npm / GitHub 发行版**，精确消费核心 0.5.7-rc.84 和可选千灯纪包 0.5.0-rc.22。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**GitHub 0.3.0-rc.19** 精确消费核心 **0.5.7-rc.86**；可选千灯纪包保持 0.5.0-rc.22。npm 当前仍为 rc.17，等待 rc.19 的独立发布认证。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
