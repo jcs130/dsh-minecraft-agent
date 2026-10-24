@@ -1,0 +1,118 @@
+{
+  "schema": "dsh-authme-candidate-verification/v2",
+  "verifiedAt": "2026-10-24T10:53:59.956Z",
+  "adapterVersion": "0.3.0-rc.17",
+  "status": "local-rc17-candidate-verified-public-install-pending",
+  "core": {
+    "core": {
+      "version": "0.5.7-rc.84",
+      "commit": "a125547b8f79d39f503ea925c00161973e233a22",
+      "sha256": "d979eada41ecfb28ac0f3a2bbc74d38412a3cb297e257c53eac5420934637b78",
+      "integrity": "sha512-ly4N7cc37CO6pPO6CBhcI02p9s2B00LH7VkToebe9MLJKqGwRhv5tG6Qmfs034kmFAAZzrpiY6AjSAUJu4OA0w==",
+      "bytes": 59254400
+    },
+    "tests": {
+      "version": "0.5.7-rc.83",
+      "commit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
+      "passed": 2035,
+      "failed": 0,
+      "skipped": 1
+    },
+    "packedRuntime": true,
+    "consumerTypes": true,
+    "npmPublished": true
+  },
+  "serverPack": {
+    "preparedAt": "2026-10-24T10:46:26.541Z",
+    "name": "agent-mc-qiandengji",
+    "version": "0.5.0-rc.22",
+    "file": "agent-mc-qiandengji-0.5.0-rc.22-9d6a2bd2.tgz",
+    "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
+    "bytes": 166835,
+    "unpackedBytes": 455493,
+    "tests": {
+      "passed": 276,
+      "failed": 0,
+      "skipped": 0
+    },
+    "typecheck": true,
+    "build": true,
+    "api6Files": true,
+    "privateApi5Files": true,
+    "peerCore": "^0.5.7-rc.84",
+    "published": false,
+    "productionChanged": false,
+    "sourceCommit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a"
+  },
+  "hosts": [
+    {
+      "dsh": "0.2.1-rc.2",
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "officialMainAndWorker": true
+    },
+    {
+      "dsh": "0.2.1-rc.3",
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "officialMainAndWorker": true
+    }
+  ],
+  "runtime": [
+    {
+      "file": "lib/client.js",
+      "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62"
+    },
+    {
+      "file": "lib/plugins/mc-harness.mjs",
+      "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe"
+    },
+    {
+      "file": "lib/plugins/quick-setup.mjs",
+      "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d"
+    }
+  ],
+  "frontendSameAsRc15": true,
+  "sharedPhysicalCore": true,
+  "installation": {
+    "method": "explicit-local-core-and-server-archives",
+    "registryDefaultDshInstallVerified": false,
+    "hostFilesPatched": false,
+    "manualSymlinks": false,
+    "dependencyOverrides": false,
+    "securityFlagsOverridden": false
+  },
+  "authMeProtocol": {
+    "version": "1.21.1",
+    "scenarios": [
+      "first-password-login",
+      "existing-session-reconnection"
+    ],
+    "generatedQuickSetupConfiguration": true,
+    "sdkAndMcp": true,
+    "confirmationRequired": true,
+    "oneCredentialSubmissionPerConnection": true,
+    "noAutomaticRegistration": true,
+    "credentialsOutsideStatusAndEvents": true,
+    "realAuthMePluginVerified": false,
+    "liveServerGameplayVerified": false
+  },
+  "withheldCandidate": {
+    "adapter": "0.3.0-rc.16",
+    "defaultInstall": "failed-shared-physical-core-check",
+    "published": false,
+    "evidencePreserved": true
+  },
+  "publication": {
+    "coreSourceMerged": true,
+    "coreRegistryPublished": true,
+    "serverPackRegistryPublished": false,
+    "adapterRegistryPublished": false,
+    "githubReleased": false,
+    "marketVersion": "0.3.0-rc.15"
+  },
+  "externalModelCalls": 0,
+  "productionChanged": false
+}
