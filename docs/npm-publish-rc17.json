@@ -1,0 +1,262 @@
+{
+  "schema": "dsh-minecraft-public-registry-verification/v1",
+  "verifiedAt": "2026-10-24T11:52:24.053Z",
+  "source": {
+    "repository": "https://github.com/jcs130/dsh-minecraft-agent",
+    "featureCommit": "4ea7b3921272cf5edfa91b4f2cf30819307d381f",
+    "mergedCommit": "ac6456460ad641a802674a3123a6d99e6f6af3ea",
+    "pullRequest": "https://github.com/jcs130/dsh-minecraft-agent/pull/7",
+    "coreCommit": "a125547b8f79d39f503ea925c00161973e233a22",
+    "authMeCommit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
+    "serverPackCommit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a"
+  },
+  "core": {
+    "verifiedAt": "2026-10-24T11:20:22.419Z",
+    "name": "agent-mc-world",
+    "version": "0.5.7-rc.84",
+    "metadataUrl": "https://registry.npmjs.org/agent-mc-world/0.5.7-rc.84",
+    "anonymous": true,
+    "httpStatus": 200,
+    "available": true,
+    "archiveUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.84.tgz",
+    "sha256": "d979eada41ecfb28ac0f3a2bbc74d38412a3cb297e257c53eac5420934637b78",
+    "integrity": "sha512-ly4N7cc37CO6pPO6CBhcI02p9s2B00LH7VkToebe9MLJKqGwRhv5tG6Qmfs034kmFAAZzrpiY6AjSAUJu4OA0w==",
+    "bytes": 59254400,
+    "exactArchiveMatched": true,
+    "npmPublishedAt": "2026-10-24T10:34:45.160Z",
+    "requestedTag": "next",
+    "selectedByTag": true,
+    "distTags": {
+      "latest": "0.5.7-rc.47",
+      "next": "0.5.7-rc.84"
+    }
+  },
+  "serverPack": {
+    "verifiedAt": "2026-10-24T11:20:29.139Z",
+    "name": "agent-mc-qiandengji",
+    "version": "0.5.0-rc.22",
+    "metadataUrl": "https://registry.npmjs.org/agent-mc-qiandengji/0.5.0-rc.22",
+    "anonymous": true,
+    "httpStatus": 200,
+    "available": true,
+    "archiveUrl": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.22.tgz",
+    "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
+    "integrity": "sha512-/3+nF8q+FTDRrgq+QS+lc4/2bocHNN3M1YOQzjtpx2QI+xsbjM0I/CYH6MRW29mZh88W2Rqbc1FDuYGaSvfJsQ==",
+    "bytes": 166835,
+    "exactArchiveMatched": true,
+    "npmPublishedAt": "2026-10-24T11:19:31.832Z",
+    "requestedTag": "next",
+    "selectedByTag": true,
+    "distTags": {
+      "latest": "0.5.0-rc.3",
+      "next": "0.5.0-rc.22"
+    }
+  },
+  "adapter": {
+    "verifiedAt": "2026-10-24T11:48:21.680Z",
+    "name": "@jcs130/dsh-minecraft-agent",
+    "version": "0.3.0-rc.17",
+    "metadataUrl": "https://registry.npmjs.org/%40jcs130%2Fdsh-minecraft-agent/0.3.0-rc.17",
+    "anonymous": true,
+    "httpStatus": 200,
+    "available": true,
+    "archiveUrl": "https://registry.npmjs.org/@jcs130/dsh-minecraft-agent/-/dsh-minecraft-agent-0.3.0-rc.17.tgz",
+    "sha256": "768dfd8fbd096667285803a63c5bd6ef7431c8a9e51d831a79606f28e70113cb",
+    "integrity": "sha512-zLsvuFWSj3xUwY/vdNtbvJPn5nq3kZcrClKauNmdbM5EA4u1hMafYBm/PnPL+dfveJjOF1DPbZ5MDX8COvATlw==",
+    "bytes": 261231,
+    "exactArchiveMatched": true,
+    "npmPublishedAt": "2026-10-24T11:47:58.593Z",
+    "requestedTag": "latest",
+    "selectedByTag": true,
+    "distTags": {
+      "next": "0.3.0-rc.11",
+      "latest": "0.3.0-rc.17"
+    }
+  },
+  "installs": [
+    {
+      "verifiedAt": "2026-10-24T11:49:10.966Z",
+      "dsh": "0.2.1-rc.2",
+      "adapter": "0.3.0-rc.17",
+      "core": "0.5.7-rc.84",
+      "serverPack": "0.5.0-rc.22",
+      "sharedPhysicalCore": true,
+      "stages": [
+        {
+          "stage": "official-profile-init",
+          "exitCode": 0
+        },
+        {
+          "stage": "default-plugin-add",
+          "exitCode": 0
+        }
+      ],
+      "source": "@jcs130/dsh-minecraft-agent@0.3.0-rc.17",
+      "channel": "npm",
+      "registry": "https://registry.npmjs.org",
+      "runtime": [
+        {
+          "file": "lib/client.js",
+          "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/mc-harness.mjs",
+          "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/quick-setup.mjs",
+          "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d",
+          "bytesIdentical": true
+        }
+      ],
+      "stock": {
+        "dsh": "0.2.1-rc.2",
+        "modelRequests": 0,
+        "gameConnections": 0,
+        "moduleLoaded": true,
+        "officialPluginLoader": true,
+        "mcpTools": 37,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true,
+        "serverPackLoaded": true,
+        "physicsFixtures": 2,
+        "workerLoaded": true,
+        "workerOfficialResolverActive": true,
+        "environmentRestored": true,
+        "resolverUnchanged": true,
+        "frameworkSha256": [
+          "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+          "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+        ],
+        "frameworkUnchanged": true
+      },
+      "defaultWorkspace": "packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nminimumReleaseAgeExclude:\n  - '@jcs130/dsh-minecraft-agent@0.3.0-rc.17'\n  - agent-mc-qiandengji@0.5.0-rc.22\n  - agent-mc-world@0.5.7-rc.84\n",
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "hostFilesPatched": false,
+      "securityFlagsOverridden": false,
+      "modelCalls": 0,
+      "gameConnections": 0,
+      "productionChanged": false
+    },
+    {
+      "verifiedAt": "2026-10-24T11:50:07.774Z",
+      "dsh": "0.2.1-rc.3",
+      "adapter": "0.3.0-rc.17",
+      "core": "0.5.7-rc.84",
+      "serverPack": "0.5.0-rc.22",
+      "sharedPhysicalCore": true,
+      "stages": [
+        {
+          "stage": "official-profile-init",
+          "exitCode": 0
+        },
+        {
+          "stage": "default-plugin-add",
+          "exitCode": 0
+        }
+      ],
+      "source": "@jcs130/dsh-minecraft-agent@0.3.0-rc.17",
+      "channel": "npm",
+      "registry": "https://registry.npmjs.org",
+      "runtime": [
+        {
+          "file": "lib/client.js",
+          "sha256": "625f4955002fdc64cac3c60ef055cedb64c9ce475b5b6e00edf26d180b2e7a62",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/mc-harness.mjs",
+          "sha256": "8cfd9693af5c89d7826a403f09825484f5f820b9c830b4f45ad32ecafaa64bfe",
+          "bytesIdentical": true
+        },
+        {
+          "file": "lib/plugins/quick-setup.mjs",
+          "sha256": "15fdb07a1bb45d9d9a46dc90ed4c5b4f146fb5542eea8409dc7116596189e25d",
+          "bytesIdentical": true
+        }
+      ],
+      "stock": {
+        "dsh": "0.2.1-rc.3",
+        "modelRequests": 0,
+        "gameConnections": 0,
+        "moduleLoaded": true,
+        "officialPluginLoader": true,
+        "mcpTools": 37,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true,
+        "serverPackLoaded": true,
+        "physicsFixtures": 2,
+        "workerLoaded": true,
+        "workerOfficialResolverActive": true,
+        "environmentRestored": true,
+        "resolverUnchanged": true,
+        "frameworkSha256": [
+          "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+          "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+        ],
+        "frameworkUnchanged": true
+      },
+      "defaultWorkspace": "packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nminimumReleaseAgeExclude:\n  - '@jcs130/dsh-minecraft-agent@0.3.0-rc.17'\n  - agent-mc-qiandengji@0.5.0-rc.22\n  - agent-mc-world@0.5.7-rc.84\n",
+      "manualSymlinks": false,
+      "dependencyOverrides": false,
+      "hostFilesPatched": false,
+      "securityFlagsOverridden": false,
+      "modelCalls": 0,
+      "gameConnections": 0,
+      "productionChanged": false
+    }
+  ],
+  "tests": {
+    "coreAuthMeBase": {
+      "version": "0.5.7-rc.83",
+      "commit": "f8c09b2436f9a2ef04da3924ad5fccd715553475",
+      "passed": 2035,
+      "failed": 0,
+      "skipped": 1
+    },
+    "serverPack": {
+      "passed": 276,
+      "failed": 0,
+      "skipped": 0
+    },
+    "hosts": [
+      {
+        "dsh": "0.2.1-rc.2",
+        "passed": 125,
+        "failed": 0,
+        "skipped": 0,
+        "officialMainAndWorker": true
+      },
+      {
+        "dsh": "0.2.1-rc.3",
+        "passed": 125,
+        "failed": 0,
+        "skipped": 0,
+        "officialMainAndWorker": true
+      }
+    ],
+    "authMeProtocol": {
+      "version": "1.21.1",
+      "scenarios": [
+        "first-password-login",
+        "existing-session-reconnection"
+      ],
+      "generatedQuickSetupConfiguration": true,
+      "sdkAndMcp": true,
+      "confirmationRequired": true,
+      "oneCredentialSubmissionPerConnection": true,
+      "noAutomaticRegistration": true,
+      "credentialsOutsideStatusAndEvents": true,
+      "realAuthMePluginVerified": false,
+      "liveServerGameplayVerified": false
+    }
+  },
+  "frontendSameAsRc15": true,
+  "modelCalls": 0,
+  "productionChanged": false,
+  "realAuthMePluginVerified": false,
+  "liveServerGameplayVerified": false
+}

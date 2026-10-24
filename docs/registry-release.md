@@ -1,12 +1,16 @@
 # Registry 分发记录
 
-## rc.17：AuthMe 与单一核心依赖（GitHub 已公开，npm 待认证）
+## rc.17：AuthMe 请求、成功回执与超时诊断（npm / GitHub 已公开）
 
-共享核心的 AuthMe 修复已合入主干 `f8c09b2436f9a2ef04da3924ad5fccd715553475`，版本为 `0.5.7-rc.83`。
-适配器候选 `0.3.0-rc.17` 更新核心 rc.84 与服务器包 rc.22 依赖，并增加侧栏配置到真实 Java 1.21.1 协议测试世界的 SDK/MCP 回归。
-修复与验证范围见 [AuthMe 登录说明](authme-login.md)。核心 rc.84 与服务器包 rc.22 已匿名公开并核对原归档。PR #7 合并提交 ac6456460ad641a802674a3123a6d99e6f6af3ea，插件 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 已公开；匿名归档与候选一致，两版默认依赖安装及公开 GitHub URL 的默认安装通过。插件 npm 发布仍待独立认证，市场保持 npm rc.15。
+PR #7 已合入 main，合并提交 `ac6456460ad641a802674a3123a6d99e6f6af3ea`。插件 `0.3.0-rc.17` 精确依赖已公开的共享核心 `0.5.7-rc.84` 与可选千灯纪包 `0.5.0-rc.22`。核心登录修复提交 `f8c09b2436f9a2ef04da3924ad5fccd715553475` 保留在主干。
 
-rc.16 的默认 pnpm 安装发现服务器包另行解析旧核心，候选未发布。rc.17 通过服务器包的 peer 依赖复用宿主核心，保留旧候选与失败证据。
+[rc.17 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 与 npm 均可匿名下载，归档 SHA256 为 `768dfd8fbd096667285803a63c5bd6ef7431c8a9e51d831a79606f28e70113cb`，与经过测试的候选字节完全一致，npm latest 指向 rc.17。[最终 registry 验收](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/npm-registry-verification.json)和[公开 GitHub 下载验收](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/github-release-verification.json)分别留存。归档内的候选文档为构建时快照，不覆盖或重新打包同一版本。
+
+rc.16 因默认安装产生两份核心而未发布。rc.17 消费服务器包 rc.22 的 peer 核心契约，默认安装共用宿主核心。旧候选和失败证据保留。
+
+已有密码配置可续用，修复可信系统提示中的 /login 请求、标准成功和会话续用回执；不自动注册。超时文本区分未识别请求、凭据读取中和已提交等待确认。详见[AuthMe 登录说明](authme-login.md)。首次配置、游戏画面、原生推理与工具会话和实验页均保留；前端运行文件与 rc.15 完全相同。
+
+登录修复在核心 rc.83 的 2035 项回归通过、1 项可选跳过；当前消费 rc.84，服务器端 276 项与类型检查通过。官方 DSH 0.2.1-rc.2 / rc.3 各 125 项通过。两版均从匿名 npm 公开版本完成默认 pnpm 安装与真实主进程/Worker 验证，加载 37 个 MCP 工具，独立引擎 IPC、游戏记忆和物理试验初始化通过，共用同一物理核心。未覆盖宿主、手工软链接或关闭包管理器保护。Java 1.21.1 协议测试使用真实私有配置走 SDK/MCP，模拟 AuthMe 首次登录和会话续用；未启动实际 AuthMe/Paper 插件，未验证实服游玩或 Desktop 原生像素，没有外部模型调用和现役重载。
 
 ## rc.15：首次配置与原生决策会话（npm / GitHub 已公开）
 
