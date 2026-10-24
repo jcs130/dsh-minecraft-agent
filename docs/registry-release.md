@@ -1,11 +1,10 @@
 # Registry 分发记录
 
-## rc.17：AuthMe 与单一核心依赖（候选）
+## rc.17：AuthMe 与单一核心依赖（GitHub 已公开，npm 待认证）
 
 共享核心的 AuthMe 修复已合入主干 `f8c09b2436f9a2ef04da3924ad5fccd715553475`，版本为 `0.5.7-rc.83`。
 适配器候选 `0.3.0-rc.17` 更新核心 rc.84 与服务器包 rc.22 依赖，并增加侧栏配置到真实 Java 1.21.1 协议测试世界的 SDK/MCP 回归。
-修复与验证范围见 [AuthMe 登录说明](authme-login.md)。核心与插件 npm 分发仍待完成，
-市场继续保持已公开的 rc.15，不把源码提交当作已发布或现役已加载。
+修复与验证范围见 [AuthMe 登录说明](authme-login.md)。核心 rc.84 与服务器包 rc.22 已匿名公开并核对原归档。PR #7 合并提交 ac6456460ad641a802674a3123a6d99e6f6af3ea，插件 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 已公开；匿名归档与候选一致，两版默认依赖安装及公开 GitHub URL 的默认安装通过。插件 npm 发布仍待独立认证，市场保持 npm rc.15。
 
 rc.16 的默认 pnpm 安装发现服务器包另行解析旧核心，候选未发布。rc.17 通过服务器包的 peer 依赖复用宿主核心，保留旧候选与失败证据。
 

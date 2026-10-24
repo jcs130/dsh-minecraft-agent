@@ -1,5 +1,7 @@
 # 安装 DSH Minecraft Agent
 
+> rc.17 已在 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17) 公开：修复 AuthMe 登录，并与服务器包 rc.22 共用一份 rc.84 核心。匿名下载和默认 DSH 安装通过；插件 npm 发布仍待独立认证，npm latest 暂为 rc.15。现在可安装 Release 中的公开归档。
+
 [rc.15 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 已公开，提供首次配置表单和游戏旁的原生决策会话。npm rc.15 已公开且 `latest` 指向该版；新安装使用下方固定 npm 版本。邀请接入步骤见[指南](docs/qiandengji-invitation.md)，渠道状态见[发布记录](docs/registry-release.md)。
 
 > rc.15 在未经修补的官方 DSH 0.2.1-rc.2 / rc.3 中通过默认安装验证，无需执行 doctor。发行归档包含构建后的前端和适配器。实现和曾手工修复安装的回滚见[兼容指南](docs/DSH-COMPAT.md)。

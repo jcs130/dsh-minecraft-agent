@@ -2,13 +2,15 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.17",
   "publication": {
-    "status": "candidate",
+    "status": "github-published-npm-authentication-pending",
     "registryPublished": false,
-    "githubPublished": false,
+    "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.15",
     "marketVersion": "0.3.0-rc.15",
     "latestNpmVersion": "0.3.0-rc.15",
-    "updatedAt": "2026-10-24T10:46:26.543Z"
+    "updatedAt": "2026-10-24T11:28:21.862Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.17",
+    "mergedCommit": "ac6456460ad641a802674a3123a6d99e6f6af3ea"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -65,8 +67,8 @@
       "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.22.tgz",
       "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
       "integrity": "sha512-/3+nF8q+FTDRrgq+QS+lc4/2bocHNN3M1YOQzjtpx2QI+xsbjM0I/CYH6MRW29mZh88W2Rqbc1FDuYGaSvfJsQ==",
-      "published": false,
-      "registryPublished": false,
+      "published": true,
+      "registryPublished": true,
       "artifactFile": "agent-mc-qiandengji-0.5.0-rc.22.tgz",
       "peerCore": "^0.5.7-rc.84"
     }
@@ -123,6 +125,8 @@
       "passed": 276,
       "failed": 0,
       "skipped": 0
-    }
+    },
+    "publishedGithubArchiveDefaultInstallVerified": true,
+    "publicInstallVerification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.17/github-stable-01.json"
   }
 }
