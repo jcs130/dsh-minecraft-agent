@@ -2,13 +2,24 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.22",
   "publication": {
-    "status": "unpublished-candidate",
-    "githubPublished": false,
-    "registryPublished": false,
+    "status": "published-npm-and-github",
+    "githubPublished": true,
+    "registryPublished": true,
     "previousPublishedVersion": "0.3.0-rc.21",
-    "latestNpmVersion": "0.3.0-rc.21",
-    "marketVersion": "0.3.0-rc.21",
-    "updatedAt": "2026-10-25T14:21:39.809Z"
+    "latestNpmVersion": "0.3.0-rc.22",
+    "marketVersion": "0.3.0-rc.22",
+    "updatedAt": "2026-10-25T15:47:27.990Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22",
+    "mergedCommit": "1c65895a8e8cc6e6c67491b3f634824d1c074952",
+    "verification": "docs/npm-publish-rc22.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.22.tgz",
+      "sha256": "026a8c4eb86bb7d09ff91b6faac46eee67b447885ad0ebac1539dde450f7b68b",
+      "integrity": "sha512-7jhBf1SGR35DGb3rimplY5V+OcJffY9XcFd50gvb9HwbpBs3uiuLlKcB8iY1Kj8xNdif6TmGvoUsmim8Red0SQ==",
+      "bytes": 679333,
+      "publishedAt": "2026-10-25T15:43:02.978Z"
+    },
+    "communityMarketplaceStatus": "pull-request-pending-independent-review"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -46,15 +57,20 @@
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
       "commit": "340d2afad4cebf62194cd8efcc7755ebe2894900",
-      "sourceStatus": "committed-feature-branch",
+      "sourceStatus": "committed-on-remote-main",
       "version": "0.5.7-rc.89",
       "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.89.tgz",
       "sha256": "9fa8f2eb7fff6dcc50b0b7498757a7ab1372071f351bed755341575f3d41a99b",
       "integrity": "sha512-bsA3+jpbm+tXcEJaQXn/coXqj2q1kxfdLnI0mxHlSWLzMty+hpduGiYPMZHySWNHlIrWyAJC/ZEIkciX1bCmJA==",
-      "published": false,
-      "registryPublished": false,
+      "published": true,
+      "registryPublished": true,
       "artifactFile": "agent-mc-world-0.5.7-rc.89.tgz",
-      "githubPublished": false
+      "githubPublished": true,
+      "publishedAt": "2026-10-25T15:35:49.086Z",
+      "mergedCommit": "8b5e92931fdf9f9068bd4a0a2d6da4e0574d1941",
+      "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.89",
+      "finalVerifiedSourceCommit": "8b7c800ca5734b5bdbce4691be8c97570a1960db",
+      "archiveBytesPreserved": true
     },
     {
       "role": "server-pack",
@@ -182,9 +198,9 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-source-hosts-and-packed-core; final-adapter-archive-verified-separately",
-    "verification": "docs/viewer-compatible-20261025.json",
-    "publicRegistryInstallVerified": false,
+    "status": "passed-public-registry-and-official-dsh-installation",
+    "verification": "docs/npm-publish-rc22.json",
+    "publicRegistryInstallVerified": true,
     "sourceTestsPerHost": 150,
     "skippedPerHost": 1,
     "stockDshVersions": [
@@ -192,7 +208,9 @@
       "0.2.1-rc.3"
     ],
     "sharedPhysicalCore": true,
-    "productionChanged": false
+    "productionChanged": false,
+    "defaultRegistryInstallVerified": true,
+    "runtimeFilesCompared": 18
   },
   "previousPublication": {
     "status": "published-npm-and-github",
@@ -355,5 +373,27 @@
     "mainWorkerAndEngineReferenceQueries": true,
     "productionChanged": false,
     "githubVerification": "docs/github-publish-rc21.json"
+  },
+  "rc22BuildPublication": {
+    "status": "unpublished-candidate",
+    "githubPublished": false,
+    "registryPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.21",
+    "latestNpmVersion": "0.3.0-rc.21",
+    "marketVersion": "0.3.0-rc.21",
+    "updatedAt": "2026-10-25T14:21:39.809Z"
+  },
+  "rc22BuildValidation": {
+    "status": "passed-source-hosts-and-packed-core; final-adapter-archive-verified-separately",
+    "verification": "docs/viewer-compatible-20261025.json",
+    "publicRegistryInstallVerified": false,
+    "sourceTestsPerHost": 150,
+    "skippedPerHost": 1,
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "sharedPhysicalCore": true,
+    "productionChanged": false
   }
 }

@@ -1,8 +1,8 @@
 # DSH Minecraft Agent
 
-**rc.22 修复候选：**没有对应版本的预制材质时自动显示兼容画面，普通用户无需手工准备资源；缺失的新素材局部占位。见[默认体验与验证](docs/viewer-compatible-20261025.md)。本轮 npm / GitHub 状态见[分发记录](docs/registry-release.md)，下文 rc.21 为此前已公开版本。
+**[0.3.0-rc.22](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，`latest` 指向 rc.22，精确依赖核心 **0.5.7-rc.89**。没有对应版本的预制材质时，自动显示兼容画面；缺失的新素材局部占位，普通用户无需手工准备资源。见[默认体验与验证](docs/viewer-compatible-20261025.md)。
 
-**[0.3.0-rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，`latest` 指向 rc.21，精确依赖核心 **0.5.7-rc.88**。两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 安装、主进程／Worker 和知识库查询通过，见[npm 分发验收](docs/npm-publish-rc21.json)。
+两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 公开 registry 安装、主进程／Worker、37 个 MCP 工具和真实本地知识库查询通过，见[npm 分发验收](docs/npm-publish-rc22.json)。匿名下载与原 GitHub 验收归档字节一致。
 
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 
@@ -18,7 +18,7 @@
 
 ## 当前版本
 
-**0.3.0-rc.21 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.88**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.21。主维护 Minecraft Java 1.21.1，网页资源按实际协议匹配。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.22 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.89**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.22。主维护 Minecraft Java 1.21.1，连接协议默认 auto，网页缺少精确材质时自动兼容。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -26,7 +26,7 @@
 
 ## 配置
 
-- Node.js 24，在 DSH 中配置并选择默认模型。安装 rc.19 后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
+- Node.js 24，在 DSH 中配置并选择默认模型。安装插件后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
 - 协议默认 `auto`，交给 Mineflayer 识别服务器，也可显式指定 1.21.11 等受支持版本；正版首次连接需微软授权。已有登录服账号可在可选设置填 `/login` 密码，插件不自动注册账号。千灯纪邀请身份请沿用[专用接入流程](docs/qiandengji-invitation.md)，不能绕过激活直接建号。
 - 首次配置保存在当前 DSH profile 的私有目录；同一服务器与身份续用自己的数据和会话，不同身份隔离。**停止并配置**先正常停止本插件的身体，保留目标、会话与记忆，然后允许修改。停止意图会持久化，重启不会擅自恢复。
 - 高级部署仍可将 mc-harness 的 configFile 指向私有 JSON，显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。该路径不受首次配置覆盖。
