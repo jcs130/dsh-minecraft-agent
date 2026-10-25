@@ -1,5 +1,11 @@
 # Registry 分发记录
 
+## rc.22：没有精确预制包时自动使用兼容画面（发布候选）
+
+锁定核心 rc.89，自动复用可用材质并保持真实连接版本的编号，新素材局部占位，普通用户无需准备资源。提示词与 MCP 指南同步，精确材质作为可选增强。旧缓存可回退到包内素材，刷新画面不重新登录；原生模组渲染保留独立严格契约。可选音频命令的帮助页不再加载完整游戏引擎。
+
+两版官方 DSH 各 150 项通过、1 项既有可选跳过；打包核心的空缓存回退、351 公开声明、完整构建与浏览器夹具通过，见[候选验收](viewer-compatible-20261025.json)及[行为说明](viewer-compatible-20261025.md)。最终插件归档、GitHub、npm 和默认 registry 安装状态由 Release 验收附件分别确认；当前已公开 npm 仍为 rc.21。未重启现役服务或调用游戏模型。
+
 ## rc.21：MineDojo 本地知识库（npm / GitHub 已公开）
 
 [插件 rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 与[核心 rc.88](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.88) 已在 npm 公开，分别使用 latest 与 next 标签。本仓库市场入口同步 rc.21；社区市场审核状态单独跟踪。匿名下载字节、SHA256、SHA512 与原验收 GitHub 归档一致，见[npm 分发记录](npm-publish-rc21.json)。
