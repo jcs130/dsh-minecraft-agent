@@ -1,8 +1,8 @@
 # DSH Minecraft Agent
 
-**rc.20 source candidate:** exact 1.21.5 resources, shared identical images, vanilla server player skins, public-chat wake defaults and configurable particles/weather/visual cues, consuming core rc.87. See [viewer resources and chat](docs/viewer-resources-chat.md). Publication is verified separately; rc.19 below is the previous public release.
+**rc.22 source candidate:** automatically reuse compatible vanilla materials when an exact prebuilt pack is absent. Actual connection IDs are preserved and new missing materials remain visible placeholders. Users can connect without building resources. See [compatible-viewer verification](docs/viewer-compatible-20261025.md); distribution is recorded separately from source.
 
-[0.3.0-rc.19 is published](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) on GitHub and npm, selected by `latest`, with exact core **0.5.7-rc.86**. Default public registry installation and real main/Worker checks passed on unmodified official DSH 0.2.1-rc.2 and rc.3.
+[0.3.0-rc.21 is the previous published version](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) on GitHub and npm, with exact core **0.5.7-rc.88**. Default public registry installation and real main/Worker checks passed on unmodified official DSH 0.2.1-rc.2 and rc.3.
 
 Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from the Minecraft settings page. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect the own web avatar only. Existing game, native reasoning/tools, metrics and experiment views remain available. See [configuration and notebook](docs/character-notebook.md), [installation](README-INSTALL.md) and [public verification](docs/npm-publish-rc19.json).
 
@@ -12,7 +12,7 @@ Published archives retain their reviewed bytes. Candidate flags inside the archi
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The npm and GitHub release is **0.3.0-rc.19**, consuming core **0.5.7-rc.86** and optional server pack **0.5.0-rc.22**. npm latest and this repository’s market index select rc.19. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
+The rc.22 source consumes core **0.5.7-rc.89** and optional server pack **0.5.0-rc.22**. Java **1.21.1** is primary, with explicit **1.20.6** compatibility coverage. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
 
 The default lean tool set now retains `*_script` for on-demand shared routine and method discovery; explicit `tools.exclude` is respected.
 

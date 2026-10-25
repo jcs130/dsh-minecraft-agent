@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+**rc.22 修复候选：**没有对应版本的预制材质时自动显示兼容画面，普通用户无需手工准备资源；缺失的新素材局部占位。见[默认体验与验证](docs/viewer-compatible-20261025.md)。本轮 npm / GitHub 状态见[分发记录](docs/registry-release.md)，下文 rc.21 为此前已公开版本。
+
 **[0.3.0-rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，`latest` 指向 rc.21，精确依赖核心 **0.5.7-rc.88**。两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 安装、主进程／Worker 和知识库查询通过，见[npm 分发验收](docs/npm-publish-rc21.json)。
 
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
