@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-**rc.21 candidate:** 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)，通过核心 rc.88 的 `mc_knowledge` 复用全文、CPU 词元向量和来源说明。先显式准备索引，再填写路径并离线检查；不下载完整语料、不启动模型或游戏。原版攻略和个人笔记保持各自来源。
+**[rc.21 GitHub 预发行](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21)已公开**：新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)，通过核心 rc.88 的 `mc_knowledge` 复用全文、CPU 词元向量和来源说明。先显式准备索引，再填写路径并离线检查；不捆绑完整语料、不启动模型或游戏。[归档验收](docs/github-publish-rc21.json)已通过，两版官方 DSH 各 150 项通过。**npm rc.21／核心 rc.88 尚待发布认证，默认安装与市场仍为 rc.19。**
 
 **[rc.20 GitHub 预发行](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20)已公开**，修复已完成目标阻挡配置新目标、独立新会话无效的问题，连接页增加会话重置，并补充已有生存攻略、步骤脚本与历史经验的决策提示；包含 1.21.5 画面、跨版本资源复用、原版服务端玩家皮肤、公屏默认接收和独立特效开关。见[目标与会话](docs/goal-session-reset.md)、[生存资料](docs/survival-decision.md)、[网页资源与聊天](docs/viewer-resources-chat.md)。核心 rc.87 同步有 GitHub Release；**npm rc.20／核心 rc.87 仍未公开，默认安装与市场继续使用下方 rc.19，不包含这些新修复**。分发证据见[rc.20 记录](docs/github-publish-rc20.json)。
 

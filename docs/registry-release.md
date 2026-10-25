@@ -1,5 +1,13 @@
 # Registry 分发记录
 
+## rc.21：MineDojo 本地知识库（GitHub 已公开，npm 待认证）
+
+[插件 rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 与[核心 rc.88](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.88) 已公开；匿名归档分别与验收 SHA256 `23eceb75189cb19f7144600f0d20edddde27051888d0db72f78145e8ad96c45c` 和 `56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573` 一致。核心合并 `fe7732611f9fcb7cdf6218bc63cdcc7e72362d2b`，插件合并 `5e51924d9fb8642ce6d8cd345a691f4961431934`；来源与归档证据见[公开记录](github-publish-rc21.json)。本次 npm 核心发布的网页认证等待返回 E404，未确认发布；npm／市场仍保持 rc.19，不将 GitHub 分发当作默认 registry 安装完成。
+
+知识索引代码、CLI、全文／CPU 词元向量、可选 embeddings 与只读 SDK/MCP 位于通用核心；插件仅配置路径、显示离线检查结果，并提示 Agent 按来源查询历史资料。[使用说明](minedojo-knowledge.md)。语料、数据库和派生向量不随包分发，CPU 词元相似度不冒充神经模型。真实 22 页／570 片段的 32 个固定问题中有 28 个目标页面，28 个均进前 5，另 4 个缺页保留；不据此声称完整 Wiki 的准确率或游戏成功率。
+
+核心最终 2079 项通过、1 项既有跳过，349 公开声明、完整构建及 GitHub 5 项 CI 通过；两版官方 DSH 各 150 项通过、1 项既有可选跳过。新归档正常 npm 解析、15 个运行文件 SHA 一致，主进程／Worker／编译引擎 MCP 的真实资料查询、目标日志与共享物理核心通过；索引哈希不变，框架文件未改。无模型调用、真实游戏连接或现役重载。默认公开 pnpm 安装待 npm 发布后另验；发行字节保持不变，包内 publication 是构建时快照。
+
 ## rc.20：目标恢复、新会话、生存资料与可视化（GitHub 已公开，npm 待发布）
 
 [rc.20 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20) 与[核心 rc.87 Release](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.87) 已公开，匿名下载归档与已验收字节完全一致。插件 SHA256 为 `12410168f9d37057e4bd64475f756c3cf525f2d11323147e877f837309500481`，核心为 `8b5da0a1c0ab27758521da4676accdce7a2d29ff7add8ba4085898b0df33a286`。目标／会话修复合并提交 `b9af814cc637bde33291244dd1e4bc7d73278ee0`；可视化部分此前已合并。见[公开分发证据](github-publish-rc20.json)。
