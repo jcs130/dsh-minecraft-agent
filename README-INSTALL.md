@@ -1,24 +1,16 @@
 # 安装 DSH Minecraft Agent
 
-最新 GitHub 预发行是 [rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21)，含 MineDojo 本地知识索引配置、离线检查以及 rc.20 的目标／会话与可视化修复。核心 rc.88 与插件归档均已验收并匿名校验。**本次 npm 网页认证等待已过期，两包尚未公开，默认 registry 安装仍用下方 rc.19，不含这些新功能。**本地归档消费通过不等于 DSH 默认 pnpm 安装通过。见[rc.21 分发记录](docs/github-publish-rc21.json)与[知识库说明](docs/minedojo-knowledge.md)。
-
-新增 [rc.20 GitHub 预发行](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20)，包含目标／会话、生存资料决策提示和可视化修复。插件 rc.20 与核心 rc.87 的归档均已匿名校验；两包尚未在 npm 公开，因此不能把 rc.20 GitHub 地址直接当作已通过的 DSH 默认安装。本轮仅在独立消费端同时安装两个本地归档后验证官方主进程／Worker。下面仍提供已公开的 rc.19 默认安装；它不含 rc.20 修复。见[当前分发记录](docs/registry-release.md)。
-
-[rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，latest 与本仓库市场入口均指向 rc.19。包含角色、皮肤、服务器笔记、网页画面和游戏旁的原生决策会话；精确依赖核心 agent-mc-world@0.5.7-rc.86，可选千灯纪包保持 rc.22。
+当前 npm `latest` 与 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 均为 **0.3.0-rc.21**，精确依赖核心 **0.5.7-rc.88**，可选千灯纪包保持 rc.22。包含 MineDojo 本地知识索引配置／离线检查，以及配置目标、独立新会话和可视化修复。见[知识库准备](docs/minedojo-knowledge.md)；语料和索引需要用户显式准备，不随插件捆绑。
 
 在目标 DSH profile 安装：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.19 --registry=https://registry.npmjs.org
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.21 --registry=https://registry.npmjs.org
 ```
 
-也可使用与 npm 字节一致的固定 GitHub 归档：
+需要 Node.js 24。未修改的官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 从公开 registry 安装、真实主进程／Worker、SDK/MCP 和真实本地知识库查询；可选服务器包共用同一份核心。没有 override、手工链接或宿主补丁。见[npm 验收](docs/npm-publish-rc21.json)和[Release 附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.21/npm-registry-verification.json)。
 
-```sh
-dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz --registry=https://registry.npmjs.org
-```
-
-需要 Node.js 24。官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 从公开 npm 与 GitHub 归档安装、真实主进程/Worker、SDK/MCP 与一份物理核心检查；未放宽保护或修改宿主。归档 SHA256 4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e，与验收候选相同。见[npm 分发证据](docs/npm-publish-rc19.json)和[GitHub 分发证据](docs/github-publish-rc19.json)及[Release 验收附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/npm-registry-verification.json)。包内候选状态是构建时快照，不重新打包同一版本。
+npm 与 GitHub 原归档 SHA256 均为 `23eceb75189cb19f7144600f0d20edddde27051888d0db72f78145e8ad96c45c`，核心为 `56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573`。发行字节不重打包，包内候选状态保留为构建时快照。当前验收覆盖上述 registry 安装；此前 GitHub 先行发行的历史见[分发记录](docs/registry-release.md)。
 
 安装后复用 DSH 模型，侧栏打开 Minecraft 填服务器与角色。协议默认 auto，已验证 1.21.11 原版服，普通服务器无需密码；安装本身不连接游戏或调用模型。见[角色与笔记](docs/character-notebook.md)、[快速接入](docs/quick-start.md)、[登录说明](docs/authme-login.md)及[发布记录](docs/registry-release.md)。原生 Desktop 窗口与长期模型表现仍单独验收。
 

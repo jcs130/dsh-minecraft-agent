@@ -1,12 +1,14 @@
 # Registry 分发记录
 
-## rc.21：MineDojo 本地知识库（GitHub 已公开，npm 待认证）
+## rc.21：MineDojo 本地知识库（npm / GitHub 已公开）
 
-[插件 rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 与[核心 rc.88](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.88) 已公开；匿名归档分别与验收 SHA256 `23eceb75189cb19f7144600f0d20edddde27051888d0db72f78145e8ad96c45c` 和 `56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573` 一致。核心合并 `fe7732611f9fcb7cdf6218bc63cdcc7e72362d2b`，插件合并 `5e51924d9fb8642ce6d8cd345a691f4961431934`；来源与归档证据见[公开记录](github-publish-rc21.json)。本次 npm 核心发布的网页认证等待返回 E404，未确认发布；npm／市场仍保持 rc.19，不将 GitHub 分发当作默认 registry 安装完成。
+[插件 rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 与[核心 rc.88](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.88) 已在 npm 公开，分别使用 latest 与 next 标签。本仓库市场入口同步 rc.21；社区市场审核状态单独跟踪。匿名下载字节、SHA256、SHA512 与原验收 GitHub 归档一致，见[npm 分发记录](npm-publish-rc21.json)。
 
-知识索引代码、CLI、全文／CPU 词元向量、可选 embeddings 与只读 SDK/MCP 位于通用核心；插件仅配置路径、显示离线检查结果，并提示 Agent 按来源查询历史资料。[使用说明](minedojo-knowledge.md)。语料、数据库和派生向量不随包分发，CPU 词元相似度不冒充神经模型。真实 22 页／570 片段的 32 个固定问题中有 28 个目标页面，28 个均进前 5，另 4 个缺页保留；不据此声称完整 Wiki 的准确率或游戏成功率。
+两版未修改官方 DSH 0.2.1-rc.2 / rc.3 通过默认 pnpm registry 安装、15 个运行文件比对、共享物理核心、主进程／Worker／编译引擎和真实本地知识库查询。没有关闭安装保护、override、手工链接、修改宿主、调用游戏模型或重载现役服务。
 
-核心最终 2079 项通过、1 项既有跳过，349 公开声明、完整构建及 GitHub 5 项 CI 通过；两版官方 DSH 各 150 项通过、1 项既有可选跳过。新归档正常 npm 解析、15 个运行文件 SHA 一致，主进程／Worker／编译引擎 MCP 的真实资料查询、目标日志与共享物理核心通过；索引哈希不变，框架文件未改。无模型调用、真实游戏连接或现役重载。默认公开 pnpm 安装待 npm 发布后另验；发行字节保持不变，包内 publication 是构建时快照。
+知识索引实现、来源说明和只读 SDK/MCP 位于通用核心，插件只配置与展示。语料、数据库和派生向量不随包分发；CPU 词元向量属于词面检索。见[准备与查询](minedojo-knowledge.md)。真实 22 页／570 片段的 32 个固定问题中，28 个有目标页面且全部进入前 5，4 个缺页保留；不能据此声称完整 Wiki 或长期自主游戏效果。神经模型质量未实测。
+
+核心最终 2079 项通过、1 项既有跳过，349 公开声明、完整构建与 GitHub 5 项 CI 通过；两版 DSH 各 150 项通过、1 项既有可选跳过。此前 GitHub 先行分发与过期认证记录保留在[历史快照](github-publish-rc21.json)。本次原归档和旧附件保持不变，新增 npm 验收附件并更新主干文档，不重打包同一版本。源码合并、npm 发行和现役部署分别记录。
 
 ## rc.20：目标恢复、新会话、生存资料与可视化（GitHub 已公开，npm 待发布）
 

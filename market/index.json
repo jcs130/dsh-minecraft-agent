@@ -40,10 +40,10 @@
         "zh": "我的世界 Agent"
       },
       "description": {
-        "en": "Minecraft Agent with editable personas, local skins, a shared versioned server notebook, offline retrieval and native DSH reasoning/tools. Mineral queries default off; installation starts no game or model.",
-        "zh": "Minecraft Agent：角色与皮肤配置、服务器随身笔记和离线检索，游戏与 DSH 原生推理/工具并排显示。矿透默认关闭；安装不启动游戏或模型。"
+        "en": "Minecraft Agent with local MineDojo knowledge indexes, editable personas, server notebooks, viewer controls and native DSH reasoning/tools. Explicit local data preparation; installation starts no game or model.",
+        "zh": "Minecraft Agent：MineDojo 本地知识库、角色与服务器笔记、可配置画面及 DSH 原生推理/工具。资料显式准备，安装不启动游戏或模型。"
       },
-      "icon": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/6e283ee2b5abf0974196094e2e1c71f05b738ce2/assets/icon.svg",
+      "icon": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/5e51924d9fb8642ce6d8cd345a691f4961431934/assets/icon.svg",
       "author": "jcs130",
       "homepage": "https://github.com/jcs130/dsh-minecraft-agent#readme",
       "repository": {
@@ -68,13 +68,16 @@
           "qiandengji",
           "notebook",
           "persona",
-          "local-skin"
+          "local-skin",
+          "minedojo",
+          "knowledge-base",
+          "survival"
         ]
       },
       "versions": [
         {
-          "version": "0.3.0-rc.19",
-          "publishTimestamp": 1792897341,
+          "version": "0.3.0-rc.21",
+          "publishTimestamp": 1792915769,
           "source": {
             "type": "npm",
             "registry": "https://registry.npmjs.org"

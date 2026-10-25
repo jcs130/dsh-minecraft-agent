@@ -1,16 +1,14 @@
 # DSH Minecraft Agent
 
-**[rc.21 GitHub 预发行](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21)已公开**：新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)，通过核心 rc.88 的 `mc_knowledge` 复用全文、CPU 词元向量和来源说明。先显式准备索引，再填写路径并离线检查；不捆绑完整语料、不启动模型或游戏。[归档验收](docs/github-publish-rc21.json)已通过，两版官方 DSH 各 150 项通过。**npm rc.21／核心 rc.88 尚待发布认证，默认安装与市场仍为 rc.19。**
+**[0.3.0-rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，`latest` 指向 rc.21，精确依赖核心 **0.5.7-rc.88**。两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 安装、主进程／Worker 和知识库查询通过，见[npm 分发验收](docs/npm-publish-rc21.json)。
 
-**[rc.20 GitHub 预发行](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20)已公开**，修复已完成目标阻挡配置新目标、独立新会话无效的问题，连接页增加会话重置，并补充已有生存攻略、步骤脚本与历史经验的决策提示；包含 1.21.5 画面、跨版本资源复用、原版服务端玩家皮肤、公屏默认接收和独立特效开关。见[目标与会话](docs/goal-session-reset.md)、[生存资料](docs/survival-decision.md)、[网页资源与聊天](docs/viewer-resources-chat.md)。核心 rc.87 同步有 GitHub Release；**npm rc.20／核心 rc.87 仍未公开，默认安装与市场继续使用下方 rc.19，不包含这些新修复**。分发证据见[rc.20 记录](docs/github-publish-rc20.json)。
+新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 
-[0.3.0-rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向 rc.19。精确依赖核心 **0.5.7-rc.86**；默认安装已在未修改的官方 DSH 0.2.1-rc.2 / rc.3 验证。
+包含[配置目标恢复与独立新会话](docs/goal-session-reset.md)、[生存攻略和步骤](docs/survival-decision.md)、[跨版本画面、原版玩家皮肤、公屏与特效开关](docs/viewer-resources-chat.md)。保留游戏旁的 DSH 原生推理／回答／工具会话、指标和实验室。
 
-新增[角色、感知、皮肤、服务器笔记与 DSH 插件配置](docs/character-notebook.md)。三个人格预设可编辑，矿物透视默认关闭；用户和 Agent 共用按服务器、账号与维度隔离的版本化笔记，默认提供离线 CPU 词元向量与关键词检索，也可接自有 embeddings。上传皮肤只影响本人本地网页画面，CPU 词元向量不冒充神经语义模型。
+[角色、皮肤与服务器笔记](docs/character-notebook.md)可配置三个人格预设，矿透默认关闭；用户和 Agent 共用按服务器、账号与维度隔离的轻量笔记与离线检索。安装后复用 DSH 模型，从 Minecraft 侧栏填服务器和角色即可连接；协议默认 auto，普通服务器无需密码。安装本身不连接游戏或启动模型。
 
-安装后复用 DSH 模型，从 Minecraft 侧栏填服务器和角色即可连接。版本默认 auto，网页画面按实际协议匹配，已验证 1.21.11 原版服；普通服无需密码，默认公屏聊天。原有游戏、原生推理/回答/工具会话、指标和实验室均保留。安装不连接游戏或启动模型。
-
-见[安装](README-INSTALL.md)、[配置与笔记](docs/character-notebook.md)、[分发验收](docs/npm-publish-rc19.json)及[发布记录](docs/registry-release.md)。公开归档保持已验收的原字节；包内候选状态是构建时快照，当前状态以 Release 附件和主干文档为准。
+见[安装](README-INSTALL.md)和[发布记录](docs/registry-release.md)。npm 与 GitHub 保持原验收归档字节，包内 publication 是构建时快照；当前分发以主干文档及 Release 新增验收附件为准。
 
 ## 核心归属
 
@@ -18,7 +16,7 @@
 
 ## 当前版本
 
-**0.3.0-rc.19 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.86**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.19。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.21 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.88**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.21。主维护 Minecraft Java 1.21.1，网页资源按实际协议匹配。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
