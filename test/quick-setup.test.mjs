@@ -118,8 +118,8 @@ test('profile can be saved without a model or connection; presets and offline CP
 });
 
 test('explicit preferences reach the shared core and disabled viewer starts no viewer port',async t=>{
-  const f=await fixture(t);await f.setup.configure({...input,mineralVision:true,viewerEnabled:false,toolProfile:'full'});await settled(f.setup);
-  const c=f.launches[0];assert.equal(c.minecraft.perception.mineralVision,true);assert.equal(c.minecraft.viewerPort,0);assert.equal(c.tools.profile,'full');
+  const f=await fixture(t);await f.setup.configure({...input,mineralVision:true,viewerEnabled:false,listenPublicChat:false,serverSkins:false,toolProfile:'full'});await settled(f.setup);
+  const c=f.launches[0];assert.equal(c.minecraft.perception.mineralVision,true);assert.equal(c.minecraft.viewerPort,0);assert.equal(c.tools.profile,'full');assert.equal(c.wake.publicChat,false);assert.equal(c.minecraft.remoteTextures,false);
   await f.setup.stop();await assert.rejects(f.setup.save({...input,mineralVision:'yes'}),/配置无效/);
   await assert.rejects(f.setup.save({...input,useLocalSkin:true}),/PNG/);
   await assert.rejects(f.setup.save({...input,skinPngBase64:'not png'}),/PNG/);

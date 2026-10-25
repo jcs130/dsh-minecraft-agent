@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+**rc.20 source candidate:** exact 1.21.5 resources, shared identical images, vanilla server player skins, public-chat wake defaults and configurable particles/weather/visual cues, consuming core rc.87. See [viewer resources and chat](docs/viewer-resources-chat.md). Publication is verified separately; rc.19 below is the previous public release.
+
 [0.3.0-rc.19 is published](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) on GitHub and npm, selected by `latest`, with exact core **0.5.7-rc.86**. Default public registry installation and real main/Worker checks passed on unmodified official DSH 0.2.1-rc.2 and rc.3.
 
 Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from the Minecraft settings page. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect the own web avatar only. Existing game, native reasoning/tools, metrics and experiment views remain available. See [configuration and notebook](docs/character-notebook.md), [installation](README-INSTALL.md) and [public verification](docs/npm-publish-rc19.json).

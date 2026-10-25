@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {NotebookView} from './notebook-view';
-const defaults={address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',personaPreset:'custom',personality:'',backstory:'',initialMemory:'',mineralVision:false,viewerEnabled:true,toolProfile:'lean',skinModel:'classic',useLocalSkin:false,notebookMode:'local-vector',embeddingEndpoint:'',embeddingModel:'',embeddingKeyEnv:'',dshPreset:'',newSession:false};
+const defaults={address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',personaPreset:'custom',personality:'',backstory:'',initialMemory:'',mineralVision:false,viewerEnabled:true,listenPublicChat:true,toolProfile:'lean',skinModel:'classic',useLocalSkin:false,notebookMode:'local-vector',embeddingEndpoint:'',embeddingModel:'',embeddingKeyEnv:'',dshPreset:'',newSession:false};
 const tabs=[['connection','连接'],['perception','感知与工具'],['persona','角色与皮肤'],['notebook','服务器笔记'],['plugins','DSH 插件']];
 export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(action:string,config?:any)=>Promise<any>;onBack?:()=>void}) {
   const [fields,setFields]=useState<any>(()=>({...defaults,...state.fields}));
@@ -38,8 +38,10 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
           <p className="mc-setup-footnote"><a href="https://github.com/jcs130/dsh-minecraft-agent/blob/main/docs/qiandengji-invitation.md" target="_blank" rel="noopener noreferrer">可选：千灯纪邀请接入</a></p></details>
       </>}
       {tab==='perception'&&<>
+        <label className="mc-toggle"><input type="checkbox" checked={fields.listenPublicChat} onChange={field('listenPublicChat')}/><span><strong>接收公屏聊天并判断是否回应</strong><small>默认开启。Agent 自行判断相关性，可在公屏 @人交流；关闭后仍会接收点名、私聊和危险消息。</small></span></label>
         <label className="mc-toggle"><input type="checkbox" checked={fields.mineralVision} onChange={field('mineralVision')}/><span><strong>矿物透视查询</strong><small>默认关闭。开启仅允许查询已加载、32 格内的遮挡矿物；不改变画面，也不放宽行动权限。关闭时依靠实际发现与笔记。</small></span></label>
         <label className="mc-toggle"><input type="checkbox" checked={fields.viewerEnabled} onChange={field('viewerEnabled')}/><span><strong>启用网页游戏画面</strong><small>关闭后仍可连接、执行任务并查看决策。</small></span></label>
+        <p className="mc-setup-footnote">进入画面后，在「画质与特效」中分别关闭粒子、波纹／光环／技能提示、雨雪和动态阴影；即时生效并保存在当前浏览器。</p>
         <label>游戏工具集<select value={fields.toolProfile} onChange={field('toolProfile')}><option value="lean">简洁目录 · 按需读取帮助</option><option value="full">完整目录</option></select></label><p className="mc-setup-footnote">实体视线、未加载区域和身体动作的安全检查保持生效。矿透开关不提供完整矿脉真值。</p>
       </>}
       {tab==='persona'&&<>
@@ -50,6 +52,7 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
         <label>初始记忆与偏好<textarea value={fields.initialMemory} onChange={field('initialMemory')} rows={3} maxLength={6000} placeholder="例如：喜欢探索洞穴；遇到新矿点要记下来。"/><small>这是主人提供的背景记忆；矿点、路线等现场记录请放到服务器笔记。</small></label>
         <div className="mc-skin-row">{preview&&<img className="mc-skin-preview" src={preview} alt="所选 PNG 皮肤纹理"/>}<div><label>上传角色皮肤<input type="file" accept="image/png" onChange={upload}/><small>64×64 或 64×32 PNG，最大 256 KiB。</small></label><label>手臂模型<select value={fields.skinModel} onChange={field('skinModel')}><option value="classic">宽臂</option><option value="slim">细臂</option></select></label><label className="mc-toggle"><input type="checkbox" checked={fields.useLocalSkin} onChange={field('useLocalSkin')}/><span>使用本地预览皮肤</span></label></div></div>
         <small>本地皮肤只影响本人网页画面；其他玩家所见由服务器或正版账号皮肤决定，不自动发送换肤命令。</small>
+        <label className="mc-toggle"><input type="checkbox" checked={fields.serverSkins!==false} onChange={field('serverSkins')}/><span><strong>同步服务端玩家皮肤</strong><small>默认开启。读取原版玩家资料，按 UUID 同步皮肤和手臂模型；本人本地皮肤优先。离线服没有提供皮肤资料时使用默认外观，不凭名字猜测。</small></span></label>
       </>}
       {tab==='plugins'&&<>
         <label>DSH 能力预设<select value={fields.dshPreset} onChange={field('dshPreset')}><option value="">仅 Minecraft 能力</option>{state.dshPresets?.map((p:any)=><option key={p.id} value={p.id} disabled={p.broken}>{p.name}{p.broken?'（不可用）':''}</option>)}</select></label>

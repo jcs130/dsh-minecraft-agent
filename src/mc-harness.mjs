@@ -15,7 +15,7 @@ import { applyGoalControl } from './harness-goal.mjs';
 import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
 import {composeMinecraftAgent,constrainMinecraftTools} from './harness-composition.mjs';
 import {conversationDirectory} from './profile-settings.mjs';
-import { compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
+import { configuredWake, compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
 
 prepareDshNativeStreams();
 const coreClient = await import('agent-mc-world/client');
@@ -425,10 +425,10 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
       if (events.events?.length) { recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
       // Wake only for events a person would interrupt for; everything else rides the next snapshot.
       const goalNow = currentGoal();
-      const wakeOn = config.wake?.on ?? (goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle);
+      const wakeOn = configuredWake(goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle,config.wake);
       // Events stamped before the goal closed belong to it; only idle-worthy ones may still wake.
       const important = (events.events ?? []).filter(e => classifyWake(e, { selfNames: wakeNames,
-        wakeOn: goalClosedAt && Date.parse(e.ts ?? '') <= goalClosedAt ? wakeSets.idle : wakeOn }).wake);
+        wakeOn: goalClosedAt && Date.parse(e.ts ?? '') <= goalClosedAt ? configuredWake(wakeSets.idle,config.wake) : wakeOn }).wake);
       wakeStats.seen += events.events?.length ?? 0; wakeStats.woken += important.length;
       inbox.add(important);
       inbox.flush(handle.agent, currentGoal(), paused || lifetime.signal.aborted, createUserMessage);
