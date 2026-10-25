@@ -1,5 +1,15 @@
 # Registry 分发记录
 
+## rc.20：目标恢复、新会话、生存资料与可视化（GitHub 已公开，npm 待发布）
+
+[rc.20 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20) 与[核心 rc.87 Release](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.87) 已公开，匿名下载归档与已验收字节完全一致。插件 SHA256 为 `12410168f9d37057e4bd64475f756c3cf525f2d11323147e877f837309500481`，核心为 `8b5da0a1c0ab27758521da4676accdce7a2d29ff7add8ba4085898b0df33a286`。目标／会话修复合并提交 `b9af814cc637bde33291244dd1e4bc7d73278ee0`；可视化部分此前已合并。见[公开分发证据](github-publish-rc20.json)。
+
+配置目标只在连接／重载时检查：没有目标，或 complete／blocked／paused 的旧目标文案不同，才用官方目标服务建立新目标；paused／blocked 先 clear 并持久化。active 目标不被替换，相同文案的终止目标不自动重建，同一会话的 `sessionKey` 不变。另提供独立的新会话与重置入口，保留账号、人设、皮肤、凭据、笔记及旧历史。Agent 可按需使用已有知识、步骤脚本和历史经验，未打包完整 MineDojo Wiki。详见[修复说明](goal-session-reset.md)、[资料入口](survival-decision.md)及[网页资源与聊天](viewer-resources-chat.md)。
+
+官方 DSH rc.2／rc.3 各 148 项通过、1 项既有外置 Harness2 可选跳过。隔离归档正常 npm 解析、15 个插件运行文件与源码一致，两个官方主进程／Worker、37 个 MCP 工具、离线引擎 IPC、记忆和打包后的原生目标日志通过；可选千灯纪包共用一份核心。核心沿用本轮 2068 项通过、1 项既有跳过及构建／声明／浏览器检查。本次无模型调用、真实游戏连接或现役重载，不声称已经测出长期自主收益。
+
+**npm rc.20 与核心 rc.87 仍为 404，公开 registry 的默认 DSH 安装未验证；npm latest 和市场仍为已公开 rc.19。**GitHub 发布不等于 npm 发布或市场同步。发行归档保持原字节；本次只更新主干分发记录，不重新打包同一版本。包内 `publication` 保留为构建时快照。
+
 ## rc.19：角色配置、服务器笔记与原版 1.21.11 画面（npm / GitHub 已公开）
 
 [rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 和 npm 均可匿名下载，latest 指向 rc.19。主干功能合并 6e283ee2b5abf0974196094e2e1c71f05b738ce2；归档 SHA256 为 4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e，与候选完全一致。核心 rc.86 的归档 SHA256 为 350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0，next 指向该版。公开分发与默认安装证据见 [npm-publish-rc19.json](npm-publish-rc19.json)，包内候选状态保留为构建时快照，不重新打包或覆盖同一版本。

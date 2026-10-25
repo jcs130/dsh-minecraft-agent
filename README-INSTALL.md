@@ -1,5 +1,7 @@
 # 安装 DSH Minecraft Agent
 
+新增 [rc.20 GitHub 预发行](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20)，包含目标／会话、生存资料决策提示和可视化修复。插件 rc.20 与核心 rc.87 的归档均已匿名校验；两包尚未在 npm 公开，因此不能把 rc.20 GitHub 地址直接当作已通过的 DSH 默认安装。本轮仅在独立消费端同时安装两个本地归档后验证官方主进程／Worker。下面仍提供已公开的 rc.19 默认安装；它不含 rc.20 修复。见[当前分发记录](docs/registry-release.md)。
+
 [rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，latest 与本仓库市场入口均指向 rc.19。包含角色、皮肤、服务器笔记、网页画面和游戏旁的原生决策会话；精确依赖核心 agent-mc-world@0.5.7-rc.86，可选千灯纪包保持 rc.22。
 
 在目标 DSH profile 安装：
