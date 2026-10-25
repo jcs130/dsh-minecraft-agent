@@ -76,6 +76,8 @@
     "docs/harness2.md",
     "docs/desktop.md",
     "docs/quick-start.md",
+    "docs/goal-session-reset.md",
+    "docs/survival-decision.md",
     "docs/authme-login.md",
     "docs/screenshots",
     "ui-verification-20261024.json",
@@ -108,7 +110,8 @@
     "bin/join-qiandengji.mjs",
     "docs/qiandengji-invitation.md",
     "profile-verification-20261025.json",
-    "viewer-resources-verification-20261025.json"
+    "viewer-resources-verification-20261025.json",
+    "goal-session-verification-20261025.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

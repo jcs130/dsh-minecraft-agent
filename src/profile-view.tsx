@@ -8,9 +8,10 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const opening=state.phase==='opening'||state.phase==='enabled';
   const field=(key:string)=>(e:any)=>setFields((v:any)=>({...v,[key]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
-  const action=async(kind:string)=>{if(busy)return;setBusy(true);setError('');setNotice('');
-    try { const value=await onAction(kind,kind==='save'||kind==='configure'?{...fields,...password?{loginPassword:password}:{},...skin?{skinPngBase64:skin}:{}}:undefined);
-      if(value?.fields)setFields({...defaults,...value.fields});if(kind==='save')setNotice('已保存，尚未连接游戏。');setSkin(undefined);
+  const action=async(kind:string,overrides:any={})=>{if(busy)return;setBusy(true);setError('');setNotice('');
+    const newSession=overrides.newSession??fields.newSession;
+    try { const value=await onAction(kind,kind==='save'||kind==='configure'?{...fields,...overrides,...password?{loginPassword:password}:{},...skin?{skinPngBase64:skin}:{}}:undefined);
+      if(value?.fields)setFields({...defaults,...value.fields});if(kind==='save')setNotice(newSession?'新会话已准备，当前会话的目标不再占位。旧会话、角色和服务器笔记已保留；尚未连接游戏。':'已保存，尚未连接游戏。');setSkin(undefined);
     }catch(e:any){setError(e.message||'操作未确认，请重试。');if(!fields.address||!fields.username)setTab('connection');}
     finally{setPassword('');setBusy(false);}};
   const upload=async(e:any)=>{const file=e.target.files?.[0];if(!file)return;setError('');
@@ -32,7 +33,9 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
       {tab==='connection'&&<>
         <label>服务器地址<input required value={fields.address} onChange={field('address')} placeholder="mc.example.com:25565" maxLength={300}/></label>
         <div className="mc-setup-row"><label>登录方式<select value={fields.auth} onChange={field('auth')}><option value="offline">离线身份</option><option value="microsoft">微软正版</option></select></label><label>{fields.auth==='microsoft'?'正版账号标识':'游戏角色名'}<input required value={fields.username} onChange={field('username')} maxLength={fields.auth==='microsoft'?254:16} autoComplete="off" placeholder="游戏账号，与角色显示名分开"/></label></div>
-        <label>第一次想让它做什么 <small>留空则先进入游戏</small><textarea value={fields.goal} onChange={field('goal')} rows={2} maxLength={3000}/></label>
+        <label>配置目标 <small>留空则先进入游戏；连接时，已结束、受阻或暂停的旧目标可由不同的新目标替换，进行中的目标保留。</small><textarea value={fields.goal} onChange={field('goal')} rows={2} maxLength={3000}/></label>
+        <label className="mc-toggle"><input type="checkbox" checked={fields.newSession} onChange={field('newSession')}/><span><strong>新建会话</strong><small>不继承旧会话目标与对话，保留角色、皮肤、账号和服务器笔记。正常保存与重连沿用会话；要重做已完成的同一目标，可勾选此项。</small></span></label>
+        {state.fields?.hasSession&&<button type="button" disabled={busy||opening} onClick={()=>action('save',{newSession:true})}>重置会话并保存配置</button>}
         <details><summary>协议与服务器登录密码</summary><label>Java 协议版本 <small>默认自动识别服务器</small><input value={fields.version} onChange={field('version')} placeholder="auto，例如 1.21.11" maxLength={32}/></label>
           <label>服务器 /login 密码 <small>普通服务器留空</small><input type="password" value={password} onChange={e=>setPassword(e.target.value)} maxLength={128} autoComplete="current-password" placeholder={state.fields?.hasLoginPassword?'已保存，留空沿用':'仅明确要求 /login 时填写'}/></label><small>未配置时不发送登录或注册命令。密码仅保存到当前 profile 的私有文件。</small>
           <p className="mc-setup-footnote"><a href="https://github.com/jcs130/dsh-minecraft-agent/blob/main/docs/qiandengji-invitation.md" target="_blank" rel="noopener noreferrer">可选：千灯纪邀请接入</a></p></details>
@@ -57,7 +60,7 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
       {tab==='plugins'&&<>
         <label>DSH 能力预设<select value={fields.dshPreset} onChange={field('dshPreset')}><option value="">仅 Minecraft 能力</option>{state.dshPresets?.map((p:any)=><option key={p.id} value={p.id} disabled={p.broken}>{p.name}{p.broken?'（不可用）':''}</option>)}</select></label>
         <p>复用已安装的记忆、搜索等 DSH 插件：先在 DSH 中组合成 Agent 能力预设，再在这里选择。</p><small>仅列出当前 DSH 已声明的预设，不安装插件，不修改全局配置。</small>
-        {state.fields?.hasSession&&fields.dshPreset!==state.fields.dshPreset&&<label className="mc-toggle"><input type="checkbox" checked={fields.newSession} onChange={field('newSession')}/><span>为新的能力预设新建会话<small>保留原会话、同一角色与游戏笔记；新会话不自动重放旧任务。</small></span></label>}
+        {state.fields?.hasSession&&fields.dshPreset!==state.fields.dshPreset&&<p role="status">更换能力预设需要在「连接」中勾选新建会话；旧会话和游戏笔记保留，旧任务不会自动重放。</p>}
         {state.dshPresets?.find((p:any)=>p.id===fields.dshPreset)?.description&&<p>{state.dshPresets.find((p:any)=>p.id===fields.dshPreset).description}</p>}
         <label style={{marginTop:20}}>内置服务器笔记检索<select value={fields.notebookMode} onChange={field('notebookMode')}><option value="local-vector">离线 CPU 词元向量 + 关键词</option><option value="local">仅关键词</option><option value="vector">自定义 embeddings 语义向量</option></select><small>本地笔记始终保留。内置 CPU 向量不下载模型，计算词元相似度，不冒充神经语义模型。</small></label>
         {fields.notebookMode==='vector'&&<><label>Embeddings 完整地址<input value={fields.embeddingEndpoint} onChange={field('embeddingEndpoint')} maxLength={1000} placeholder="http://127.0.0.1:端口/v1/embeddings"/></label><label>向量模型<input value={fields.embeddingModel} onChange={field('embeddingModel')} maxLength={200}/></label><label>密钥环境变量名<input value={fields.embeddingKeyEnv} onChange={field('embeddingKeyEnv')} maxLength={120} placeholder="可留空；不填写密钥本身"/></label><small>仅在显式记录、同步和查询笔记时调用该服务；故障回退关键词并报告。</small></>}

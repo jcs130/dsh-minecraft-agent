@@ -11,6 +11,7 @@ import { MinecraftAgentClient, MINECRAFT_CLIENT_DEFAULTS, nullLogger, withToolHe
 import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { HarnessBridge, MinecraftEventInbox, modelToolSchema } from '../src/harness-bridge.mjs';
 import { selectTools } from '../src/harness-budget.mjs';
+import { minecraftPlanningGuidance } from '../src/harness-composition.mjs';
 
 const require = createRequire(import.meta.url);
 test('installed core matches the adapter pin and exposes the authored-method lifecycle', async () => {
@@ -159,6 +160,37 @@ test('default DSH tools discover all shared routines through the packed SDK and 
     assert.equal(invalid.structuredContent.execution, null);
     await bridge.ended('original-routine-session', 2);
   } finally { await bridge.stop(); await server.close(); await removeFixture(dir); }
+});
+
+test('default DSH planner can retrieve bundled survival guides over packed MCP without a game connection or model',async()=>{
+  const { MinecraftWorld }=await import('agent-mc-world/extension');
+  const { readMinecraftKnowledge }=await import('agent-mc-world/client');
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-core-'));
+  const cfg={...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'offline.invalid',username:'KnowledgeQA',version:'1.21.1'};
+  const engine=new MinecraftWorld({cfg,dataDir:join(dir,'engine'),timezone:'UTC',botName:cfg.username});
+  let starts=0;
+  const runtime=new MinecraftAgentClient({cfg,dataDir:dir,log:nullLogger()}, {id:'knowledge-fixture',
+    tools:()=>withToolHelp(engine.tools(),'mc_tool_help'),envPromptVars:()=>({}),async start(){starts++;},async stop(){}});
+  const server=createMinecraftMcpServer(runtime,'knowledge-consumer',{catalog:'compact'}),client=new Client({name:'knowledge-consumer',version:'1'});
+  const [left,right]=InMemoryTransport.createLinkedPair();
+  try {
+    await server.connect(left);await client.connect(right);
+    const selected=selectTools((await client.listTools()).tools);
+    assert.ok(selected.some(tool=>tool.name==='mc_knowledge'));
+    assert.ok(selected.some(tool=>tool.name==='mc_script'));assert.ok(selected.some(tool=>tool.name==='mc_memory'));
+    assert.match(minecraftPlanningGuidance(selected),/mc_knowledge/);
+    const call=async args=>{const value=await client.callTool({name:'mc_knowledge',arguments:args});
+      assert.notEqual(value.isError,true,JSON.stringify(value));return JSON.parse(value.structuredContent.text);};
+    const entries=[];let offset=0;
+    do { const page=await call({action:'search',kind:'guide',limit:10,offset});entries.push(...page.entries);offset=page.nextOffset; } while(offset!==null);
+    for(const id of ['guide/bed','guide/night_shelter','guide/equipment','guide/base','guide/storage','guide/farming']) {
+      assert.ok(entries.some(entry=>entry.id===id),id+' must be discoverable');
+      const args={action:'get',id},value=await call(args);
+      assert.deepEqual(value,readMinecraftKnowledge(args,'1.21.1'));assert.equal(value.currentWorldVerified,false);
+      assert.equal(value.version,'1.21.1');assert.ok(value.entry.content.length>100);assert.ok(value.entry.sources.length>0);
+    }
+    assert.equal(starts,0);assert.equal(runtime.status().phase,'disconnected');
+  } finally { await runtime.disconnect();await server.close();await removeFixture(dir); }
 });
 
 test('shared method terminal wakes the DSH inbox once, while local steps and idle goals stay quiet', async () => {

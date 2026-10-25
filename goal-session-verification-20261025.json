@@ -1,0 +1,33 @@
+{
+  "schema": "dsh-mc-goal-session-verification/v1",
+  "adapterVersion": "0.3.0-rc.20",
+  "coreVersion": "0.5.7-rc.87",
+  "previousMain": "03b2d6317e39e0c3b47aaed3d75b68df2e418fb0",
+  "scope": "isolated host lifecycle, shipped UI handlers and packed-core MCP knowledge retrieval",
+  "officialHosts": [
+    {"version": "0.2.1-rc.2", "tests": 149, "passed": 148, "failed": 0, "skipped": 1},
+    {"version": "0.2.1-rc.3", "tests": 149, "passed": 148, "failed": 0, "skipped": 1}
+  ],
+  "skip": "existing optional external Harness2 integration",
+  "verified": [
+    "completed different goal is replaced and armed using the native DSH service",
+    "paused or blocked different goal is cleared durably before native create",
+    "active goal and identical settled goal are preserved",
+    "native journal restore retains old and new goal history",
+    "clear/create persistence errors surface; invalid budget cannot clear a goal",
+    "newSession true rotates independently of preset or old session file",
+    "ordinary save and restart keep the selected session key",
+    "reset preserves account, credentials, persona, notebook and old conversations",
+    "shipped UI button saves without connecting and requires the body stopped",
+    "default lean tools expose knowledge, scripts and notebook",
+    "six Java 1.21.1 survival guides are discoverable and readable through actual packed MCP",
+    "planning hints name only exposed tools and keep knowledge version and evidence limits"
+  ],
+  "modelCalls": 0,
+  "realGameConnections": 0,
+  "productionReloads": 0,
+  "frameworkFilesModified": false,
+  "fullMineDojoCorpusBundled": false,
+  "publication": "not implied by source tests; archive, GitHub and npm tracked separately",
+  "notVerified": ["live long-running autonomy", "gameplay survival rate", "native Desktop pixels"]
+}
