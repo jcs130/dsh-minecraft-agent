@@ -1,3 +1,33 @@
+/** Apply the owner's configured objective at an explicit activation boundary.
+ * Settled goals remain in the native journal: only a different owner-configured
+ * objective replaces them. Never reopen the same settled task or replace an
+ * active goal. This must not run from the event poll or model tool callbacks.
+ */
+export async function activateConfiguredGoal(config, { goals, agent, flush }) {
+  const goal = goals.get(agent);
+  const objective = config.goal?.trim();
+  const settled = goal && ['complete', 'blocked', 'paused'].includes(goal.phase);
+  if (objective && (!goal || settled && goal.objective.trim() !== objective)) {
+    const maxGoalRounds = config.maxGoalRounds ?? 40;
+    if (!Number.isSafeInteger(maxGoalRounds) || maxGoalRounds < 1) throw Error('Invalid configured goal round budget');
+    // Native DSH only permits create over complete. An explicitly different
+    // owner objective may replace a pause/block through its durable clear API.
+    if (goal && goal.phase !== 'complete') {
+      goals.clear(agent, { id: goal.id, revision: goal.revision });
+      await flush();
+    }
+    const created = goals.create(agent, { objective, maxGoalRounds });
+    await flush();
+    return created;
+  }
+  if (goal?.phase === 'active' && goal.activation !== 'armed') {
+    const resumed = goals.resume(agent, { id: goal.id, revision: goal.revision });
+    await flush();
+    return resumed;
+  }
+  return goal;
+}
+
 /** Apply an explicit operator budget command once, preserving goal/session history.
  * The prepared receipt permits recovery after a crash between edit and resume.
  * This is never invoked by game events or by a round-limit watchdog.

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {composeMinecraftAgent} from '../src/harness-composition.mjs';
+import {composeMinecraftAgent,minecraftPlanningGuidance} from '../src/harness-composition.mjs';
 import {personaPresets,profileSettings,renderPersona} from '../src/profile-settings.mjs';
 
 test('all three bundled personas are discoverable and editable without inventing current game memories',()=>{
@@ -22,4 +22,15 @@ test('DSH composition preserves plugin prompt sections and reuses its compaction
   assert.equal(sections.find(s=>s.name==='deployment:persona-prefix').interpolate,false);
   const basic=[];await composeMinecraftAgent({systemPrompt:{section:s=>basic.push(s)}},{persona:'plain',environment:'protocol'});
   assert.equal(basic[0].complete,true);assert.equal(basic[0].text,'plain\n\nprotocol');
+});
+
+test('planning hints use only actually exposed core tools, preserve version/evidence limits and stay stable across calls',()=>{
+  const tools=['mc_knowledge','mc_script','mc_memory'].map(name=>({name}));
+  const text=minecraftPlanningGuidance(tools);
+  for(const tool of tools)assert.ok(text.includes(tool.name));
+  assert.match(text,/适用版本/);assert.match(text,/不把一次聊天回应/);assert.match(text,/真实回执/);
+  assert.equal(minecraftPlanningGuidance(tools),text);
+  assert.ok(!minecraftPlanningGuidance([]).includes('mc_knowledge'));
+  assert.ok(!minecraftPlanningGuidance([{name:'mc_script'}]).includes('mc_memory'));
+  assert.ok(minecraftPlanningGuidance([{name:'mymc_knowledge'}]).includes('mymc_knowledge'));
 });

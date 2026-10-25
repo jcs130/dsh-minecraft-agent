@@ -1,6 +1,6 @@
 # DSH Minecraft Agent
 
-**rc.20 源码候选**正在验收：补充 1.21.5 画面、跨版本共用图片、原版服务端玩家皮肤、公屏聊天默认接收，以及画面内粒子／雨雪／光环等独立开关。见[网页资源与聊天](docs/viewer-resources-chat.md)。依赖核心 rc.87，npm 正式状态单独核验；下方 rc.19 是此前已公开版本。
+**rc.20 源码候选**正在验收：修复已完成目标阻挡配置新目标、独立新会话无效的问题，连接页增加会话重置，并接通已有生存攻略、步骤脚本与历史经验的决策提示；补充 1.21.5 画面、跨版本共用图片、原版服务端玩家皮肤、公屏聊天默认接收，以及画面内粒子／雨雪／光环等独立开关。见[目标与会话](docs/goal-session-reset.md)、[生存资料](docs/survival-decision.md)、[网页资源与聊天](docs/viewer-resources-chat.md)。依赖核心 rc.87，npm 正式状态单独核验；下方 rc.19 是此前已公开版本。
 
 [0.3.0-rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向 rc.19。精确依赖核心 **0.5.7-rc.86**；默认安装已在未修改的官方 DSH 0.2.1-rc.2 / rc.3 验证。
 

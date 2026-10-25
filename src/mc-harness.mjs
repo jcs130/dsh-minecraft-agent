@@ -11,9 +11,9 @@ import { HarnessBridge, nativeToolContext, renderReceipt, mcpResultDecision, ret
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
-import { applyGoalControl } from './harness-goal.mjs';
+import { activateConfiguredGoal, applyGoalControl } from './harness-goal.mjs';
 import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
-import {composeMinecraftAgent,constrainMinecraftTools} from './harness-composition.mjs';
+import {composeMinecraftAgent,constrainMinecraftTools,minecraftPlanningGuidance} from './harness-composition.mjs';
 import {conversationDirectory} from './profile-settings.mjs';
 import { configuredWake, compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
 
@@ -117,7 +117,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   await server.connect(serverTransport); await client.connect(clientTransport);
   const bridge = new HarnessBridge(runtime, client);
   const tools = (await client.listTools()).tools;
-  const prefix = await runtime.environment() + (onboarding ? '\n\n' + onboarding : '');
+  const prefix = await runtime.environment() + (onboarding ? '\n\n' + onboarding : '')
+    + '\n\n' + minecraftPlanningGuidance(selectTools(tools, config.tools));
   const persona = readFileSync(resolve(config.personaFile), 'utf8');
   const conversationDir=conversationDirectory(dataDir,config.sessionKey);mkdirSync(conversationDir,{recursive:true});
   const sessionFile = join(conversationDir, 'session-id.txt');
@@ -395,10 +396,9 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     write: value => { writeFileSync(goalControlFile + '.tmp', JSON.stringify(value) + '\n', { mode: 0o600 });
       renameSync(goalControlFile + '.tmp', goalControlFile); },
     flush: () => ctx.sessions.flush(handle.agent.session) });
-  const goal = ctx.goals.get(handle.agent);
-  if (!goal && config.goal) ctx.goals.create(handle.agent, { objective: config.goal, maxGoalRounds: config.maxGoalRounds ?? 40 });
-  else if (goal?.phase === 'active' && goal.activation !== 'armed') ctx.goals.resume(handle.agent, { id: goal.id, revision: goal.revision });
-  // Explicit operator follow-ups are consumed once; never reset a completed goal on restart.
+  await activateConfiguredGoal(config, { goals: ctx.goals, agent: handle.agent,
+    flush: () => ctx.sessions.flush(handle.agent.session) });
+  // Explicit operator follow-ups are consumed once; never replay an already delivered request.
   const delivered = join(conversationDir, 'operator-request-id.txt');
   await deliverOperatorRequest(config.operatorRequest, {
     lastId: () => existsSync(delivered) ? readFileSync(delivered, 'utf8').trim() : null,

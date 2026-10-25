@@ -1,11 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,readdir,rm,writeFile} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,readdir,rm,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {createQuickSetup,attachQuickSetup,setupFields} from '../src/quick-setup.mjs';
+import {conversationDirectory} from '../src/profile-settings.mjs';
 const profileRequire=createRequire(resolve(process.env.MC_DSH_PROFILE??process.env.DSH_RUNTIME??'.','package.json'));
 const adapterRequire=createRequire(profileRequire.resolve('@jcs130/dsh-minecraft-agent/package.json'));
 const {parseMinecraftServerAddress}=await import(pathToFileURL(adapterRequire.resolve('agent-mc-world/client')));
@@ -138,6 +139,42 @@ test('only declared usable DSH presets are admitted, and existing session capabi
   assert.equal(next.config.dataDir,c.dataDir);assert.equal(next.config.minecraft.memoryAgentId,c.minecraft.memoryAgentId);
   assert.match(next.config.sessionKey,/^[a-f0-9-]{36}$/);assert.equal(next.config.goal,undefined);assert.equal(next.fields.goal,'');
   assert.equal(await readFile(join(c.dataDir,'session-id.txt'),'utf8'),'original-session');assert.equal(f.setup.snapshot().fields.hasSession,false);
+});
+
+test('explicit newSession rotates without changing a preset and preserves credentials, character, notebook and old conversation',async t=>{
+  const f=await fixture(t);await f.setup.save({...input,goal:'自主生存',name:'测试角色',personality:'谨慎探索',loginPassword:'fixture-private-password'});
+  const saved=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8')),dir=saved.config.dataDir;
+  await writeFile(join(dir,'session-id.txt'),'old-completed-conversation');
+  await writeFile(join(dir,'notebook-fixture.json'),'immutable notebook evidence');
+  const persona=await readFile(saved.config.personaFile,'utf8'),owner=saved.config.minecraft.memoryAgentId;
+  await f.setup.save({...input,...f.setup.snapshot().fields,newSession:true});
+  const next=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8'));
+  assert.match(next.config.sessionKey,/^[a-f0-9-]{36}$/);assert.equal(next.config.dataDir,dir);
+  assert.equal(next.config.goal,'自主生存');assert.equal(next.config.minecraft.memoryAgentId,owner);
+  assert.equal(next.config.minecraft.loginConfigFile,saved.config.minecraft.loginConfigFile);
+  assert.equal(await readFile(saved.config.personaFile,'utf8'),persona);
+  assert.equal(await readFile(join(dir,'notebook-fixture.json'),'utf8'),'immutable notebook evidence');
+  assert.equal(await readFile(join(dir,'session-id.txt'),'utf8'),'old-completed-conversation');
+  assert.equal(f.setup.snapshot().fields.hasSession,false);assert.equal(f.launches.length,0);assert.equal(f.models.length,0);
+  const conversation=conversationDirectory(dir,next.config.sessionKey);await mkdir(conversation,{recursive:true});
+  await writeFile(join(conversation,'session-id.txt'),'new-conversation');
+  const restored=await createQuickSetup(f.options);t.after(()=>restored.close());assert.equal(restored.snapshot().fields.hasSession,true);
+  await restored.configure({...input,...restored.snapshot().fields});await settled(restored);
+  assert.equal(f.launches[0].sessionKey,next.config.sessionKey);assert.equal(f.launches[0].goal,'自主生存');
+  await restored.stop();await restored.save({...input,...restored.snapshot().fields,newSession:true});
+  const again=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8'));
+  assert.notEqual(again.config.sessionKey,next.config.sessionKey);
+  assert.equal(await readFile(join(conversation,'session-id.txt'),'utf8'),'new-conversation');
+});
+
+test('newSession is honored before any session exists, while ordinary saves do not rotate it',async t=>{
+  const f=await fixture(t);await f.setup.save({...input,newSession:true});
+  const read=async()=>JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8')).config;
+  const first=await read();assert.match(first.sessionKey,/^[a-f0-9-]{36}$/);
+  await f.setup.save({...input,newSession:false});assert.equal((await read()).sessionKey,first.sessionKey);
+  await f.setup.save({...input,newSession:true});assert.notEqual((await read()).sessionKey,first.sessionKey);
+  assert.equal(f.launches.length,0);assert.equal(f.models.length,0);
+  await assert.rejects(f.setup.save({...input,newSession:'true'}),/配置无效/);
 });
 
 test('owner notebook port attributes user notes and performs no launch; arbitrary operations are rejected',async t=>{
