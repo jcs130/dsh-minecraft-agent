@@ -55,3 +55,14 @@ test('a live body must be stopped before resetting its session', () => {
   assert.equal(flatten(tree).find(node => node.type === 'button' && text(node) === '重置会话并保存配置').props.disabled, true);
   assert.ok(flatten(tree).find(node => node.type === 'button' && text(node) === '停止并修改配置'));
 });
+
+test('shipped plugin settings check the saved external index without a model or connect request',async()=>{
+  const calls=[],ui=renderSetup({...state,model:null,fields:{...state.fields,minedojoIndexFile:'D:/datasets/minedojo/wiki.sqlite'}},async(kind,args)=>{
+    calls.push({kind,args});return{status:'ready',index:{pages:22,chunks:570}};
+  });
+  flatten(ui.render()).find(node=>node.type==='button'&&text(node)==='DSH 插件').props.onClick();
+  const tree=ui.render();assert.match(text(tree),/CPU 词元向量是词面相似度/);
+  const check=flatten(tree).find(node=>node.type==='button'&&text(node)==='检查已保存的索引');assert.equal(check.props.disabled,false);
+  await check.props.onClick();assert.equal(calls.length,1);assert.equal(calls[0].kind,'knowledge');assert.equal(calls[0].args.action,'help');
+  assert.match(text(ui.render()),/22 页，570 个片段/);
+});

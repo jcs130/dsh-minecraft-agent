@@ -1,11 +1,12 @@
 import {useState} from 'react';
 import {NotebookView} from './notebook-view';
-const defaults={address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',personaPreset:'custom',personality:'',backstory:'',initialMemory:'',mineralVision:false,viewerEnabled:true,listenPublicChat:true,toolProfile:'lean',skinModel:'classic',useLocalSkin:false,notebookMode:'local-vector',embeddingEndpoint:'',embeddingModel:'',embeddingKeyEnv:'',dshPreset:'',newSession:false};
+const defaults={address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',personaPreset:'custom',personality:'',backstory:'',initialMemory:'',mineralVision:false,viewerEnabled:true,listenPublicChat:true,toolProfile:'lean',skinModel:'classic',useLocalSkin:false,notebookMode:'local-vector',minedojoIndexFile:'',minedojoRetrieval:'hybrid',embeddingEndpoint:'',embeddingModel:'',embeddingKeyEnv:'',dshPreset:'',newSession:false};
 const tabs=[['connection','连接'],['perception','感知与工具'],['persona','角色与皮肤'],['notebook','服务器笔记'],['plugins','DSH 插件']];
 export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(action:string,config?:any)=>Promise<any>;onBack?:()=>void}) {
   const [fields,setFields]=useState<any>(()=>({...defaults,...state.fields}));
   const [tab,setTab]=useState('connection'),[password,setPassword]=useState(''),[skin,setSkin]=useState<string>();
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+  const [referenceInfo,setReferenceInfo]=useState<any>();
   const opening=state.phase==='opening'||state.phase==='enabled';
   const field=(key:string)=>(e:any)=>setFields((v:any)=>({...v,[key]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
   const action=async(kind:string,overrides:any={})=>{if(busy)return;setBusy(true);setError('');setNotice('');
@@ -21,6 +22,8 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
       if(!valid)throw Error('请选择 64×64 或 64×32 PNG。');setSkin(data.split(',')[1]);setFields((v:any)=>({...v,useLocalSkin:true}));
     }catch(e:any){setError(e.message||'无法读取皮肤。');}finally{e.target.value='';}};
   const choose=(id:string)=>{const p=state.personaPresets?.find((p:any)=>p.id===id);setFields((v:any)=>({...v,personaPreset:id,...p?{name:p.name,personality:p.personality,backstory:p.backstory}:{}}));};
+  const checkReferences=async()=>{if(busy)return;setBusy(true);setError('');setReferenceInfo(undefined);
+    try{setReferenceInfo(await onAction('knowledge',{action:'help'}));}catch{setError('索引检查未通过。请先保存配置，核对索引文件与版本；不影响原版知识和服务器笔记。');}finally{setBusy(false);}};
   const preview=skin?'data:image/png;base64,'+skin:state.skinPreview;
   return <div className="mc-first-run"><style>{CSS}</style>
     <div className="mc-setup-heading"><div><span className="mc-setup-eyebrow">MINECRAFT × DSH</span><h1>角色、世界与随身笔记</h1></div>{onBack&&<button type="button" onClick={onBack}>返回游戏</button>}</div>
@@ -62,6 +65,12 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
         <p>复用已安装的记忆、搜索等 DSH 插件：先在 DSH 中组合成 Agent 能力预设，再在这里选择。</p><small>仅列出当前 DSH 已声明的预设，不安装插件，不修改全局配置。</small>
         {state.fields?.hasSession&&fields.dshPreset!==state.fields.dshPreset&&<p role="status">更换能力预设需要在「连接」中勾选新建会话；旧会话和游戏笔记保留，旧任务不会自动重放。</p>}
         {state.dshPresets?.find((p:any)=>p.id===fields.dshPreset)?.description&&<p>{state.dshPresets.find((p:any)=>p.id===fields.dshPreset).description}</p>}
+        <h2 style={{fontSize:16,marginTop:24}}>MineDojo 外部知识库</h2>
+        <label>本地索引路径<input value={fields.minedojoIndexFile} onChange={field('minedojoIndexFile')} maxLength={2000} placeholder="例如 D:/datasets/minedojo/wiki.sqlite"/><small>可留空。先按说明单独准备历史 Wiki 索引，不把资料写入个人记忆，也不在安装或游戏时自动下载。</small></label>
+        <label>本地检索方式<select value={fields.minedojoRetrieval} onChange={field('minedojoRetrieval')}><option value="hybrid">关键词 + CPU 词元向量（默认）</option><option value="lexical">全文关键词</option><option value="local-vector">CPU 词元向量</option></select><small>CPU 词元向量是词面相似度，不是神经语义模型。需要神经 embeddings 时按核心说明显式配置。</small></label>
+        <button type="button" disabled={busy||!state.fields?.minedojoIndexFile} onClick={checkReferences}>检查已保存的索引</button>
+        <small>先仅保存配置，再检查；不必连接游戏或配置模型。<a href="https://github.com/jcs130/minecraft-ai-friend/blob/main/packages/agent-mc-world/docs/minedojo-knowledge.md" target="_blank" rel="noopener noreferrer">索引准备与 Agent 使用说明</a></small>
+        {referenceInfo&&<p role="status">{referenceInfo.status==='ready'?`索引可读：${referenceInfo.index.pages} 页，${referenceInfo.index.chunks} 个片段。历史资料版本仍需核对。`:'索引未配置或状态未确认。原版知识仍可用。'}</p>}
         <label style={{marginTop:20}}>内置服务器笔记检索<select value={fields.notebookMode} onChange={field('notebookMode')}><option value="local-vector">离线 CPU 词元向量 + 关键词</option><option value="local">仅关键词</option><option value="vector">自定义 embeddings 语义向量</option></select><small>本地笔记始终保留。内置 CPU 向量不下载模型，计算词元相似度，不冒充神经语义模型。</small></label>
         {fields.notebookMode==='vector'&&<><label>Embeddings 完整地址<input value={fields.embeddingEndpoint} onChange={field('embeddingEndpoint')} maxLength={1000} placeholder="http://127.0.0.1:端口/v1/embeddings"/></label><label>向量模型<input value={fields.embeddingModel} onChange={field('embeddingModel')} maxLength={200}/></label><label>密钥环境变量名<input value={fields.embeddingKeyEnv} onChange={field('embeddingKeyEnv')} maxLength={120} placeholder="可留空；不填写密钥本身"/></label><small>仅在显式记录、同步和查询笔记时调用该服务；故障回退关键词并报告。</small></>}
       </>}

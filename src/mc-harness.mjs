@@ -47,6 +47,7 @@ export async function apply(ctx, options = {}) {
     selection:()=>ctx.get('agentDefaultModel')?.currentSelection(),
     modelInfo:(provider,model,signal)=>ctx.llm.resolveModelInfo(provider,model,signal),
     listPresets:()=>ctx.get('agentPresets')?.list()??[],
+    knowledge:(config,args)=>coreClient.queryMinecraftKnowledge({...args,source:'minedojo'},config.minecraft.version,config.minecraft.knowledge),
     notebook:(config,args)=>new MinecraftAgentClient({cfg:merge(MINECRAFT_CLIENT_DEFAULTS,config.minecraft),
       dataDir:join(config.dataDir,'body'),agentName:config.name,log:coreClient.nullLogger()}).notebook(args),
     launch:config=>{

@@ -26,4 +26,4 @@ Java 1.21.1 的随包生存卡片包括：
 
 宿主仅增加稳定的简短使用提示，不自动下载数据、注入整本攻略、发起检索循环、嵌入向量或调用额外模型。资料保留在有界工具历史，当前状态仍在请求尾部。`test/core-consumer.test.mjs` 已通过打包核心的实际 MCP 读取上述六张卡片，核对 SDK 输出与来源、默认工具可发现性，以及读取过程零游戏连接。
 
-MineDojo 的历史 Wiki 属于单独的[源码与资料审计](https://github.com/jcs130/minecraft-ai-friend/blob/main/packages/agent-mc-world/docs/research/minedojo-knowledge-20261020.md)。已有研究和离线样本检索不等于已把完整语料打包给每个 Agent；其旧资料需另核对版本。本轮使用已随核心交付的原版生存资料，没有宣称导入完整 MineDojo。
+rc.21 可通过核心 rc.88 显式配置 [MineDojo 本地索引](minedojo-knowledge.md)，支持全文与 CPU 词元向量；配置后沿用同一个 `mc_knowledge` 工具，以 `source:minedojo` 查询。索引默认不启用，完整语料不随包分发。原始格式和版本边界仍见[源码与资料审计](https://github.com/jcs130/minecraft-ai-friend/blob/main/packages/agent-mc-world/docs/research/minedojo-knowledge-20261020.md)。

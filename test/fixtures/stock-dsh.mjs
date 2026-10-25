@@ -27,11 +27,17 @@ if (!isMainThread) {
   await load('@jcs130/dsh-minecraft-agent/harness2');
   await load('agent-mc-world/learning');
   await load('agent-mc-qiandengji');
+  let workerExternalReferences;
+  if(process.env.MC_REFERENCE_INDEX){
+    const core=await load('agent-mc-world/client');
+    const value=await core.queryMinecraftKnowledge({source:'minedojo',query:'how to make bread',limit:1},'auto',{minedojo:{indexFile:process.env.MC_REFERENCE_INDEX}});
+    assert.ok(value.entries.length>0);workerExternalReferences=true;
+  }
   assert.equal(Module._resolveFilename, before);
   assert.throws(() => require.resolve('process/'), originalDefect, 'Plugin must not change the host resolver');
   assert.equal(process.env.READABLE_STREAM, inheritedStreamMode);
   assert.equal(require('readable-stream').Readable, require('node:stream').Readable);
-  parentPort.postMessage({ workerLoaded: true, workerOfficialResolverActive: true, environmentRestored: true, resolverUnchanged: true });
+  parentPort.postMessage({ workerLoaded: true, workerOfficialResolverActive: true, environmentRestored: true, resolverUnchanged: true,...workerExternalReferences?{workerExternalReferences}:{} });
 } else {
   const directory = mkdtempSync(join(tmpdir(), 'dsh-stock-minecraft-'));
   const { Context } = await loadHost('@deepseek-ai/cordis');
@@ -82,7 +88,7 @@ if (!isMainThread) {
       assert.equal(practice.fixtures.length, 2);
       assert.equal(typeof pack.MymcAgentRuntime, 'function');
       const options = { cfg: { ...structuredClone(core.MINECRAFT_CLIENT_DEFAULTS), enabled: false,
-        host: 'offline.invalid', username: 'StockDshFixture' }, dataDir: join(directory, 'body'),
+        host: 'offline.invalid', username: 'StockDshFixture',...process.env.MC_REFERENCE_INDEX?{knowledge:{minedojo:{indexFile:process.env.MC_REFERENCE_INDEX}}}:{} }, dataDir: join(directory, 'body'),
         agentName: 'fixture', log: core.nullLogger() };
       runtime = new core.MinecraftAgentClient(options);
       mcpServer = createMinecraftMcpServer(runtime, 'stock-dsh-fixture');
@@ -95,6 +101,11 @@ if (!isMainThread) {
       assert.notEqual(help.isError, true);
       // enabled:false starts the compiled IPC runtime without a server connection.
       await runtime.connect();
+      if(process.env.MC_REFERENCE_INDEX){
+        const reference=await mcpClient.callTool({name:'mc_knowledge',arguments:{source:'minedojo',query:'how to make bread',limit:1}});
+        assert.notEqual(reference.isError,true);assert.ok(JSON.parse(reference.structuredContent.text).entries.length>0);
+        report.mainExternalReferences=true;
+      }
       const result = await runtime.call('mc_memory', { action: 'remember', kind: 'method',
         summary: 'Stock DSH synthetic fixture', content: 'Offline compatibility evidence only.',
         source: { kind: 'hypothesis', reference: 'stock-dsh-fixture' } }, { requestId: 'stock-dsh-offline-memory' });

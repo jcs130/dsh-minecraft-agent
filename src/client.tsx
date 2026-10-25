@@ -58,7 +58,7 @@ export function apply(ctx: any) {
     const setupAction=async(action:string,config?:any)=>{
       const result=await ctx.connection.rpc.call('/api','mc-harness/setup',{action,config});
       if(!result.ok)throw Error(result.error?.message||'配置操作未确认。');
-      if(action==='notebook')return result.value;
+      if(['notebook','knowledge'].includes(action))return result.value;
       setSetup(result.value);if(action==='stop')setBinding(undefined);
       if(['configure','retry'].includes(action)){setShowSettings(false);setAttempt(value=>value+1);}
       return result.value;
