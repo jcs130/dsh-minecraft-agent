@@ -1,28 +1,30 @@
 # DSH Desktop 与实验室
 
-主干 rc.18 候选默认自动协商 Mineflayer 协议，已在隔离 Mojang 原版 1.21.11 与官方 DSH Web 中验证网页画面。DSH 仅显示 Agent 账号和同连接网页画面；观察者/玩家原生窗口启动入口已移除。1.21.11 的音频及地图/粒子扩展不在本轮验收内。候选尚未发布，公开渠道状态以下述发布记录为准；本轮未操作真实 Desktop 原生窗口。
+当前发行版为 **0.3.0-rc.22**，精确依赖核心 **0.5.7-rc.89**，已发布到 npm 和 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22)。Mineflayer 默认自动协商协议；网页缺少对应版本的预制材质时自动显示兼容画面，未知素材局部占位，无需用户先准备资源才能连接。DSH 显示 Agent 账号和同连接网页画面，侧栏保留原生推理、工具与回答。
 
-> rc.15 已在 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.15) 公开，npm 同版已公开，两版官方 DSH 的默认 registry 安装均通过。原始官方 DSH 无需手动修补程序文件。源码、主进程/Worker 与共享 Web 面板协议的证据分开记录；公开状态见[发布记录](registry-release.md)。Desktop 原生窗口画面尚未验收。
+> 官方 DSH **0.2.1-rc.2 / rc.3** 的默认 pnpm registry 安装、主进程／Worker 加载、37 个 MCP 工具与本地知识库查询已验证，见 [npm 验收记录](npm-publish-rc22.json)。共享 Web 页面与隔离原版 1.21.11 画面有独立验证；**尚未实测 Desktop 原生窗口画面**，不把这些结果当成完整桌面端验收。详见[发布记录](registry-release.md)。
 
-采用官方 DSH Desktop 0.2.1-rc.2 的共享 Web 插件契约，普通 Web 同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需对 Desktop 应用归档进行现场修改。Java 1.21.1 是主维护版本，1.20.6 有独立资源兼容构建。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
+采用 DSH Desktop 与 Web 共用的插件契约和同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需修改 Desktop 应用归档。Java 1.21.1 是主维护版本，其他协议版本由已安装 Mineflayer 的实际支持决定，不按预制材质包限制连接。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
 ## 安装
 
-在 Desktop 的插件管理中使用 `@jcs130/dsh-minecraft-agent@0.3.0-rc.15`，registry 选择 `https://registry.npmjs.org`。也可使用同字节的固定 rc.15 归档地址。该归档已通过官方 Web/CLI 的默认插件安装验证，Desktop 消费同一插件契约：
+在 **Desktop 应用内 → 插件 → 添加插件** 输入：
 
 ```text
-https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.15/jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz
+@jcs130/dsh-minecraft-agent@0.3.0-rc.22
 ```
 
-也可从发布页下载 `jcs130-dsh-minecraft-agent-0.3.0-rc.15.tgz` 再安装。发行包已包含构建好的 lib/client.js 与宿主适配器；完整身体与可视化由校验锁定的独立核心发行包提供。首次配置与决策旁栏已通过 Web 和本机协议测试世界验收；原生桌面窗口另行验收。
+registry 选择 `https://registry.npmjs.org`。支持安装归档 URL 的版本也可使用同字节的固定发行包：
 
-Desktop 的 profile 由桌面程序独占。需要 CLI 安装时，先启动 Desktop 一次以初始化 profile，完全退出后，用 **Desktop 随附**的 dsh 命令执行：
-
-```sh
-dsh plugin --profile desktop add @jcs130/dsh-minecraft-agent@0.3.0-rc.15 --registry=https://registry.npmjs.org
+```text
+https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.22/jcs130-dsh-minecraft-agent-0.3.0-rc.22.tgz
 ```
 
-rc.15 重新打开后，侧栏 Minecraft 提供首次接入表单：复用 DSH 默认模型，填写服务器与账号，再显式保存并连接。普通离线服无需密码；正版走微软授权；仅登录服需要可选 `/login` 密码。端口和数据目录由插件分配，同账号保留原会话。游戏与决策并排，推理和工具使用 DSH 原生组件，可切换只看游戏。详见[快速接入](quick-start.md)。
+发行包包含构建好的 lib/client.js 与宿主适配器；身体与可视化由精确锁定的核心发行包提供。通常直接安装 npm 包即可，无需自行编译。
+
+Desktop 的 profile 由桌面程序管理，使用应用内插件管理器安装。不要套用普通 Web 的 CLI 安装命令，也不要向 desktop profile 强行写入依赖或关闭宿主保护。
+
+安装后，侧栏 Minecraft 提供首次接入表单：复用 DSH 默认模型，填写服务器与账号，再显式保存并连接。普通离线服无需密码；正版走微软授权；仅登录服需要可选 `/login` 密码。端口和数据目录由插件分配，同账号保留原会话。游戏与决策并排，推理和工具使用 DSH 原生组件，可切换只看游戏。详见[快速接入](quick-start.md)。
 
 高级部署仍可设置 mc-harness 的 `configFile` 为私有 Agent JSON 的绝对路径；参考 examples/harness/agent.json。新邀请接入见[千灯纪邀请接入](qiandengji-invitation.md)。安装本身不连接游戏，也不启动模型。密钥使用 DSH 已配置的 provider，不在插件内复制。普通服务器选 serverPack: none，千灯纪支持必须显式启用。
 
@@ -30,7 +32,7 @@ rc.15 重新打开后，侧栏 Minecraft 提供首次接入表单：复用 DSH �
 
 ## 实验室
 
-rc.15 保留常驻侧栏 Minecraft 入口和原会话标签。两个入口使用同一个核心面板，不创建额外账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；未配置时显示首次接入表单。高级配置的面板不可用时仍可显式重新检查。GitHub 发行和 npm 分发分别核验。
+常驻侧栏 Minecraft 入口和原会话标签使用同一个核心面板，不创建额外账号、身体或模型请求。DSH 会隐藏空白会话中的视图区域，侧栏入口不受这个限制；未配置时显示首次接入表单。高级配置的面板不可用时仍可显式重新检查。
 
 侧栏或会话中打开 Minecraft → 实验室；本机面板同样支持 `http://127.0.0.1:<consolePort>/#experiments`。
 
@@ -42,13 +44,13 @@ rc.15 保留常驻侧栏 Minecraft 入口和原会话标签。两个入口使用
 
 ## 发现与收录
 
-DSH 当前不附带默认官方市场源。可在 Plugins → More → Experimental plugins 启用 Custom plugin markets，在 Discover 添加：
+不同桌面发行版预装的市场不同。支持 DSH Discover 的版本可在「插件 → 发现 → 管理索引源」添加下面的自有源；若「发现」尚未启用，先在 Plugins → More → Experimental plugins 启用 Custom plugin markets：
 
 ```text
 https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/main/market/index.json
 ```
 
-本索引遵循 DSH format 1，仅提供通过默认 DSH 安装验证的固定版本。社区市场收录须由其维护者审核；提交不代表已经审核或上架。
+本索引遵循 DSH format 1，当前提供已通过默认安装验证的 rc.22。更多入口及审核状态见[市场收录记录](marketplaces.md)。社区收录、索引同步、npm 发布和实际安装是不同状态；提交不等于审核通过。无需为了安装本插件同时装多个市场。
 
 ## 兼容边界与回退
 

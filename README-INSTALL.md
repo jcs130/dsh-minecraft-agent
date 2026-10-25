@@ -2,7 +2,9 @@
 
 当前 npm `latest` 与 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22) 均为 **0.3.0-rc.22**，精确依赖核心 **0.5.7-rc.89**，可选千灯纪包保持 rc.22。缺少精确预制材质时自动兼容，不要求普通用户手工准备资源。配置目标、独立新会话、人格与笔记、公屏和画面开关、生存资料和 MineDojo 索引入口均保留。
 
-在目标 DSH profile 安装：
+**Desktop 用户**：在应用内「插件 → 添加插件」输入 `@jcs130/dsh-minecraft-agent@0.3.0-rc.22`，registry 选择 `https://registry.npmjs.org`。不要用普通 CLI 修改桌面专用 profile。也可按[市场入口](docs/marketplaces.md)浏览安装。
+
+**Web / CLI 用户**：在目标 DSH profile 安装：
 
 ```sh
 dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.22 --registry=https://registry.npmjs.org
@@ -73,7 +75,7 @@ rc.19 的普通接入：先在 DSH 选好默认模型，打开侧栏 Minecraft�
 
 DeepSeek 官方云端的密钥只放本机环境变量，Agent JSON 使用 `reasoningEffort: off` 显式关闭思考。不要把凭据放进提示词、聊天或仓库。服务器登录密码也应使用该服务器/账号专属的私有配置。
 
-游戏协议通常保留 `auto`，也可明确填写服务器的实际版本。内置 viewer 使用相应版本的原素材；缺少画面资源时独立提示，不改用另一版本。确认账号与 viewer 的世界绑定一致后，再开启自主目标。安装、编译成功均不等于在线登录或目标达成，需分别核验连接就绪、工具终态和实际进展。
+游戏协议通常保留 `auto`，也可明确填写服务器的实际版本。内置 viewer 优先使用对应版本材质，缺少精确资源时自动兼容，只让缺失的新素材局部占位；游戏协议和方块状态仍使用实际服务器版本。确认账号与 viewer 的世界绑定一致后，再开启自主目标。安装、编译成功均不等于在线登录或目标达成，需分别核验连接就绪、工具终态和实际进展。
 
 升级前备份私有配置、profile、原会话目录与游戏数据。继续使用原 `session-id.txt`，不要覆盖目标、记忆或账本；保持一个账号只有一个身体。回滚时停止本次部署，恢复旧依赖和配置，然后从原会话恢复。详细生命周期见 [迁移指南](docs/harness-migration.md)。
 
