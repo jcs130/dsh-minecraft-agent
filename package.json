@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.20",
+  "version": "0.3.0-rc.21",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -78,6 +78,7 @@
     "docs/quick-start.md",
     "docs/goal-session-reset.md",
     "docs/survival-decision.md",
+    "docs/minedojo-knowledge.md",
     "docs/authme-login.md",
     "docs/screenshots",
     "ui-verification-20261024.json",
@@ -111,11 +112,12 @@
     "docs/qiandengji-invitation.md",
     "profile-verification-20261025.json",
     "viewer-resources-verification-20261025.json",
-    "goal-session-verification-20261025.json"
+    "goal-session-verification-20261025.json",
+    "minedojo-verification-20261025.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.87",
+    "agent-mc-world": "0.5.7-rc.88",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {

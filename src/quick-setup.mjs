@@ -69,7 +69,7 @@ function readSaved(value,directory,parseAddress){
   return value;
 }
 
-export async function createQuickSetup({directory,parseAddress,selection,modelInfo,launch,notebook,listPresets,allocatePort=freePort}) {
+export async function createQuickSetup({directory,parseAddress,selection,modelInfo,launch,notebook,knowledge,listPresets,allocatePort=freePort}) {
   if(!isAbsolute(directory))throw Error('SETUP_UNAVAILABLE');
   directory=resolve(directory);const file=join(directory,'quick-setup.json');
   let saved=null,profile=profileSettings(),presets=[],phase='unconfigured',error=null,closed=false,changing=false,instance,pending=Promise.resolve(),epoch=0,cancel;
@@ -145,6 +145,7 @@ export async function createQuickSetup({directory,parseAddress,selection,modelIn
         const minecraft={enabled:true,host:fields.host,port:fields.port,auth:fields.auth,username:fields.username,version:fields.version,
           perception:{mineralVision:nextProfile.mineralVision},localSkinEnabled:nextProfile.useLocalSkin,skinModel:nextProfile.skinModel,remoteTextures:nextProfile.serverSkins,
           memoryAgentId:same?(saved.config.minecraft.memoryAgentId??saved.config.name):'dsh:'+basename(dataDir),
+          ...(nextProfile.minedojoIndexFile?{knowledge:{minedojo:{indexFile:nextProfile.minedojoIndexFile,retrieval:nextProfile.minedojoRetrieval}}}:{}),
           memory:{mode:nextProfile.notebookMode,...nextProfile.notebookMode==='vector'?{endpoint:nextProfile.embeddingEndpoint,model:nextProfile.embeddingModel,apiKeyEnv:nextProfile.embeddingKeyEnv}:{}}};
         if(fields.loginPassword){
           const secret=join(dataDir,'server-login.password');await writeFile(secret,fields.loginPassword,{mode:0o600});
@@ -165,6 +166,11 @@ export async function createQuickSetup({directory,parseAddress,selection,modelIn
       }catch(e){throw Error(messages[e.message]??messages.SAVE_FAILED);}finally{changing=false;}
   };
   return {snapshot,describe,configure:input=>persist(input,true),save:input=>persist(input,false),
+    async knowledge(args){
+      if(closed||!saved||changing||typeof knowledge!=='function')throw Error('SETUP_UNAVAILABLE');
+      if(!['help','sources','search','get'].includes(args?.action))throw Error('INVALID_PROFILE');
+      return knowledge(saved.config,args);
+    },
     async notebook(args){
       if(closed||!saved||changing||phase==='opening')throw Error('SETUP_BUSY');
       if(!['help','search','get','remember','revise','archive'].includes(args?.action))throw Error('INVALID_PROFILE');
@@ -192,8 +198,8 @@ export function attachQuickSetup(ctx,setup) {
       const parsed=clientRequestSchema.safeParse(body);
       if(!parsed.success||parsed.data.method!=='mc-harness/setup')return new Response('Invalid setup envelope',{status:400});
       const {payload,rpcId}=parsed.data;let result;
-      if(!['state','configure','save','retry','stop','notebook'].includes(payload?.action))return new Response('Invalid setup action',{status:400});
-      try{result={ok:true,value:payload.action==='state'?await setup.describe():payload.action==='configure'?await setup.configure(payload.config):payload.action==='save'?await setup.save(payload.config):payload.action==='notebook'?await setup.notebook(payload.config):payload.action==='stop'?await setup.stop():setup.retry()};}
+      if(!['state','configure','save','retry','stop','notebook','knowledge'].includes(payload?.action))return new Response('Invalid setup action',{status:400});
+      try{result={ok:true,value:payload.action==='state'?await setup.describe():payload.action==='configure'?await setup.configure(payload.config):payload.action==='save'?await setup.save(payload.config):payload.action==='notebook'?await setup.notebook(payload.config):payload.action==='knowledge'?await setup.knowledge(payload.config):payload.action==='stop'?await setup.stop():setup.retry()};}
       catch(e){result={ok:false,error:{code:'setup-unavailable',message:payload.action==='notebook'?'笔记操作未确认；请刷新并核对最新版本后重试，原记录已保留。':messages[e.message]??(Object.values(messages).includes(e.message)?e.message:'配置暂不可用；原身份与数据已保留，请重试。'),details:{}}};}
       return Response.json({type:'server-response',rpcId,result},{headers:{'cache-control':'no-store'}});
     }});

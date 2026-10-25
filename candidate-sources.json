@@ -1,23 +1,15 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.20",
+  "adapterVersion": "0.3.0-rc.21",
   "publication": {
-    "status": "github-published-npm-pending",
+    "status": "unpublished-candidate",
+    "githubPublished": false,
     "registryPublished": false,
-    "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.19",
+    "previousGithubVersion": "0.3.0-rc.20",
     "latestNpmVersion": "0.3.0-rc.19",
     "marketVersion": "0.3.0-rc.19",
-    "updatedAt": "2026-10-25T06:05:51.954015+00:00",
-    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20",
-    "mergedCommit": "b9af814cc637bde33291244dd1e4bc7d73278ee0",
-    "verification": "docs/github-publish-rc20.json",
-    "archive": {
-      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.20.tgz",
-      "sha256": "12410168f9d37057e4bd64475f756c3cf525f2d11323147e877f837309500481",
-      "integrity": "sha512-hQi3SEqeyL9I0uVmQgF77xbcmyUTzfiIJqlr38VlZXlrQsJR4HHvuIuAL6GeLjqJgZ8nu868PCyJQW2OIQbl/Q==",
-      "bytes": 670785
-    }
+    "updatedAt": "2026-10-25T06:53:34.442Z"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -54,19 +46,16 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "35781212e9c2e909d574f7b3f39b6a59ddfd4c95",
-      "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.7-rc.87",
-      "url": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.87/agent-mc-world-0.5.7-rc.87.tgz",
-      "sha256": "8b5da0a1c0ab27758521da4676accdce7a2d29ff7add8ba4085898b0df33a286",
-      "integrity": "sha512-QnKHpT+d+0zjnK2QgU7gB201T9XYTuJf61WVBk14/qequpAncgLGMlA4VulSPlur15SG3TzUX395tLDVSb2QcA==",
-      "published": true,
+      "commit": "f2b6714bf633434aef7d67b5bf6b74a07423e5a7",
+      "sourceStatus": "committed-feature-branch",
+      "version": "0.5.7-rc.88",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.88.tgz",
+      "sha256": "56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573",
+      "integrity": "sha512-IIU1R/xAcXVPpwyiM/q5V3kCl6O9P7DmWyr4P+6IfcYSV19hBEvNoGlWec6bDXkCYfz2YZJAS5NlJDEpolzIBA==",
+      "published": false,
       "registryPublished": false,
-      "artifactFile": "agent-mc-world-0.5.7-rc.87.tgz",
-      "npmUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.87.tgz",
-      "githubPublished": true,
-      "mergedCommit": "2b00bd27373d0d2fb248a7a38a2a02fe44db57d9",
-      "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.87"
+      "artifactFile": "agent-mc-world-0.5.7-rc.88.tgz",
+      "githubPublished": false
     },
     {
       "role": "server-pack",
@@ -192,18 +181,17 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-archive-consumers-and-public-github-download; npm-default-install-pending",
-    "verification": "docs/github-publish-rc20.json",
-    "goalSessionVerification": "goal-session-verification-20261025.json",
+    "status": "passed-staged-core88-and-official-dsh-reference-integration",
+    "verification": "minedojo-verification-20261025.json",
     "publicRegistryInstallVerified": false,
-    "sourceTestsPerHost": 148,
+    "sourceTestsPerHost": 150,
     "skippedPerHost": 1,
     "stockDshVersions": [
       "0.2.1-rc.2",
       "0.2.1-rc.3"
     ],
     "sharedPhysicalCore": true,
-    "packedNativeGoalJournal": true,
+    "mainWorkerAndEngineReferenceQueries": true,
     "productionChanged": false
   },
   "previousPublication": {
@@ -270,23 +258,62 @@
     "productionChanged": false
   },
   "previousCandidatePublication": {
-    "status": "validated-unpublished-candidate",
+    "status": "github-published-npm-pending",
     "registryPublished": false,
-    "githubPublished": false,
+    "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.19",
-    "updatedAt": "2026-10-25T04:44:45.724Z"
+    "latestNpmVersion": "0.3.0-rc.19",
+    "marketVersion": "0.3.0-rc.19",
+    "updatedAt": "2026-10-25T06:05:51.954015+00:00",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.20",
+    "mergedCommit": "b9af814cc637bde33291244dd1e4bc7d73278ee0",
+    "verification": "docs/github-publish-rc20.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.20.tgz",
+      "sha256": "12410168f9d37057e4bd64475f756c3cf525f2d11323147e877f837309500481",
+      "integrity": "sha512-hQi3SEqeyL9I0uVmQgF77xbcmyUTzfiIJqlr38VlZXlrQsJR4HHvuIuAL6GeLjqJgZ8nu868PCyJQW2OIQbl/Q==",
+      "bytes": 670785
+    }
   },
   "previousCandidateValidation": {
-    "status": "passed-staged-packed-consumers-and-official-dsh-tests",
-    "verification": "viewer-resources-verification-20261025.json",
+    "status": "passed-archive-consumers-and-public-github-download; npm-default-install-pending",
+    "verification": "docs/github-publish-rc20.json",
+    "goalSessionVerification": "goal-session-verification-20261025.json",
     "publicRegistryInstallVerified": false,
-    "sourceTestsPerHost": 134,
+    "sourceTestsPerHost": 148,
     "skippedPerHost": 1,
     "stockDshVersions": [
       "0.2.1-rc.2",
       "0.2.1-rc.3"
     ],
     "sharedPhysicalCore": true,
+    "packedNativeGoalJournal": true,
     "productionChanged": false
+  },
+  "previousGithubCoreRelease": {
+    "role": "core",
+    "repository": "https://github.com/jcs130/minecraft-ai-friend",
+    "sourceDirectory": "packages/agent-mc-world",
+    "commit": "35781212e9c2e909d574f7b3f39b6a59ddfd4c95",
+    "sourceStatus": "committed-on-remote-main",
+    "version": "0.5.7-rc.87",
+    "url": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.87/agent-mc-world-0.5.7-rc.87.tgz",
+    "sha256": "8b5da0a1c0ab27758521da4676accdce7a2d29ff7add8ba4085898b0df33a286",
+    "integrity": "sha512-QnKHpT+d+0zjnK2QgU7gB201T9XYTuJf61WVBk14/qequpAncgLGMlA4VulSPlur15SG3TzUX395tLDVSb2QcA==",
+    "published": true,
+    "registryPublished": false,
+    "artifactFile": "agent-mc-world-0.5.7-rc.87.tgz",
+    "npmUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.87.tgz",
+    "githubPublished": true,
+    "mergedCommit": "2b00bd27373d0d2fb248a7a38a2a02fe44db57d9",
+    "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.87"
+  },
+  "externalKnowledge": {
+    "source": "minedojo",
+    "coreOwned": true,
+    "corpusBundled": false,
+    "automaticDownloads": false,
+    "guide": "docs/minedojo-knowledge.md",
+    "retrieval": "BM25 + CPU token cosine; optional explicit neural embeddings"
   }
 }

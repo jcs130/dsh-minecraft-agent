@@ -1,0 +1,24 @@
+{
+  "schema": "dsh-mc-external-knowledge-verification/v1",
+  "adapter": "0.3.0-rc.21",
+  "core": "0.5.7-rc.88",
+  "coreArchiveSha256": "56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573",
+  "sourceCorpus": {"pages": 22, "chunks": 570, "bundled": false, "minecraftVersionVerified": false},
+  "retrievalSmoke": {"questions": 32, "expectedPagePresent": 28, "topFiveHitsWhenPresent": 28, "topOneHitsWhenPresent": 24, "missingPageQuestions": 4, "p95Ms": 24.1596, "blindedBenchmark": false},
+  "coreChecks": {"passed": 2079, "skipped": 1, "buildVerified": true, "publicDeclarationFiles": 349},
+  "officialDsh": [
+    {"version": "0.2.1-rc.2", "passed": 150, "skipped": 1, "failed": 0, "mainReferenceQuery": true, "workerReferenceQuery": true, "compiledEngineMcpReferenceQuery": true},
+    {"version": "0.2.1-rc.3", "passed": 150, "skipped": 1, "failed": 0, "mainReferenceQuery": true, "workerReferenceQuery": true, "compiledEngineMcpReferenceQuery": true}
+  ],
+  "indexUnchangedAfterQueries": true,
+  "sharedPhysicalCore": true,
+  "publicRegistryInstallationVerified": false,
+  "neuralQualityBenchmarkPerformed": false,
+  "neuralIntegration": "controlled embeddings-port fixture, with model binding, failure fallback and cancellation",
+  "shippedUi": "saved-index owner check sends one knowledge request; no model or connection required",
+  "chatModelCalls": 0,
+  "gameConnections": 0,
+  "productionReloads": 0,
+  "retainedDiagnostics": "Initial concurrent build/8-worker core run had two method-timing assertion failures; 51 isolated checks and the final full two-worker suite passed. Initial source npm staging ignored the lock and mixed rc.2/rc.3 peers; retry respected the lock and normal resolution passed. No force/legacy-peer-deps override used.",
+  "limits": "Small historical corpus smoke proves retrieval and integration, not full-corpus coverage or long-term autonomous gameplay. Source merge, immutable archives, GitHub and npm publication tracked separately."
+}

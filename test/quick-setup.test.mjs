@@ -177,6 +177,20 @@ test('newSession is honored before any session exists, while ordinary saves do n
   await assert.rejects(f.setup.save({...input,newSession:'true'}),/配置无效/);
 });
 
+test('external knowledge setup preserves an explicit index and its check does not start a model, game or session',async t=>{
+  const calls=[],f=await fixture(t,{selection:()=>undefined,knowledge:async(config,args)=>{calls.push({config,args});return{status:'ready',index:{pages:22,chunks:570}};}});
+  await f.setup.save({...input,minedojoIndexFile:join(f.directory,'references.sqlite'),minedojoRetrieval:'local-vector'});
+  const result=await f.setup.knowledge({action:'help'});assert.equal(result.status,'ready');
+  assert.deepEqual(calls[0].config.minecraft.knowledge,{minedojo:{indexFile:join(f.directory,'references.sqlite'),retrieval:'local-vector'}});
+  assert.equal(f.launches.length,0);assert.equal(f.models.length,0);
+  const next=await createQuickSetup(f.options);t.after(()=>next.close());
+  assert.equal(next.snapshot().fields.minedojoIndexFile,join(f.directory,'references.sqlite'));
+  await assert.rejects(f.setup.knowledge({action:'prepare'}));
+  await assert.rejects(f.setup.save({...input,minedojoIndexFile:'relative.sqlite'}),/配置无效/);
+  await f.setup.save({...input,minedojoIndexFile:''});
+  const saved=JSON.parse(await readFile(join(f.directory,'quick-setup.json'),'utf8'));assert.equal(saved.config.minecraft.knowledge,undefined);
+});
+
 test('owner notebook port attributes user notes and performs no launch; arbitrary operations are rejected',async t=>{
   const received=[];const f=await fixture(t,{notebook:async(config,args)=>{received.push({config,args});return{saved:true};}});
   await f.setup.save(input);await f.setup.notebook({action:'remember',kind:'resource',summary:'矿点',content:'主世界 (1,2,3)，数量未知',dimension:'overworld',source:{kind:'runtime_observation'}});
