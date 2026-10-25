@@ -1,14 +1,20 @@
 # 安装 DSH Minecraft Agent
 
-[rc.19 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 已公开，包含角色、皮肤、服务器笔记、网页画面和游戏旁的原生决策会话。核心 agent-mc-world@0.5.7-rc.86 已在 npm 公开，可选千灯纪包为 rc.22。
+[rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，latest 与本仓库市场入口均指向 rc.19。包含角色、皮肤、服务器笔记、网页画面和游戏旁的原生决策会话；精确依赖核心 agent-mc-world@0.5.7-rc.86，可选千灯纪包保持 rc.22。
 
-npm 插件 rc.19 的独立网页认证超时，尚未完成提交；npm latest 与市场入口暂为 rc.17。当前安装已验证的固定 GitHub 归档，不使用未公开的 npm rc.19：
+在目标 DSH profile 安装：
+
+```sh
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.19 --registry=https://registry.npmjs.org
+```
+
+也可使用与 npm 字节一致的固定 GitHub 归档：
 
 ```sh
 dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz --registry=https://registry.npmjs.org
 ```
 
-需要 Node.js 24。官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 公开归档安装、真实主进程/Worker、SDK/MCP 与一份物理核心检查；未放宽保护或修改宿主。归档 SHA256 4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e，与验收候选相同。见[公开分发证据](docs/github-publish-rc19.json)及[Release 验收附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/github-release-verification.json)。包内候选状态是构建时快照，不重新打包同一版本。
+需要 Node.js 24。官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 从公开 npm 与 GitHub 归档安装、真实主进程/Worker、SDK/MCP 与一份物理核心检查；未放宽保护或修改宿主。归档 SHA256 4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e，与验收候选相同。见[npm 分发证据](docs/npm-publish-rc19.json)和[GitHub 分发证据](docs/github-publish-rc19.json)及[Release 验收附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/npm-registry-verification.json)。包内候选状态是构建时快照，不重新打包同一版本。
 
 安装后复用 DSH 模型，侧栏打开 Minecraft 填服务器与角色。协议默认 auto，已验证 1.21.11 原版服，普通服务器无需密码；安装本身不连接游戏或调用模型。见[角色与笔记](docs/character-notebook.md)、[快速接入](docs/quick-start.md)、[登录说明](docs/authme-login.md)及[发布记录](docs/registry-release.md)。原生 Desktop 窗口与长期模型表现仍单独验收。
 
@@ -65,7 +71,7 @@ npm install ./vendor/agent-mc-world-<版本>.tgz ./vendor/agent-mc-qiandengji-<�
 
 只有需要千灯纪服务器协议时才配置 `serverPack: qiandengji`。普通服务器使用 `none`，不启用服务器专用规则。核心和适配器不需要 Cortico 主项目。
 
-rc.17 的普通接入：先在 DSH 选好默认模型，打开侧栏 Minecraft，填地址、角色名和登录方式，点击保存并连接。一般离线服不需要密码；仅明确要求 `/login` 的已有账号填写可选密码。首次任务可留空，进服后通过右侧原会话输入指令。不需要手写 JSON、选择端口或另填模型密钥。
+rc.19 的普通接入：先在 DSH 选好默认模型，打开侧栏 Minecraft，填地址、角色名和登录方式，点击保存并连接。一般离线服不需要密码；仅明确要求 `/login` 的已有账号填写可选密码。首次任务可留空，进服后通过右侧原会话输入指令。不需要手写 JSON、选择端口或另填模型密钥。
 
 高级部署仍按 DSH bundle 流程加载本包，并将 `mc-harness.config.configFile` 设为私有 Agent JSON 绝对路径。参考 [Agent JSON](examples/harness/agent.json) 和 [DeepSeek provider](examples/harness/deepseek.patch.yml)，将路径、账号、主机、环境变量改成自己的。示例默认 `enabled: false`，填写完成再启用。已有 configFile 不受首次配置覆盖。
 

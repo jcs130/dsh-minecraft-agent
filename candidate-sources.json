@@ -2,24 +2,23 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.19",
   "publication": {
-    "status": "published-github-npm-pending-authentication",
-    "registryPublished": false,
+    "status": "published-npm-and-github",
+    "registryPublished": true,
     "githubPublished": true,
     "previousPublishedVersion": "0.3.0-rc.17",
-    "marketVersion": "0.3.0-rc.17",
-    "latestNpmVersion": "0.3.0-rc.17",
-    "updatedAt": "2026-10-24T19:25:28.834Z",
+    "marketVersion": "0.3.0-rc.19",
+    "latestNpmVersion": "0.3.0-rc.19",
+    "updatedAt": "2026-10-25T03:06:02.075Z",
     "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19",
     "mergedCommit": "6e283ee2b5abf0974196094e2e1c71f05b738ce2",
-    "verification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/github-release-verification.json",
+    "verification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/npm-registry-verification.json",
     "archive": {
       "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz",
       "sha256": "4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e",
       "integrity": "sha512-8h6pQul1T8UVAd/Eb/1yDVKHcZV3093eW6D6NZ1rvQvazm6gT1IQBAQA+GS7zyASfAaX7Ct2ULP+Mrbiu/Nf/A==",
       "bytes": 659019,
-      "publishedAt": "2026-10-24T19:20:48Z"
-    },
-    "npmPendingReason": "independent web authentication expired; no successful npm submission"
+      "publishedAt": "2026-10-25T03:02:21.290Z"
+    }
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -128,16 +127,17 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-public-github-and-official-dsh-installation",
-    "verification": "docs/github-publish-rc19.json",
+    "status": "passed-public-registry-and-official-dsh-installation",
+    "verification": "docs/npm-publish-rc19.json",
+    "productionChanged": false,
+    "defaultRegistryInstallVerified": true,
     "defaultGithubInstallVerified": true,
     "stockDshVersions": [
       "0.2.1-rc.2",
       "0.2.1-rc.3"
     ],
     "sharedPhysicalCore": true,
-    "externalModelApiCalls": 0,
-    "productionChanged": false
+    "externalModelApiCalls": 0
   },
   "previousPublication": {
     "status": "published-npm-and-github",
