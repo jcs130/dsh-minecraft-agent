@@ -1,22 +1,16 @@
 # DSH Minecraft Agent
 
-[0.3.0-rc.19 is published on GitHub](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19), with the public exact core **0.5.7-rc.86**. Default installation from the public archive and real main/Worker checks passed on unmodified official DSH 0.2.1-rc.2 and rc.3.
+[0.3.0-rc.19 is published](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) on GitHub and npm, selected by `latest`, with exact core **0.5.7-rc.86**. Default public registry installation and real main/Worker checks passed on unmodified official DSH 0.2.1-rc.2 and rc.3.
 
-Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from Minecraft settings. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect only the own web avatar. Existing game, reasoning/tools, metrics and experiment views remain available. See [configuration](docs/character-notebook.md) and [verification](docs/github-publish-rc19.json).
+Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from the Minecraft settings page. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect the own web avatar only. Existing game, native reasoning/tools, metrics and experiment views remain available. See [configuration and notebook](docs/character-notebook.md), [installation](README-INSTALL.md) and [public verification](docs/npm-publish-rc19.json).
 
-The separate npm publish authentication expired. Adapter rc.19 is not on npm; latest and the market index remain rc.17. Install the fixed public GitHub archive:
-
-```sh
-dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz --registry=https://registry.npmjs.org
-```
-
-Published archives retain reviewed bytes. Candidate flags inside them are build-time snapshots; Release attachments and main-branch records describe current distribution. Installation starts no game or model.
+Published archives retain their reviewed bytes. Candidate flags inside the archive are build-time snapshots; Release attachments and main-branch records describe current distribution status. Installation alone starts no game or model.
 
 [简体中文](README.md) | English
 
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The GitHub release is **0.3.0-rc.19**, consuming core **0.5.7-rc.86** and optional server pack **0.5.0-rc.22**. The npm adapter remains **rc.17** pending independent authentication. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
+The npm and GitHub release is **0.3.0-rc.19**, consuming core **0.5.7-rc.86** and optional server pack **0.5.0-rc.22**. npm latest and this repository’s market index select rc.19. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
 
 The default lean tool set now retains `*_script` for on-demand shared routine and method discovery; explicit `tools.exclude` is respected.
 

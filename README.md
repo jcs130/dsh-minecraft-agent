@@ -1,16 +1,12 @@
 # DSH Minecraft Agent
 
-[0.3.0-rc.19 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 已公开，精确依赖已公开的核心 **0.5.7-rc.86**。官方 DSH 0.2.1-rc.2 / rc.3 已从公开归档完成默认安装及真实主进程/Worker 验证。
+[0.3.0-rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向 rc.19。精确依赖核心 **0.5.7-rc.86**；默认安装已在未修改的官方 DSH 0.2.1-rc.2 / rc.3 验证。
 
-新增[角色、感知、皮肤、服务器笔记与 DSH 插件配置](docs/character-notebook.md)。三个人格预设可编辑，矿物透视默认关闭；用户和 Agent 共用按服务器、账号与维度隔离的版本化笔记，默认离线 CPU 词元向量加关键词检索，也可接自有 embeddings。上传皮肤只影响本人本地网页画面，CPU 词元向量不是神经语义模型。包含原版 1.21.11 网页画面、auto 协议匹配和默认公屏聊天；原有原生推理/回答/工具会话、指标及实验室保留。
+新增[角色、感知、皮肤、服务器笔记与 DSH 插件配置](docs/character-notebook.md)。三个人格预设可编辑，矿物透视默认关闭；用户和 Agent 共用按服务器、账号与维度隔离的版本化笔记，默认提供离线 CPU 词元向量与关键词检索，也可接自有 embeddings。上传皮肤只影响本人本地网页画面，CPU 词元向量不冒充神经语义模型。
 
-npm 插件 rc.19 的独立网页认证已超时，尚未完成 npm 提交；npm latest 与市场入口仍为 rc.17。当前请安装已验证的固定 GitHub 归档：
+安装后复用 DSH 模型，从 Minecraft 侧栏填服务器和角色即可连接。版本默认 auto，网页画面按实际协议匹配，已验证 1.21.11 原版服；普通服无需密码，默认公屏聊天。原有游戏、原生推理/回答/工具会话、指标和实验室均保留。安装不连接游戏或启动模型。
 
-```sh
-dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz --registry=https://registry.npmjs.org
-```
-
-见[安装](README-INSTALL.md)、[公开分发验收](docs/github-publish-rc19.json)和[发布记录](docs/registry-release.md)。归档保持已验收的原字节；包内候选状态是构建时快照，当前分发状态以 Release 附件与主干文档为准。安装不启动游戏或模型。
+见[安装](README-INSTALL.md)、[配置与笔记](docs/character-notebook.md)、[分发验收](docs/npm-publish-rc19.json)及[发布记录](docs/registry-release.md)。公开归档保持已验收的原字节；包内候选状态是构建时快照，当前状态以 Release 附件和主干文档为准。
 
 ## 核心归属
 
@@ -18,7 +14,7 @@ dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/relea
 
 ## 当前版本
 
-**GitHub 0.3.0-rc.19** 精确消费核心 **0.5.7-rc.86**；可选千灯纪包保持 0.5.0-rc.22。npm 当前仍为 rc.17，等待 rc.19 的独立发布认证。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.19 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.86**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.19。主维护 Minecraft Java 1.21.1，显式兼容构建 1.20.6。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -26,7 +22,7 @@ dsh plugin --profile web add https://github.com/jcs130/dsh-minecraft-agent/relea
 
 ## 配置
 
-- Node.js 24，在 DSH 中配置并选择默认模型。安装 rc.17 后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
+- Node.js 24，在 DSH 中配置并选择默认模型。安装 rc.19 后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
 - 协议默认 `auto`，交给 Mineflayer 识别服务器，也可显式指定 1.21.11 等受支持版本；正版首次连接需微软授权。已有登录服账号可在可选设置填 `/login` 密码，插件不自动注册账号。千灯纪邀请身份请沿用[专用接入流程](docs/qiandengji-invitation.md)，不能绕过激活直接建号。
 - 首次配置保存在当前 DSH profile 的私有目录；同一服务器与身份续用自己的数据和会话，不同身份隔离。**停止并配置**先正常停止本插件的身体，保留目标、会话与记忆，然后允许修改。停止意图会持久化，重启不会擅自恢复。
 - 高级部署仍可将 mc-harness 的 configFile 指向私有 JSON，显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。该路径不受首次配置覆盖。

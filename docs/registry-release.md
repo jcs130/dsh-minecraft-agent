@@ -1,6 +1,17 @@
 # Registry 分发记录
 
-## rc.19：角色、服务器笔记与原版画面（GitHub 已公开，npm 待认证）
+## rc.19：角色配置、服务器笔记与原版 1.21.11 画面（npm / GitHub 已公开）
+
+[rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 和 npm 均可匿名下载，latest 指向 rc.19。主干功能合并 6e283ee2b5abf0974196094e2e1c71f05b738ce2；归档 SHA256 为 4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e，与候选完全一致。核心 rc.86 的归档 SHA256 为 350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0，next 指向该版。公开分发与默认安装证据见 [npm-publish-rc19.json](npm-publish-rc19.json)，包内候选状态保留为构建时快照，不重新打包或覆盖同一版本。
+
+新界面支持预设/自定义人格、本地 PNG 皮肤、默认关闭的矿物查询、版本化服务器笔记、离线 CPU 词元向量与关键词检索及自有 embeddings；通过官方能力预设接入其他 DSH 插件。默认只开放游戏工具，选定预设后沿用其工具策略。记录明确区分主人报告、历史和现场事实。皮肤只影响本人网页画面，不修改服务器身份；CPU 词元向量不是神经语义模型。包含未独立发行的 rc.18 网页画面、1.21.11 自动版本和公屏默认修复。
+
+核心 2065 项通过、1 项既有跳过，构建/类型/公开声明通过；官方 DSH 两版各 133 项通过、1 项外置 Harness² 可选跳过。此前的隔离 1.21.11 原版服已验证皮肤、笔记增改/检索/重启恢复及插件工具互通。本次两版均用默认 pnpm 从公开 registry 安装，保留安全保护，无 override、手动软链接或宿主修补；真实主进程/Worker、SDK/MCP、编译引擎 IPC、游戏记忆通过，千灯纪包 rc.22 共用同一物理核心。无外部模型调用或现役重载；原生 Desktop 窗口、真实模型长期游戏表现和自动学习收益未由本次分发检查证明。
+
+
+## rc.19 首次 GitHub 分发阶段（历史记录）
+
+以下保留首次 GitHub 分发时的状态，当时 npm 尚待认证；后续 npm 发布结果见本页上方的新记录。
 
 [rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 已公开，匿名归档 SHA256 为 `4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e`，与验收候选字节一致。精确核心 rc.86 已在 npm 与 GitHub 公开，next 指向 rc.86；可选服务器包保持 rc.22。功能合并提交为 `6e283ee2b5abf0974196094e2e1c71f05b738ce2`。公开验收见 [github-publish-rc19.json](github-publish-rc19.json)。
 

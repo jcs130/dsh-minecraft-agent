@@ -40,10 +40,10 @@
         "zh": "我的世界 Agent"
       },
       "description": {
-        "en": "Minecraft Agent with in-page setup, AuthMe login support, shared game view and native DSH reasoning/tools. Verified on stock DSH 0.2.1-rc.2 and rc.3; installation starts no game or model.",
-        "zh": "Minecraft Agent：页面内配置进服，支持 AuthMe 登录，游戏与 DSH 原生推理、回答和工具回执并排显示。官方 DSH0.2.1-rc.2/rc.3 已验证；安装不启动游戏或模型。"
+        "en": "Minecraft Agent with editable personas, local skins, a shared versioned server notebook, offline retrieval and native DSH reasoning/tools. Mineral queries default off; installation starts no game or model.",
+        "zh": "Minecraft Agent：角色与皮肤配置、服务器随身笔记和离线检索，游戏与 DSH 原生推理/工具并排显示。矿透默认关闭；安装不启动游戏或模型。"
       },
-      "icon": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/99d4f8c6066284d34e0ae0332fd830a7a78a7303/assets/icon.svg",
+      "icon": "https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/6e283ee2b5abf0974196094e2e1c71f05b738ce2/assets/icon.svg",
       "author": "jcs130",
       "homepage": "https://github.com/jcs130/dsh-minecraft-agent#readme",
       "repository": {
@@ -65,13 +65,16 @@
           "game-memory",
           "quick-setup",
           "reasoning",
-          "qiandengji"
+          "qiandengji",
+          "notebook",
+          "persona",
+          "local-skin"
         ]
       },
       "versions": [
         {
-          "version": "0.3.0-rc.17",
-          "publishTimestamp": 1792842478,
+          "version": "0.3.0-rc.19",
+          "publishTimestamp": 1792897341,
           "source": {
             "type": "npm",
             "registry": "https://registry.npmjs.org"
