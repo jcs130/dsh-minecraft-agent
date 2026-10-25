@@ -70,6 +70,7 @@ test('chat guard enforces the public line cap, spacing and the reserved goodbye'
   assert.equal(say('大家好'), null);
   now += 5000; assert.match(say('还是不说了'), /不足 20 秒/);
   assert.equal(guard.check('mymc_do', { steps: [{ skill: 'chat', text: '/msg ag_CorMy 你好' }] }), null); // whisper not counted
+  assert.equal(guard.check('mymc_do', { steps: [{ skill: 'chat', text: '/minecraft:tell Alice 你好' }] }), null);
   now += 30000; assert.equal(say('第二句'), null);
   now += 30000; assert.equal(say('第三句'), null);
   now += 30000; const refusal=say('第四句');assert.match(refusal, /上限（3 句，另留 1 句下线道别/);
@@ -77,6 +78,13 @@ test('chat guard enforces the public line cap, spacing and the reserved goodbye'
   assert.equal(guard.check('mymc_goal', { done: 1 }), null);
   assert.equal(guard.takeGoodbye(), '我先下线啦，再见～');
   assert.equal(guard.takeGoodbye(), null);
+});
+
+test('normal conversation has no default lifetime sentence cap and still observes spacing',()=>{
+  let now=0;const guard=new ChatGuard({},()=>now);
+  const say=()=>guard.check('mc_do',{steps:[{skill:'chat',text:'@Alice 你好'}]});
+  for(let i=0;i<8;i++){assert.equal(say(),null);now+=5000;}
+  assert.equal(say(),null);assert.match(say(),/不足 5 秒/);
 });
 
 test('repeated no-op rounds are detected and in-game goal closure is recognized', () => {
@@ -106,11 +114,12 @@ test('host wires the guards: lean tools, overflow retry, signals, stopped status
   assert.match(src, /goalClosed\(value\)/);
 });
 
-test('wake filter: whispers/mentions/danger wake, other players chat and countdowns do not', async () => {
+test('wake filter offers public conversation and suppresses countdowns, self and system chat', async () => {
   const { classifyWakeFallback, WAKE_ACTIVE_GOAL } = await import('../src/harness-budget.mjs');
   const self = { selfNames: ['ag_jojo', 'Jojo'] };
   const chat = (text, uname, trigger = 'debounce') => ({ type: 'mymc.chat', text, trigger, ...(uname ? { meta: { uname } } : {}) });
-  assert.equal(classifyWakeFallback(chat('[MC] ag_CorMy: 小鱼早呀~ 天亮了', 'ag_CorMy'), self).wake, false);
+  assert.equal(classifyWakeFallback(chat('[MC] ag_CorMy: 小鱼早呀~ 天亮了', 'ag_CorMy'), self).wake, true);
+  assert.equal(classifyWakeFallback(chat('[MC] ag_CorMy: 天亮了', 'ag_CorMy'), {...self,wakeOn:['mention','whisper']}).wake, false);
   assert.equal(classifyWakeFallback(chat('[MC] ag_CorMy: 欢迎回来 Jojo~', 'ag_CorMy', 'flush'), self).category, 'mention');
   assert.equal(classifyWakeFallback(chat('[MC 私聊] ag_CorMy: 在吗'), self).wake, true);
   assert.equal(classifyWakeFallback(chat('[MC 插件] 槽位1', undefined, 'flush'), self).wake, false);

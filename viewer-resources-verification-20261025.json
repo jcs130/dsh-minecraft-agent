@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-25T04:51:25.558Z",
+  "adapterVersion": "0.3.0-rc.20",
+  "core": {
+    "file": "agent-mc-world-0.5.7-rc.87.tgz",
+    "bytes": 86326676,
+    "sha256": "8b5da0a1c0ab27758521da4676accdce7a2d29ff7add8ba4085898b0df33a286",
+    "integrity": "sha512-QnKHpT+d+0zjnK2QgU7gB201T9XYTuJf61WVBk14/qequpAncgLGMlA4VulSPlur15SG3TzUX395tLDVSb2QcA==",
+    "version": "0.5.7-rc.87",
+    "sourceCommit": "35781212e9c2e909d574f7b3f39b6a59ddfd4c95"
+  },
+  "tests": {
+    "perOfficialHost": {
+      "passed": 134,
+      "failed": 0,
+      "skipped": 1,
+      "total": 135
+    },
+    "optionalSkip": "live Harness2 integration requires explicit lab setup; no automatic model calls",
+    "officialHosts": [
+      {
+        "dsh": "0.2.1-rc.2",
+        "modelRequests": 0,
+        "gameConnections": 0,
+        "moduleLoaded": true,
+        "officialPluginLoader": true,
+        "mcpTools": 37,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true,
+        "serverPackLoaded": true,
+        "physicsFixtures": 2,
+        "workerLoaded": true,
+        "workerOfficialResolverActive": true,
+        "environmentRestored": true,
+        "resolverUnchanged": true,
+        "frameworkSha256": [
+          "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+          "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+        ],
+        "frameworkUnchanged": true
+      },
+      {
+        "dsh": "0.2.1-rc.3",
+        "modelRequests": 0,
+        "gameConnections": 0,
+        "moduleLoaded": true,
+        "officialPluginLoader": true,
+        "mcpTools": 37,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true,
+        "serverPackLoaded": true,
+        "physicsFixtures": 2,
+        "workerLoaded": true,
+        "workerOfficialResolverActive": true,
+        "environmentRestored": true,
+        "resolverUnchanged": true,
+        "frameworkSha256": [
+          "5135179ac810e4f626f32ec3bdc3293dc7d2028e8aa92e5e0c006f1a33b78e76",
+          "ccc8086845b5bba49e5fe3eed55cc1ddc3e96fc5eda1fee035e9d6a730137f19"
+        ],
+        "frameworkUnchanged": true
+      }
+    ]
+  },
+  "distribution": {
+    "method": "staged unpublished archives, normal npm resolution; not default public registry DSH installation",
+    "sharedPhysicalCore": true,
+    "overrides": false,
+    "hostFilesChanged": false,
+    "packedRuntimeHashes": [
+      {
+        "file": "lib/client.js",
+        "sha256": "e6ecf194a827be372fe734a4d5d093a36b6ca579e0e62fa7b1b3ccde8df85d3b",
+        "sourceSha256": "e6ecf194a827be372fe734a4d5d093a36b6ca579e0e62fa7b1b3ccde8df85d3b"
+      },
+      {
+        "file": "lib/plugins/mc-harness.mjs",
+        "sha256": "6b7729ebed50fc5dc8ff133b40b36080769f5626a4434a74bb29b6fce3938c6b",
+        "sourceSha256": "6b7729ebed50fc5dc8ff133b40b36080769f5626a4434a74bb29b6fce3938c6b"
+      },
+      {
+        "file": "lib/plugins/harness-budget.mjs",
+        "sha256": "47d621748374a1ef8db4e092c24c088dbcbff62e143437e0fbe2a3524cc8f83a",
+        "sourceSha256": "47d621748374a1ef8db4e092c24c088dbcbff62e143437e0fbe2a3524cc8f83a"
+      },
+      {
+        "file": "lib/plugins/quick-setup.mjs",
+        "sha256": "d560ccfd5270a1a860e7ada87e909ae619b4f9704b041d1612f6da6beb4eccd7",
+        "sourceSha256": "d560ccfd5270a1a860e7ada87e909ae619b4f9704b041d1612f6da6beb4eccd7"
+      },
+      {
+        "file": "lib/plugins/profile-settings.mjs",
+        "sha256": "bb69dbf2aed1d60fe40d83da4087ba9b8043d9b585397287c2e1923730f60b5d",
+        "sourceSha256": "bb69dbf2aed1d60fe40d83da4087ba9b8043d9b585397287c2e1923730f60b5d"
+      }
+    ],
+    "publicRegistryInstallVerified": false
+  },
+  "viewer": {
+    "versions": [
+      "1.21.1",
+      "1.20.6",
+      "1.21.11",
+      "1.21.5"
+    ],
+    "sourceCommit": "14aeb081fab1f2ed4d65cc8558a2b9d6eb066759",
+    "isolatedBrowserVersion": "1.21.5",
+    "realBlockRegistryAndOriginalTexture": true,
+    "proceduralScene": true,
+    "lateVanillaAlexSkinVisible": true,
+    "fourEffectTogglesPersistAfterReload": true,
+    "webglErrors": 0,
+    "actualDSHDesktopNativePixelsVerified": false,
+    "realServerGameplayVerified": false
+  },
+  "features": {
+    "publicChatDefault": true,
+    "publicChatOptOut": true,
+    "privateCommandPreference": "/tell",
+    "unknownPrivateResultNotSentPublicly": true,
+    "remotePlayerSkinsDefault": true,
+    "ownLocalSkinPriority": true,
+    "exactVersionRepair": "mc_connection viewer-status / viewer-retry"
+  },
+  "modelCalls": 0,
+  "realGameConnections": 0,
+  "productionChanged": false
+}

@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+**rc.20 源码候选**正在验收：补充 1.21.5 画面、跨版本共用图片、原版服务端玩家皮肤、公屏聊天默认接收，以及画面内粒子／雨雪／光环等独立开关。见[网页资源与聊天](docs/viewer-resources-chat.md)。依赖核心 rc.87，npm 正式状态单独核验；下方 rc.19 是此前已公开版本。
+
 [0.3.0-rc.19 Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) 与 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent) 已公开，`latest` 指向 rc.19。精确依赖核心 **0.5.7-rc.86**；默认安装已在未修改的官方 DSH 0.2.1-rc.2 / rc.3 验证。
 
 新增[角色、感知、皮肤、服务器笔记与 DSH 插件配置](docs/character-notebook.md)。三个人格预设可编辑，矿物透视默认关闭；用户和 Agent 共用按服务器、账号与维度隔离的版本化笔记，默认提供离线 CPU 词元向量与关键词检索，也可接自有 embeddings。上传皮肤只影响本人本地网页画面，CPU 词元向量不冒充神经语义模型。
@@ -34,9 +36,9 @@
 - 上下文预算：首次配置读取 DSH 所选模型的上下文元数据；不可用时回退 131072。高级配置可显式设 contextTokens。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算请求先压缩再重试，仍超出则道别并下线。
 - 省上下文：`*_script` 默认保留，用于按需发现共享工作/移动脚本和自己的方法库；可用 `tools.exclude` 显式关闭。默认 `tools.profile: "lean"` 隐藏少用工具（蓝图、铁路、摄影、战术等，可用 `tools.include` 单独加回或 `profile: "full"` 全开），工具说明压缩到 `tools.descriptionChars`（默认 300 字），参数细节用 `*_tool_help` 按需查；每步事件快照只保留最近 `context.events`（默认 10）条，回执给模型时截到 `context.receiptChars`（默认 1500 字），完整内容仍在会话日志。`node scripts/measure-context.mjs qiandengji 人设.md` 可测固定提示大小。
 - 防打转：连续 6 次只走动/张望且停在约 24 格范围内（或没到新地方）时，给模型提示；到 12 次时当前目标自动完成（`progress.window/radius/closeAfter`）。每个目标最多 `maxGoalCalls`（默认 30）次模型调用。目标完成后，排队中的该目标回执直接丢弃，不再唤醒。退出道别结果写在 status.json 的 `goodbye`。
-- 唤醒：只有私聊、点名（`minecraft.username`、`name`、`wake.names`）、危险和连接变化会唤醒模型；目标进行中另加本身任务回执。其他玩家之间的聊天、插件提示、状态条倒计时只进下一次现场快照。可用 `wake.on` 覆盖类别。分类逻辑来自核心 `classifyWake`（agent-mc-world 新版），旧核心用同等的本地实现。
+- 唤醒：默认把普通公屏、私聊、点名、危险和连接变化交给 Agent 判断是否回应；不要求每条聊天都回复。目标进行中另加本身任务回执。自发聊天、系统提示和状态倒计时不因此唤醒。配置面板或 `wake.publicChat:false` 可关闭普通公屏；`wake.on` 可覆盖类别。
 - 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标；连续 `noopRoundLimit`（默认 3）轮没有游戏动作也会结束目标；`maxGoalRounds` 默认 40。
-- 聊天：`chat.maxPublicLines`（默认 4）在代码里限制公屏句数，`chat.minIntervalMs`（默认 20000）限制连续发言；配置 `chat.goodbye` 时预留 1 句，在真正下线（SIGINT/SIGTERM 或卸载）时由宿主发送，并在 status.json 写 `stopped: true`。私聊（/msg）不计入。
+- 聊天：默认公屏，可写 `@玩家名`；`chat.maxPublicLines` 默认 0（不限制累计总句数），`chat.minIntervalMs` 默认 5000。用户仍可显式设置上限。私聊优先原版 `/tell`，结果未知不自动转公屏。配置 `chat.goodbye` 时保留下线道别及 `status.json` 回执。
 - API key 由 DSH provider 环境变量提供，游戏密码按服务器及用户名独立配置；不要写入人格、聊天或仓库。
 
 官方 DeepSeek 云端的显式无思考配置见 [provider 示例](examples/harness/deepseek.patch.yml) 和 [Agent 示例](examples/harness/agent.json)。示例安装时不启用，须先填自己的路径、账号与预算。完整说明见 [迁移指南](docs/harness-migration.md)，旧版说明见 [0.1.x 文档](docs/legacy-0.1.md)。

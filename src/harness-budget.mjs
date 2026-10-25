@@ -108,10 +108,10 @@ export function capBlocks(blocks, max = 1500) {
   });
 }
 
-const WHISPER = /^\/(msg|tell|w|whisper|r|reply)\s/i;
+const WHISPER = /^\/(?:minecraft:)?(msg|tell|w|whisper|r|reply)\s/i;
 /** Enforce the public chat budget in code, not only in the persona. */
 export class ChatGuard {
-  constructor({ maxPublicLines = 4, minIntervalMs = 20000, goodbye } = {}, now = Date.now) {
+  constructor({ maxPublicLines = 0, minIntervalMs = 5000, goodbye } = {}, now = Date.now) {
     this.reserve = goodbye ? 1 : 0; this.max = maxPublicLines; this.minIntervalMs = minIntervalMs;
     this.goodbye = goodbye; this.now = now; this.sent = 0; this.last = -Infinity;
   }
@@ -125,7 +125,7 @@ export class ChatGuard {
     const lines = ChatGuard.publicLines(name, args);
     if (!lines.length) return null;
     const allowed = this.max - this.reserve;
-    if (this.sent + lines.length > allowed)
+    if (this.max > 0 && this.sent + lines.length > allowed)
       return `公屏发言已达本次上限（${allowed} 句${this.reserve ? '，另留 1 句下线道别由宿主发送' : ''}）。本次先继续游戏行动；不要改用私聊绕过限额，也不假定服务器支持私聊命令。`;
     if (this.now() - this.last < this.minIntervalMs)
       return `距上一句公屏发言不足 ${Math.round(this.minIntervalMs / 1000)} 秒。先别接着说，避免前后矛盾；需要时稍后再说。`;
@@ -136,7 +136,7 @@ export class ChatGuard {
   /** The checked call was rejected (e.g. invalid arguments): nothing was said, so restore the budget. */
   refund() { if (this.undo) Object.assign(this, this.undo); this.undo = null; }
   takeGoodbye() {
-    if (!this.goodbye || this.sent >= this.max) return null;
+    if (!this.goodbye || this.max > 0 && this.sent >= this.max) return null;
     this.sent++; const text = this.goodbye; this.goodbye = null; return text;
   }
 }
@@ -159,8 +159,13 @@ export function redactUrl(text) {
 
 // ---- Fallbacks for agent-mc-world releases without src/client/context-budget (<= 0.5.7-rc.47).
 // Same behavior as the core's classifyWake / compactToolSchema; the host prefers the core exports.
-export const WAKE_DEFAULT = ['whisper', 'mention', 'danger', 'connection'];
+export const WAKE_DEFAULT = ['whisper', 'mention', 'chat-other', 'danger', 'connection'];
 export const WAKE_ACTIVE_GOAL = [...WAKE_DEFAULT, 'task', 'goal'];
+export function configuredWake(defaults,policy={}){
+  const base=policy.on??defaults;
+  return policy.publicChat===false?base.filter(category=>category!=='chat-other')
+    :policy.publicChat===true?[...new Set([...base,'chat-other'])]:base;
+}
 const DANGER = /濒死|生命 ?\d+\/20|受到|被.{0,12}(攻击|打|伤)|敌对|有害|中了「|死了[^(（]|你死|重生点失效|溺水|着火|岩浆|服务器(停|出问题)|下线|断开|Boss 血条/u;
 const CONNECTION = /disconnect|lifecycle|kicked|leave_self/i;
 export function classifyWakeFallback(event, options = {}) {
@@ -177,7 +182,7 @@ export function classifyWakeFallback(event, options = {}) {
     if (!speaker) return { wake: false, category: 'system' };
     if (names.includes(speaker.toLocaleLowerCase())) return { wake: false, category: 'self' };
     const body = text.replace(/^\[MC[^\]]*\]\s*[^:：]*[:：]\s*/u, '').toLocaleLowerCase();
-    return names.some(n => body.includes(n) || body.includes('@' + n)) ? decide('mention') : { wake: false, category: 'chat-other' };
+    return decide(names.some(n => body.includes(n) || body.includes('@' + n)) ? 'mention' : 'chat-other');
   }
   if (event.trigger === 'piggyback') return { wake: false, category: 'piggyback' };
   if (kind === 'task') return decide('task');
