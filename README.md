@@ -12,6 +12,20 @@
 
 见[安装](README-INSTALL.md)和[发布记录](docs/registry-release.md)。npm 与 GitHub 保持原验收归档字节，包内 publication 是构建时快照；当前分发以主干文档及 Release 新增验收附件为准。
 
+## 实时观战
+
+同一个 Agent 的游戏连接可以展示第一人称、第三人称和 3D 观战画面，实时查看移动、战斗和环境变化。画面内可开关信息层、调整观察镜头；DSH 面板还可把游戏与原生推理、回答和工具记录并排展示。
+
+![共享核心实际线上 3D 观战：地下城战斗，简洁模式](docs/screenshots/live-spectator-20261026.jpg)
+
+上图和下图拍摄于 2026-10-26，来自本插件复用的 **Agent MC World 共享核心线上观战**，不是生成图片或 DSH 桌面窗口。这里展示了服务器自定义地下城；技能和角色外观取决于服务器包及外观资源，不代表所有原版服务器都有这些能力。
+
+![实时观战信息层：角色、地图、技能与动作来源](docs/screenshots/live-spectator-hud-20261026.jpg)
+
+![DSH 内嵌游戏画面与原生决策会话](docs/screenshots/game-and-reasoning.png)
+
+第三张是已留证的 DSH Web 集成测试截图：游戏与决策并排，右侧明确标注离线 UI 测试数据，用于展示布局，不冒充真实模型思考或桌面端实测。完整来源见[截图说明](docs/screenshots/README.md)。市场通过根目录 `screenshots.json` 按上述观战优先的顺序读取图片；[市场入口与审核状态](docs/marketplaces.md)单独记录。
+
 ## 核心归属
 
 `agent-mc-world` 的唯一源码在 [minecraft-ai-friend/packages/agent-mc-world](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world)。本插件直接依赖其版本化安装包；构建无需 Cortico World 源码。核心升级先用候选包通过宿主测试，再独立切换部署。

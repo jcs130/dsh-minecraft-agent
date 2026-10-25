@@ -10,6 +10,20 @@ Published archives retain their reviewed bytes. Candidate flags inside the archi
 
 [简体中文](README.md) | English
 
+## Live spectating
+
+Watch the Agent's existing game connection in first-person, third-person or 3D spectator views. Toggle the HUD and camera locally; the DSH panel can place the game beside native reasoning, replies and tool records.
+
+![Live 3D spectating from the shared core, with the HUD hidden](docs/screenshots/live-spectator-20261026.jpg)
+
+Captured on 2026-10-26 from the shared **Agent MC World** core's existing live spectator page, not an AI-generated image or a DSH Desktop window. This server has custom dungeon content; its skills and character appearance depend on optional server/appearance resources.
+
+![Live spectator HUD with map, abilities and action state](docs/screenshots/live-spectator-hud-20261026.jpg)
+
+![Embedded DSH game view beside native conversation and tools](docs/screenshots/game-and-reasoning.png)
+
+The third image is a recorded DSH Web integration test. The transcript is visibly labelled offline UI test data; it demonstrates the layout, not live model reasoning. See [screenshot provenance](docs/screenshots/README.md), [Desktop installation](docs/desktop.md) and [market listing status](docs/marketplaces.md). The root `screenshots.json` provides the gallery in this order.
+
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
 The rc.22 release consumes core **0.5.7-rc.89** and optional server pack **0.5.0-rc.22**. Java **1.21.1** is primary, with explicit **1.20.6** compatibility coverage. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
