@@ -4,7 +4,7 @@
 
 两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 公开 registry 安装、主进程／Worker、37 个 MCP 工具和真实本地知识库查询通过，见[npm 分发验收](docs/npm-publish-rc22.json)。匿名下载与原 GitHub 验收归档字节一致。
 
-开发主干 **rc.23 候选**已跟进千灯纪扩展 **rc.24**，并完成核心 **rc.90 源码候选**的独立打包及 DSH / SDK / MCP 兼容验证。核心 rc.90 尚未公开到 npm，主干正式依赖仍锁定可安装的 rc.89；npm 插件仍为上述 rc.22。见[本次更新与验证边界](docs/registry-release.md)。
+开发主干 **rc.24 候选**已跟进千灯纪扩展 **rc.24**，并完成核心 **rc.99 源码候选**的独立打包及 DSH / SDK / MCP 兼容验证。新增扩展只读查询通道的并发契约与使用指引，导航中可以查询已声明的信息；保留原任务及未知结果语义。批量消息读取、结构化纠错和记忆去重均通过打包边界验证。核心 rc.99 尚未公开到 npm，主干正式依赖仍锁定可安装的 rc.89；npm 插件仍为上述 rc.22。见[本次核验](docs/core-sync-rc99-verification-20261026.json)和[更新与验证边界](docs/registry-release.md)。
 
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 
