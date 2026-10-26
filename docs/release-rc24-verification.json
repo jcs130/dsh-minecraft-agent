@@ -1,0 +1,102 @@
+{
+  "schema": "dsh-release-candidate-verification/v1",
+  "verifiedAt": "2026-10-26T11:48:20.063Z",
+  "adapter": "0.3.0-rc.24",
+  "core": {
+    "schema": "minecraft-public-archive-verification/v1",
+    "verifiedAt": "2026-10-26T11:48:17.926Z",
+    "name": "agent-mc-world",
+    "version": "0.5.7-rc.99",
+    "channel": "npm",
+    "file": "agent-mc-world-0.5.7-rc.99.tgz",
+    "bytes": 86406961,
+    "sha256": "16e510696b79e1843e837ffb2558e90ada80f1dd41ef2b15bd3c8613f6de9d9d",
+    "integrity": "sha512-kMM/u12g5/hkiRDAze1668Spb/s1518Dtn1DjYoT1mcgjGLBDczGpmcNtwOG3cX8SFud3lV9+Yi8uYrtiRjCXQ==",
+    "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.99.tgz",
+    "anonymous": true,
+    "reviewedArchiveBytesPreserved": true,
+    "tag": "next",
+    "tagVersion": "0.5.7-rc.99",
+    "publishedAt": "2026-10-26T11:45:53.567Z",
+    "realGameConnections": 0,
+    "modelCalls": 0,
+    "productionReloads": 0
+  },
+  "coreGithub": {
+    "schema": "minecraft-public-archive-verification/v1",
+    "verifiedAt": "2026-10-26T11:23:04.696Z",
+    "name": "agent-mc-world",
+    "version": "0.5.7-rc.99",
+    "channel": "github",
+    "file": "agent-mc-world-0.5.7-rc.99.tgz",
+    "bytes": 86406961,
+    "sha256": "16e510696b79e1843e837ffb2558e90ada80f1dd41ef2b15bd3c8613f6de9d9d",
+    "integrity": "sha512-kMM/u12g5/hkiRDAze1668Spb/s1518Dtn1DjYoT1mcgjGLBDczGpmcNtwOG3cX8SFud3lV9+Yi8uYrtiRjCXQ==",
+    "url": "https://github.com/jcs130/minecraft-ai-friend/releases/download/agent-mc-world-v0.5.7-rc.99/agent-mc-world-0.5.7-rc.99.tgz",
+    "anonymous": true,
+    "reviewedArchiveBytesPreserved": true,
+    "tag": null,
+    "tagVersion": null,
+    "publishedAt": null,
+    "realGameConnections": 0,
+    "modelCalls": 0,
+    "productionReloads": 0
+  },
+  "sourceAdapterSync": "a91ea30f6a8a6da97204a28f8aa2a7ac76ab5302",
+  "sourceCore": "c4e6e1b9645e02b70539cb72782ad47cd314cc2b",
+  "optionalServerPack": {
+    "role": "server-pack",
+    "repository": "https://github.com/jcs130/cortico-world-qiandengji",
+    "sourceDirectory": "packages/qiandengji",
+    "commit": "e167be5aaaa7f50e500b96092d559d172a89795a",
+    "sourceStatus": "committed-on-remote-main",
+    "version": "0.5.0-rc.24",
+    "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.24.tgz",
+    "sha256": "fb10f92e4bc10d43d9d7c9b6dc654f5e5a9999db7c4392ee2a659b79f3815f88",
+    "integrity": "sha512-d1fN8SQkf86+OeP52ngoyRFvo7cl83wFxPqCC0S3HSwnqTOzzaKRcu2ujFsVjiIX7mbWU/2JMR13HgGyrJf5DA==",
+    "published": true,
+    "registryPublished": true,
+    "artifactFile": "agent-mc-qiandengji-0.5.0-rc.24.tgz",
+    "peerCore": "^0.5.7-rc.86"
+  },
+  "officialHostRegression": [
+    {
+      "dsh": "0.2.1-rc.2",
+      "core": "0.5.7-rc.99",
+      "passed": 154,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "dsh": "0.2.1-rc.3",
+      "core": "0.5.7-rc.99",
+      "passed": 154,
+      "failed": 0,
+      "skipped": 1
+    }
+  ],
+  "coreTests": {
+    "passed": 2258,
+    "skipped": 1,
+    "typecheck": true,
+    "publicDeclarations": 353,
+    "githubChecksPassed": 5
+  },
+  "contracts": {
+    "queryConcurrency": true,
+    "originalBodyTaskPreserved": true,
+    "duplicateQueryReused": true,
+    "batchMessageReadback": true,
+    "recoveryMetadataPreserved": true,
+    "memoryDeduplication": true
+  },
+  "publication": {
+    "adapterNpm": false,
+    "adapterGithub": false,
+    "status": "build-time candidate snapshot; final publication and default registry installation recorded in Release attachments"
+  },
+  "modelCalls": 0,
+  "realGameConnections": 0,
+  "productionReloads": 0,
+  "nativeDesktopPixelsVerified": false
+}
