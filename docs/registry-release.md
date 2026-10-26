@@ -1,5 +1,15 @@
 # Registry 分发记录
 
+## rc.24：核心 rc.99（npm / GitHub 已公开）
+
+[插件 rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 与[核心 rc.99](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.99) 已公开；npm 分别使用 latest 与 next。精确依赖核心 rc.99、可选千灯纪 rc.24，自有 format-1 索引同步；各社区市场仍独立审核和刷新。
+
+匿名 npm 与 GitHub 下载保持已验收归档字节。官方 DSH rc.2 / rc.3 的全新独立 profile 已通过默认 pnpm registry 安装、主进程／Worker、38 个 MCP 工具、编译引擎 IPC、游戏记忆、物理初始化与真实本地知识库查询，共用同一物理核心。没有 override、手工链接、宿主补丁或关闭安装保护。见[npm 分发验收](npm-publish-rc24.json)。
+
+核心 2258 通过、1 项跳过，353 公开声明、类型、完整构建和 GitHub 5 项检查通过；核心 rc.99 下两版 DSH 各 154 通过、1 项可选外部 Harness2 跳过。新查询并发、消息读回与记忆契约见[本版说明](release-rc24.md)。原归档和候选记录保持，包内 publication 是构建时快照，不重打包同一版本。
+
+发布没有连接游戏、注册账号、调用模型或重载现役角色；未据此证明长期自主收益或原生 Desktop 像素。回滚可显式安装 rc.22，保留账号、会话、目标、记忆及回执。
+
 ## rc.24：GitHub 已公开，npm 插件认证待完成
 
 [插件 rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已公开，匿名下载与原验收归档字节一致，SHA256 为 `209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03`。正式依赖核心 **rc.99**、可选千灯纪 **rc.24**；源码 PR #24 已合入 main `1c287a94595e7520b5f043a3f18f349158256f01`。核心 rc.99 已通过 npm 自动审核，next 指向该版，匿名 npm / GitHub 字节一致。

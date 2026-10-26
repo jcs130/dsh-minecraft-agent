@@ -1,8 +1,8 @@
 # DSH Desktop 与实验室
 
-当前发行版为 **0.3.0-rc.22**，精确依赖核心 **0.5.7-rc.89**，已发布到 npm 和 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22)。Mineflayer 默认自动协商协议；网页缺少对应版本的预制材质时自动显示兼容画面，未知素材局部占位，无需用户先准备资源才能连接。DSH 显示 Agent 账号和同连接网页画面，侧栏保留原生推理、工具与回答。
+当前发行版为 **0.3.0-rc.24**，精确依赖核心 **0.5.7-rc.99**，已发布到 npm 和 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24)。Mineflayer 默认自动协商协议；网页缺少对应版本的预制材质时自动显示兼容画面，未知素材局部占位，无需用户先准备资源才能连接。DSH 显示 Agent 账号和同连接网页画面，侧栏保留原生推理、工具与回答。
 
-> 官方 DSH **0.2.1-rc.2 / rc.3** 的默认 pnpm registry 安装、主进程／Worker 加载、37 个 MCP 工具与本地知识库查询已验证，见 [npm 验收记录](npm-publish-rc22.json)。共享 Web 页面与隔离原版 1.21.11 画面有独立验证；**尚未实测 Desktop 原生窗口画面**，不把这些结果当成完整桌面端验收。详见[发布记录](registry-release.md)。
+> 官方 DSH **0.2.1-rc.2 / rc.3** 的默认 pnpm registry 安装、主进程／Worker 加载、37 个 MCP 工具与本地知识库查询已验证，见 [npm 验收记录](npm-publish-rc24.json)。共享 Web 页面与隔离原版 1.21.11 画面有独立验证；**尚未实测 Desktop 原生窗口画面**，不把这些结果当成完整桌面端验收。详见[发布记录](registry-release.md)。
 
 采用 DSH Desktop 与 Web 共用的插件契约和同一套构建。插件在同步引导中使用依赖的 Node 原生流模式，无需修改 Desktop 应用归档。Java 1.21.1 是主维护版本，其他协议版本由已安装 Mineflayer 的实际支持决定，不按预制材质包限制连接。不要混用 CLI 与 Desktop 的可执行依赖、profile 锁文件或 node_modules。
 
@@ -11,13 +11,13 @@
 在 **Desktop 应用内 → 插件 → 添加插件** 输入：
 
 ```text
-@jcs130/dsh-minecraft-agent@0.3.0-rc.22
+@jcs130/dsh-minecraft-agent@0.3.0-rc.24
 ```
 
 registry 选择 `https://registry.npmjs.org`。支持安装归档 URL 的版本也可使用同字节的固定发行包：
 
 ```text
-https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.22/jcs130-dsh-minecraft-agent-0.3.0-rc.22.tgz
+https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.24/jcs130-dsh-minecraft-agent-0.3.0-rc.24.tgz
 ```
 
 发行包包含构建好的 lib/client.js 与宿主适配器；身体与可视化由精确锁定的核心发行包提供。通常直接安装 npm 包即可，无需自行编译。
@@ -50,7 +50,7 @@ Desktop 的 profile 由桌面程序管理，使用应用内插件管理器安装
 https://raw.githubusercontent.com/jcs130/dsh-minecraft-agent/main/market/index.json
 ```
 
-本索引遵循 DSH format 1，当前提供已通过默认安装验证的 rc.22。更多入口及审核状态见[市场收录记录](marketplaces.md)。社区收录、索引同步、npm 发布和实际安装是不同状态；提交不等于审核通过。无需为了安装本插件同时装多个市场。
+本索引遵循 DSH format 1，当前提供已通过默认安装验证的 rc.24。更多入口及审核状态见[市场收录记录](marketplaces.md)。社区收录、索引同步、npm 发布和实际安装是不同状态；提交不等于审核通过。无需为了安装本插件同时装多个市场。
 
 ## 兼容边界与回退
 
