@@ -4,6 +4,8 @@
 
 两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 公开 registry 安装、主进程／Worker、37 个 MCP 工具和真实本地知识库查询通过，见[npm 分发验收](docs/npm-publish-rc22.json)。匿名下载与原 GitHub 验收归档字节一致。
 
+开发主干 **rc.23 候选**已跟进千灯纪扩展 **rc.24**，并完成核心 **rc.90 源码候选**的独立打包及 DSH / SDK / MCP 兼容验证。核心 rc.90 尚未公开到 npm，主干正式依赖仍锁定可安装的 rc.89；npm 插件仍为上述 rc.22。见[本次更新与验证边界](docs/registry-release.md)。
+
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 
 包含[配置目标恢复与独立新会话](docs/goal-session-reset.md)、[生存攻略和步骤](docs/survival-decision.md)、[跨版本画面、原版玩家皮肤、公屏与特效开关](docs/viewer-resources-chat.md)。保留游戏旁的 DSH 原生推理／回答／工具会话、指标和实验室。

@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.22",
+  "version": "0.3.0-rc.23",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -115,7 +115,8 @@
     "goal-session-verification-20261025.json",
     "minedojo-verification-20261025.json",
     "docs/viewer-compatible-20261025.md",
-    "docs/viewer-compatible-20261025.json"
+    "docs/viewer-compatible-20261025.json",
+    "docs/core-sync-verification-20261026.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
@@ -137,7 +138,7 @@
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-rc.22"
+    "agent-mc-qiandengji": "0.5.0-rc.24"
   },
   "engines": {
     "node": ">=24",

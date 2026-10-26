@@ -4,6 +4,8 @@
 
 Unmodified official DSH 0.2.1-rc.2 / rc.3 passed default pnpm public registry installation, main/Worker loading, 37 MCP tools and real local knowledge queries. Anonymous downloads match the original reviewed GitHub archives. See [npm verification](docs/npm-publish-rc22.json).
 
+The **rc.23 development candidate** follows optional Qiandengji pack **rc.24** and verifies the **rc.90 core source candidate** through packed DSH / SDK / MCP consumers. Core rc.90 is not published on npm, so the installable manifest keeps the rc.89 core pin. The public plugin remains rc.22. See [update verification](docs/core-sync-verification-20261026.json).
+
 Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from the Minecraft settings page. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect the own web avatar only. Existing game, native reasoning/tools, metrics and experiment views remain available. See [configuration and notebook](docs/character-notebook.md), [installation](README-INSTALL.md) and [public verification](docs/npm-publish-rc22.json).
 
 Published archives retain their reviewed bytes. Candidate flags inside the archive are build-time snapshots; Release attachments and main-branch records describe current distribution status. Installation alone starts no game or model.
