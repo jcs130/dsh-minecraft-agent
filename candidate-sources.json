@@ -2,21 +2,22 @@
   "schema": "dsh-minecraft-candidates/v1",
   "adapterVersion": "0.3.0-rc.24",
   "publication": {
-    "status": "published-github-awaiting-npm-authentication",
+    "status": "published-npm-and-github",
     "githubPublished": true,
-    "registryPublished": false,
+    "registryPublished": true,
     "previousPublishedVersion": "0.3.0-rc.22",
-    "latestNpmVersion": "0.3.0-rc.22",
-    "marketVersion": "0.3.0-rc.22",
-    "updatedAt": "2026-10-26T12:06:10.803Z",
+    "latestNpmVersion": "0.3.0-rc.24",
+    "marketVersion": "0.3.0-rc.24",
+    "updatedAt": "2026-10-26T12:19:07.282Z",
     "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24",
+    "verification": "docs/npm-publish-rc24.json",
     "mergedCommit": "1c287a94595e7520b5f043a3f18f349158256f01",
-    "verification": "docs/github-publish-rc24.json",
     "archive": {
       "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.24.tgz",
-      "bytes": 1067944,
       "sha256": "209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03",
-      "integrity": "sha512-dcHfYZR+a23h0OooTNzw1XoLyT3X5IdDGJLoi/lsmMrFrqzfVSH6X9DlU+Aex++DgNnwzDnwQhvGkp9/Nf8scg=="
+      "integrity": "sha512-dcHfYZR+a23h0OooTNzw1XoLyT3X5IdDGJLoi/lsmMrFrqzfVSH6X9DlU+Aex++DgNnwzDnwQhvGkp9/Nf8scg==",
+      "bytes": 1067944,
+      "publishedAt": "2026-10-26T12:16:04.151Z"
     },
     "communityMarketplaceStatus": "independent-review-and-index-refresh"
   },
@@ -195,9 +196,9 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-public-github-default-official-dsh-installation",
-    "verification": "docs/github-publish-rc24.json",
-    "publicRegistryInstallVerified": false,
+    "status": "passed-public-registry-and-official-dsh-installation",
+    "verification": "docs/npm-publish-rc24.json",
+    "publicRegistryInstallVerified": true,
     "sourceTestsPerHost": 154,
     "skippedPerHost": 1,
     "stockDshVersions": [
@@ -206,10 +207,9 @@
     ],
     "sharedPhysicalCore": true,
     "productionChanged": false,
+    "defaultRegistryInstallVerified": true,
     "runtimeFilesCompared": 18,
-    "mcpTools": 38,
-    "defaultGithubInstallVerified": true,
-    "defaultRegistryInstallVerified": false
+    "mcpTools": 38
   },
   "previousPublication": {
     "status": "published-npm-and-github",
@@ -495,5 +495,41 @@
     "productionChanged": false,
     "runtimeFilesCompared": 18,
     "mcpTools": 38
+  },
+  "rc24GithubPublication": {
+    "status": "published-github-awaiting-npm-authentication",
+    "githubPublished": true,
+    "registryPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.22",
+    "latestNpmVersion": "0.3.0-rc.22",
+    "marketVersion": "0.3.0-rc.22",
+    "updatedAt": "2026-10-26T12:06:10.803Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24",
+    "mergedCommit": "1c287a94595e7520b5f043a3f18f349158256f01",
+    "verification": "docs/github-publish-rc24.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.24.tgz",
+      "bytes": 1067944,
+      "sha256": "209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03",
+      "integrity": "sha512-dcHfYZR+a23h0OooTNzw1XoLyT3X5IdDGJLoi/lsmMrFrqzfVSH6X9DlU+Aex++DgNnwzDnwQhvGkp9/Nf8scg=="
+    },
+    "communityMarketplaceStatus": "independent-review-and-index-refresh"
+  },
+  "rc24GithubValidation": {
+    "status": "passed-public-github-default-official-dsh-installation",
+    "verification": "docs/github-publish-rc24.json",
+    "publicRegistryInstallVerified": false,
+    "sourceTestsPerHost": 154,
+    "skippedPerHost": 1,
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "sharedPhysicalCore": true,
+    "productionChanged": false,
+    "runtimeFilesCompared": 18,
+    "mcpTools": 38,
+    "defaultGithubInstallVerified": true,
+    "defaultRegistryInstallVerified": false
   }
 }

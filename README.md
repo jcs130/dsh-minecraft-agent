@@ -1,10 +1,10 @@
 # DSH Minecraft Agent
 
-**[0.3.0-rc.22](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，`latest` 指向 rc.22，精确依赖核心 **0.5.7-rc.89**。没有对应版本的预制材质时，自动显示兼容画面；缺失的新素材局部占位，普通用户无需手工准备资源。见[默认体验与验证](docs/viewer-compatible-20261025.md)。
+**[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，latest 指向 rc.24，精确依赖核心 **0.5.7-rc.99** 和可选千灯纪 **0.5.0-rc.24**。核心只读查询可与导航并行，批量消息读回、纠错和记忆去重保留原任务及证据语义。
 
-两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 公开 registry 安装、主进程／Worker、37 个 MCP 工具和真实本地知识库查询通过，见[npm 分发验收](docs/npm-publish-rc22.json)。匿名下载与原 GitHub 验收归档字节一致。
+两版未修改官方 DSH **0.2.1-rc.2 / rc.3** 均通过默认 pnpm 公开 registry 安装、主进程／Worker、**38 个 MCP 工具**和真实本地知识库查询；两版各 154 项通过、1 项可选跳过。匿名下载与已验收归档字节一致，见[npm 分发验收](docs/npm-publish-rc24.json)及[本版说明](docs/release-rc24.md)。
 
-**[rc.24 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已公开**，精确依赖 npm 已公开的核心 **rc.99** 和可选千灯纪 **rc.24**。两版官方 DSH 的全新 profile 已通过默认公开 URL 安装、主进程／Worker、38 个 MCP 工具和本地知识库查询。插件 npm 本次独立认证尚未完成，npm latest 与自有市场暂保留上方的 rc.22。见[GitHub 分发验收](docs/github-publish-rc24.json)和[本版说明](docs/release-rc24.md)。
+没有精确预制材质时仍自动显示兼容画面；普通用户无需手工准备资源。现役角色不因发布重载，原生 Desktop 窗口与真实长期玩法分别验收。旧版 rc.22 及各阶段证据保留，包内候选状态为构建时快照。
 
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 
@@ -34,7 +34,7 @@
 
 ## 当前版本
 
-**0.3.0-rc.22 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.89**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.22。主维护 Minecraft Java 1.21.1，连接协议默认 auto，网页缺少精确材质时自动兼容。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.24 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.99** 与可选千灯纪 **0.5.0-rc.24**。npm latest 与自有市场入口均为 rc.24。主维护 Java 1.21.1，协议默认 auto；网页材质自动兼容，使用原始官方 DSH。发布、默认安装、原生 Desktop 画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 

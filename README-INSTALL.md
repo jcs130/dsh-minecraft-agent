@@ -1,18 +1,18 @@
 # 安装 DSH Minecraft Agent
 
-当前 npm `latest` 与 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22) 均为 **0.3.0-rc.22**，精确依赖核心 **0.5.7-rc.89**，可选千灯纪包保持 rc.22。缺少精确预制材质时自动兼容，不要求普通用户手工准备资源。配置目标、独立新会话、人格与笔记、公屏和画面开关、生存资料和 MineDojo 索引入口均保留。
+当前 npm `latest` 与 [GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 均为 **0.3.0-rc.24**，精确依赖核心 **0.5.7-rc.99**，可选千灯纪包保持 rc.24。缺少精确预制材质时自动兼容，不要求普通用户手工准备资源。配置目标、独立新会话、人格与笔记、公屏和画面开关、生存资料和 MineDojo 索引入口均保留。
 
-**Desktop 用户**：在应用内「插件 → 添加插件」输入 `@jcs130/dsh-minecraft-agent@0.3.0-rc.22`，registry 选择 `https://registry.npmjs.org`。不要用普通 CLI 修改桌面专用 profile。也可按[市场入口](docs/marketplaces.md)浏览安装。
+**Desktop 用户**：在应用内「插件 → 添加插件」输入 `@jcs130/dsh-minecraft-agent@0.3.0-rc.24`，registry 选择 `https://registry.npmjs.org`。不要用普通 CLI 修改桌面专用 profile。也可按[市场入口](docs/marketplaces.md)浏览安装。
 
 **Web / CLI 用户**：在目标 DSH profile 安装：
 
 ```sh
-dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.22 --registry=https://registry.npmjs.org
+dsh plugin --profile web add @jcs130/dsh-minecraft-agent@0.3.0-rc.24 --registry=https://registry.npmjs.org
 ```
 
-需要 Node.js 24。未修改官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 从公开 registry 安装、真实主进程／Worker、SDK/MCP 和真实本地知识库查询；可选服务器包共用同一份核心。没有 override、手工链接或宿主补丁。见[npm 验收](docs/npm-publish-rc22.json)和[Release 附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.22/npm-registry-verification.json)。
+需要 Node.js 24。未修改官方 DSH 0.2.1-rc.2 / rc.3 均通过默认 pnpm 从公开 registry 安装、真实主进程／Worker、SDK/MCP 和真实本地知识库查询；可选服务器包共用同一份核心。没有 override、手工链接或宿主补丁。见[npm 验收](docs/npm-publish-rc24.json)和[Release 附件](https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.24/npm-registry-verification.json)。
 
-npm 与 GitHub 原归档 SHA256 均为 `026a8c4eb86bb7d09ff91b6faac46eee67b447885ad0ebac1539dde450f7b68b`，核心为 `9fa8f2eb7fff6dcc50b0b7498757a7ab1372071f351bed755341575f3d41a99b`。发行字节不重打包，包内候选状态保留为构建时快照。MineDojo 语料与索引仍需显式准备且不随包分发，见[资料准备](docs/minedojo-knowledge.md)。安装验证、原生 Desktop 画面及长期实服效果分别记录。
+npm 与 GitHub 原归档 SHA256 均为 `209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03`，核心为 `16e510696b79e1843e837ffb2558e90ada80f1dd41ef2b15bd3c8613f6de9d9d`。发行字节不重打包，包内候选状态保留为构建时快照。MineDojo 语料与索引仍需显式准备且不随包分发，见[资料准备](docs/minedojo-knowledge.md)。安装验证、原生 Desktop 画面及长期实服效果分别记录。
 
 安装后复用 DSH 模型，侧栏打开 Minecraft 填服务器与角色。协议默认 auto，已验证 1.21.11 原版服，普通服务器无需密码；安装本身不连接游戏或调用模型。见[角色与笔记](docs/character-notebook.md)、[快速接入](docs/quick-start.md)、[登录说明](docs/authme-login.md)及[发布记录](docs/registry-release.md)。原生 Desktop 窗口与长期模型表现仍单独验收。
 
