@@ -4,7 +4,7 @@
 
 两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 公开 registry 安装、主进程／Worker、37 个 MCP 工具和真实本地知识库查询通过，见[npm 分发验收](docs/npm-publish-rc22.json)。匿名下载与原 GitHub 验收归档字节一致。
 
-**rc.24 发布候选**已将正式依赖切换为已公开核心 **rc.99** 与可选千灯纪 **rc.24**。只读查询可在导航期间执行；批量消息读回、结构化纠错与记忆去重通过宿主验证。插件当前 npm latest 仍为上方的 rc.22；本候选发布后以[发布记录](docs/registry-release.md)和独立附件更新分发状态，不重打包同一版本。见[本版说明](docs/release-rc24.md)。
+**[rc.24 GitHub Release](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已公开**，精确依赖 npm 已公开的核心 **rc.99** 和可选千灯纪 **rc.24**。两版官方 DSH 的全新 profile 已通过默认公开 URL 安装、主进程／Worker、38 个 MCP 工具和本地知识库查询。插件 npm 本次独立认证尚未完成，npm latest 与自有市场暂保留上方的 rc.22。见[GitHub 分发验收](docs/github-publish-rc24.json)和[本版说明](docs/release-rc24.md)。
 
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 

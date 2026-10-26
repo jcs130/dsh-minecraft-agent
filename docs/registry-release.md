@@ -1,5 +1,13 @@
 # Registry 分发记录
 
+## rc.24：GitHub 已公开，npm 插件认证待完成
+
+[插件 rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已公开，匿名下载与原验收归档字节一致，SHA256 为 `209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03`。正式依赖核心 **rc.99**、可选千灯纪 **rc.24**；源码 PR #24 已合入 main `1c287a94595e7520b5f043a3f18f349158256f01`。核心 rc.99 已通过 npm 自动审核，next 指向该版，匿名 npm / GitHub 字节一致。
+
+两版原始官方 DSH rc.2 / rc.3 的全新 profile 通过默认 pnpm 从公开 GitHub URL 安装、18 个运行文件、主进程／Worker、38 个 MCP 工具、编译引擎 IPC、游戏记忆、物理初始化及真实本地知识库查询。没有 override、手工链接、宿主补丁或关闭安装保护。见[GitHub 分发验收](github-publish-rc24.json)。本版两版回归各 154 通过、1 项可选外部 Harness2 跳过。
+
+插件 npm 的首轮独立认证等待返回 E404，尚未完成提交；新认证仍在等待，**npm latest 和自有市场保持 rc.22**。GitHub 发行、npm 发行与市场刷新分别记录；完成 npm 认证、匿名下载及默认 registry 安装后再切换市场。归档和旧附件保留原字节，包内 publication 为构建时快照。没有游戏连接、模型调用、账号操作或现役重载；原生 Desktop 像素与长期玩法未由本次分发检查证明。
+
 ## 2026-10-26：主干 rc.24 候选与核心 rc.99 兼容验证
 
 跟进核心源码 `9b93af4523ddb0556c89a2a5edc9a0e8e2c0f05e`（**rc.99**）。DSH 仅为核心明确声明的只读、非身体查询工具开放并发，并在当前工具目录存在查询时注入使用说明；变更世界的动作保持有序。查询发出不算任务完成，结果未知时沿用原 requestId 查询，不自动重发。通用查询、批量消息、记忆和导航实现继续由核心提供。
