@@ -1,25 +1,16 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.22",
+  "adapterVersion": "0.3.0-rc.24",
   "publication": {
-    "status": "published-npm-and-github",
-    "githubPublished": true,
-    "registryPublished": true,
-    "previousPublishedVersion": "0.3.0-rc.21",
+    "status": "release-candidate-pending-adapter-publication",
+    "githubPublished": false,
+    "registryPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.22",
     "latestNpmVersion": "0.3.0-rc.22",
     "marketVersion": "0.3.0-rc.22",
-    "updatedAt": "2026-10-25T15:47:27.990Z",
-    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22",
-    "mergedCommit": "1c65895a8e8cc6e6c67491b3f634824d1c074952",
-    "verification": "docs/npm-publish-rc22.json",
-    "archive": {
-      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.22.tgz",
-      "sha256": "026a8c4eb86bb7d09ff91b6faac46eee67b447885ad0ebac1539dde450f7b68b",
-      "integrity": "sha512-7jhBf1SGR35DGb3rimplY5V+OcJffY9XcFd50gvb9HwbpBs3uiuLlKcB8iY1Kj8xNdif6TmGvoUsmim8Red0SQ==",
-      "bytes": 679333,
-      "publishedAt": "2026-10-25T15:43:02.978Z"
-    },
-    "communityMarketplaceStatus": "pull-request-pending-independent-review"
+    "updatedAt": "2026-10-26T11:48:20.061Z",
+    "verification": "docs/release-rc24-verification.json",
+    "communityMarketplaceStatus": "independent-review-and-index-refresh"
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -56,37 +47,35 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "340d2afad4cebf62194cd8efcc7755ebe2894900",
+      "commit": "c4e6e1b9645e02b70539cb72782ad47cd314cc2b",
+      "buildSourceCommit": "9b93af4523ddb0556c89a2a5edc9a0e8e2c0f05e",
       "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.7-rc.89",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.89.tgz",
-      "sha256": "9fa8f2eb7fff6dcc50b0b7498757a7ab1372071f351bed755341575f3d41a99b",
-      "integrity": "sha512-bsA3+jpbm+tXcEJaQXn/coXqj2q1kxfdLnI0mxHlSWLzMty+hpduGiYPMZHySWNHlIrWyAJC/ZEIkciX1bCmJA==",
+      "version": "0.5.7-rc.99",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.99.tgz",
+      "sha256": "16e510696b79e1843e837ffb2558e90ada80f1dd41ef2b15bd3c8613f6de9d9d",
+      "integrity": "sha512-kMM/u12g5/hkiRDAze1668Spb/s1518Dtn1DjYoT1mcgjGLBDczGpmcNtwOG3cX8SFud3lV9+Yi8uYrtiRjCXQ==",
       "published": true,
       "registryPublished": true,
-      "artifactFile": "agent-mc-world-0.5.7-rc.89.tgz",
       "githubPublished": true,
-      "publishedAt": "2026-10-25T15:35:49.086Z",
-      "mergedCommit": "8b5e92931fdf9f9068bd4a0a2d6da4e0574d1941",
-      "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.89",
-      "finalVerifiedSourceCommit": "8b7c800ca5734b5bdbce4691be8c97570a1960db",
+      "artifactFile": "agent-mc-world-0.5.7-rc.99.tgz",
+      "publishedAt": "2026-10-26T11:45:53.567Z",
+      "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.99",
       "archiveBytesPreserved": true
     },
     {
       "role": "server-pack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a",
+      "commit": "e167be5aaaa7f50e500b96092d559d172a89795a",
       "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.0-rc.22",
-      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.22.tgz",
-      "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
-      "integrity": "sha512-/3+nF8q+FTDRrgq+QS+lc4/2bocHNN3M1YOQzjtpx2QI+xsbjM0I/CYH6MRW29mZh88W2Rqbc1FDuYGaSvfJsQ==",
+      "version": "0.5.0-rc.24",
+      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.24.tgz",
+      "sha256": "fb10f92e4bc10d43d9d7c9b6dc654f5e5a9999db7c4392ee2a659b79f3815f88",
+      "integrity": "sha512-d1fN8SQkf86+OeP52ngoyRFvo7cl83wFxPqCC0S3HSwnqTOzzaKRcu2ujFsVjiIX7mbWU/2JMR13HgGyrJf5DA==",
       "published": true,
       "registryPublished": true,
-      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.22.tgz",
-      "peerCore": "^0.5.7-rc.84",
-      "publishedAt": "2026-10-24T11:19:31.832Z"
+      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.24.tgz",
+      "peerCore": "^0.5.7-rc.86"
     }
   ],
   "viewer": {
@@ -198,10 +187,10 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-public-registry-and-official-dsh-installation",
-    "verification": "docs/npm-publish-rc22.json",
-    "publicRegistryInstallVerified": true,
-    "sourceTestsPerHost": 150,
+    "status": "passed-packed-core99-and-official-dsh-regression",
+    "verification": "docs/release-rc24-verification.json",
+    "publicRegistryInstallVerified": false,
+    "sourceTestsPerHost": 154,
     "skippedPerHost": 1,
     "stockDshVersions": [
       "0.2.1-rc.2",
@@ -209,8 +198,8 @@
     ],
     "sharedPhysicalCore": true,
     "productionChanged": false,
-    "defaultRegistryInstallVerified": true,
-    "runtimeFilesCompared": 18
+    "runtimeFilesCompared": 18,
+    "mcpTools": 38
   },
   "previousPublication": {
     "status": "published-npm-and-github",
@@ -395,5 +384,80 @@
     ],
     "sharedPhysicalCore": true,
     "productionChanged": false
+  },
+  "rc22PublishedSnapshot": {
+    "publication": {
+      "status": "published-npm-and-github",
+      "githubPublished": true,
+      "registryPublished": true,
+      "previousPublishedVersion": "0.3.0-rc.21",
+      "latestNpmVersion": "0.3.0-rc.22",
+      "marketVersion": "0.3.0-rc.22",
+      "updatedAt": "2026-10-25T15:47:27.990Z",
+      "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22",
+      "mergedCommit": "1c65895a8e8cc6e6c67491b3f634824d1c074952",
+      "verification": "docs/npm-publish-rc22.json",
+      "archive": {
+        "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.22.tgz",
+        "sha256": "026a8c4eb86bb7d09ff91b6faac46eee67b447885ad0ebac1539dde450f7b68b",
+        "integrity": "sha512-7jhBf1SGR35DGb3rimplY5V+OcJffY9XcFd50gvb9HwbpBs3uiuLlKcB8iY1Kj8xNdif6TmGvoUsmim8Red0SQ==",
+        "bytes": 679333,
+        "publishedAt": "2026-10-25T15:43:02.978Z"
+      },
+      "communityMarketplaceStatus": "pull-request-pending-independent-review"
+    },
+    "validation": {
+      "status": "passed-public-registry-and-official-dsh-installation",
+      "verification": "docs/npm-publish-rc22.json",
+      "publicRegistryInstallVerified": true,
+      "sourceTestsPerHost": 150,
+      "skippedPerHost": 1,
+      "stockDshVersions": [
+        "0.2.1-rc.2",
+        "0.2.1-rc.3"
+      ],
+      "sharedPhysicalCore": true,
+      "productionChanged": false,
+      "defaultRegistryInstallVerified": true,
+      "runtimeFilesCompared": 18
+    },
+    "candidates": [
+      {
+        "role": "core",
+        "repository": "https://github.com/jcs130/minecraft-ai-friend",
+        "sourceDirectory": "packages/agent-mc-world",
+        "commit": "340d2afad4cebf62194cd8efcc7755ebe2894900",
+        "sourceStatus": "committed-on-remote-main",
+        "version": "0.5.7-rc.89",
+        "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.89.tgz",
+        "sha256": "9fa8f2eb7fff6dcc50b0b7498757a7ab1372071f351bed755341575f3d41a99b",
+        "integrity": "sha512-bsA3+jpbm+tXcEJaQXn/coXqj2q1kxfdLnI0mxHlSWLzMty+hpduGiYPMZHySWNHlIrWyAJC/ZEIkciX1bCmJA==",
+        "published": true,
+        "registryPublished": true,
+        "artifactFile": "agent-mc-world-0.5.7-rc.89.tgz",
+        "githubPublished": true,
+        "publishedAt": "2026-10-25T15:35:49.086Z",
+        "mergedCommit": "8b5e92931fdf9f9068bd4a0a2d6da4e0574d1941",
+        "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.89",
+        "finalVerifiedSourceCommit": "8b7c800ca5734b5bdbce4691be8c97570a1960db",
+        "archiveBytesPreserved": true
+      },
+      {
+        "role": "server-pack",
+        "repository": "https://github.com/jcs130/cortico-world-qiandengji",
+        "sourceDirectory": "packages/qiandengji",
+        "commit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a",
+        "sourceStatus": "committed-on-remote-main",
+        "version": "0.5.0-rc.22",
+        "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.22.tgz",
+        "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
+        "integrity": "sha512-/3+nF8q+FTDRrgq+QS+lc4/2bocHNN3M1YOQzjtpx2QI+xsbjM0I/CYH6MRW29mZh88W2Rqbc1FDuYGaSvfJsQ==",
+        "published": true,
+        "registryPublished": true,
+        "artifactFile": "agent-mc-qiandengji-0.5.0-rc.22.tgz",
+        "peerCore": "^0.5.7-rc.84",
+        "publishedAt": "2026-10-24T11:19:31.832Z"
+      }
+    ]
   }
 }

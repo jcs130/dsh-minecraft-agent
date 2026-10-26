@@ -117,11 +117,13 @@
     "docs/viewer-compatible-20261025.md",
     "docs/viewer-compatible-20261025.json",
     "docs/core-sync-verification-20261026.json",
-    "docs/core-sync-rc99-verification-20261026.json"
+    "docs/core-sync-rc99-verification-20261026.json",
+    "docs/release-rc24.md",
+    "docs/release-rc24-verification.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.89",
+    "agent-mc-world": "0.5.7-rc.99",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
