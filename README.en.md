@@ -1,6 +1,8 @@
 # DSH Minecraft Agent
 
-**2026-10-27 main update:** locally validated core rc.110 and the shared viewer, bounded post-goal tool loops, preserved unfinished goals on host-budget pauses, and retained event waiting in the lean catalogue. The published dependency remains installable core rc.99. [Measured windows and verification scope](docs/core-viewer-sync-20261027.md).
+**2026-10-28 development update:** the Connection tab enables continuous autonomy by default. The same goal continues beyond cumulative 30-call/40-round limits, preserving its session, progress and receipts; safe step boundaries, owned short rests and explicit user pauses remain supported. See the [continuation guide](docs/continuous-autonomy.md). The core rc.115 candidate includes current upstream work and shared first-person, vanilla skin and armor preview fixes. The formal dependency remains installable rc.99 until the replacement public package is verified.
+
+Publication is on hold at the user's request. This source update does not publish npm/GitHub releases or reload live Agents. See the [current verification scope](docs/autonomy-viewer-20261028.md); the published installation below remains rc.24 / core rc.99.
 
 **[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) is published on GitHub and [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)** with npm latest, exact core **0.5.7-rc.99** and optional Qiandengji **0.5.0-rc.24**. Explicit read-only queries can overlap navigation; batch message readback, recovery and memory deduplication preserve task and evidence semantics.
 

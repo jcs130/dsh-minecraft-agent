@@ -147,6 +147,7 @@ export class NoopRounds {
   call(name) { if (this.isGameTool(name)) this.acted = true; }
   /** Call at each turn end; returns true when the streak reaches the limit. */
   end() { this.streak = this.acted ? 0 : this.streak + 1; this.acted = false; return this.limit > 0 && this.streak >= this.limit; }
+  reset() { this.streak = 0; this.acted = false; }
 }
 
 export function goalClosed(value) {

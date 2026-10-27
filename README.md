@@ -1,6 +1,8 @@
 # DSH Minecraft Agent
 
-**2026-10-27 主干更新**：已验证核心 rc.110 与最新共享观战的本地候选，修复目标结案后空转、预算耗尽误报完成，并保留事件等待入口。正式 npm 依赖仍保持可安装的 rc.99；实测 token、缓存、延迟及验收边界见[同步记录](docs/core-viewer-sync-20261027.md)。
+**2026-10-28 开发更新**：连接页增加默认开启的「持续自主运行」，同一目标不再因累计 30 次调用或 40 轮停住；安全分段、无进展休整和恢复均保留原会话、目标与回执，手动暂停仍有效。见[持续运行说明](docs/continuous-autonomy.md)。共享核心 rc.115 候选同步上游并修复第一人称空洞、原版皮肤及护甲预览；正式依赖在公开包验收后切换，之前仍保持可安装的 rc.99。
+
+本轮按要求暂不发布 npm 或 GitHub Release，也不重载现役角色。源码和本地候选的验证记录见[本轮说明](docs/autonomy-viewer-20261028.md)；公开安装版本及正式依赖仍沿用下面的 rc.24 / rc.99。
 
 **[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，latest 指向 rc.24，精确依赖核心 **0.5.7-rc.99** 和可选千灯纪 **0.5.0-rc.24**。核心只读查询可与导航并行，批量消息读回、纠错和记忆去重保留原任务及证据语义。
 
@@ -55,9 +57,9 @@
 - minecraft.hostDecisions.combat 显式设置 enabled、endpoint、model、mode、timeoutMs、minIntervalMs、maxAgeMs。快决策状态、候选与驱动来自共享核心，可选服务器包仅转出同一契约；默认关闭，不探测地址。模型不可用时保留核心的规则控制。
 - 上下文预算：首次配置读取 DSH 所选模型的上下文元数据；不可用时回退 131072。高级配置可显式设 contextTokens。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算请求先压缩再重试，仍超出则道别并下线。
 - 省上下文：`*_script` 默认保留，用于按需发现共享工作/移动脚本和自己的方法库；可用 `tools.exclude` 显式关闭。默认 `tools.profile: "lean"` 隐藏少用工具（蓝图、铁路、摄影、战术等，可用 `tools.include` 单独加回或 `profile: "full"` 全开），工具说明压缩到 `tools.descriptionChars`（默认 300 字），参数细节用 `*_tool_help` 按需查；每步事件快照只保留最近 `context.events`（默认 10）条，回执给模型时截到 `context.receiptChars`（默认 1500 字），完整内容仍在会话日志。`node scripts/measure-context.mjs qiandengji 人设.md` 可测固定提示大小。
-- 防打转：连续 6 次只走动/张望且停在约 24 格范围内（或没到新地方）时，给模型提示；到 12 次时当前目标自动完成（`progress.window/radius/closeAfter`）。每个目标最多 `maxGoalCalls`（默认 30）次模型调用。目标完成后，排队中的该目标回执直接丢弃，不再唤醒。退出道别结果写在 status.json 的 `goodbye`。
+- 防打转：连续 6 次只走动/张望且停在约 24 格范围内时提示模型改进；持续模式到 12 次先休整，随后重新观察并调整，不把卡住当成功。单个回合默认 30 步后在安全边界让出控制并继续同一目标；明确选择有限模式时才应用累计 `maxGoalCalls`。已完成目标的旧回执不再唤醒，退出道别结果写在 status.json 的 `goodbye`。
 - 唤醒：默认把普通公屏、私聊、点名、危险和连接变化交给 Agent 判断是否回应；不要求每条聊天都回复。目标进行中另加本身任务回执。自发聊天、系统提示和状态倒计时不因此唤醒。配置面板或 `wake.publicChat:false` 可关闭普通公屏；`wake.on` 可覆盖类别。
-- 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标；连续 `noopRoundLimit`（默认 3）轮没有游戏动作也会结束目标；`maxGoalRounds` 默认 40。
+- 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标，只应在整个目标达成时使用。持续模式下连续 `noopRoundLimit`（默认 3）轮无动作会短暂休整后自主恢复；40 轮是可延长的原生窗口，累计轮数不清零。关闭持续模式后使用有限预算。目标留空只连接，不启动推理。
 - 聊天：默认公屏，可写 `@玩家名`；`chat.maxPublicLines` 默认 0（不限制累计总句数），`chat.minIntervalMs` 默认 5000。用户仍可显式设置上限。私聊优先原版 `/tell`，结果未知不自动转公屏。配置 `chat.goodbye` 时保留下线道别及 `status.json` 回执。
 - API key 由 DSH provider 环境变量提供，游戏密码按服务器及用户名独立配置；不要写入人格、聊天或仓库。
 

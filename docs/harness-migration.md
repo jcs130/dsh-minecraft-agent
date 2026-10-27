@@ -53,18 +53,18 @@ DSH 原生管理器以 pnpm 安装 registry 版本时，宿主 peer 服务由实
 
 完成一个目标仅停止该目标的续写，仍会响应后续游戏事件。模型忙碌时合并保留最多 64 条唤醒通知，空闲后只投递一次；原文始终在游戏日志中。操作员断开会清空待唤醒通知，不能因此自行恢复。
 
-主调用输出上限用 `maxTokens`。可通过 `compaction.thresholdRatio` 提前整理历史、`compaction.retainTokens` 设置保留近期上下文的预算、`compaction.maxTokens` 限制摘要输出；这些属于 DSH 宿主配置，模型及游戏核心不变。整理后原始日志仍可查询，不能靠裁剪抹掉未完成目标。
+主调用输出上限用 `maxTokens`。可通过 `compaction.triggerRatio` 提前整理历史、`compaction.retainTokens` 设置保留近期上下文的预算、`compaction.maxTokens` 限制摘要输出；这些属于 DSH 宿主配置，模型及游戏核心不变。整理后原始日志仍可查询，不能靠裁剪抹掉未完成目标。
 
 持续运行的示例为主调用预留 6000 token 输出；无思考并不代表每次工具参数和回答都能放进 2000 token。DSH 收到 `max-tokens` 结束原因时会解除目标的自动续跑，游戏连接仍可能在线。排查停跑时同时核对 `phase`、宿主状态和目标 `activation`；HTTP 成功、工具返回及在线状态均不能代替回答完整性。遇到截断应保留会话、增加合理输出余量并通过操作员显式续跑恢复，不循环自动重置目标或绕过原生停跑保护。部署配置变更需由该实例加载；仅修改示例文件不会改变现役 Agent。
 
-`compaction.thresholdRatio` 以 DSH provider 声明的引擎窗口为分母，宿主 `contextTokens` 是另一个完整请求预算，两者不一定相等。示例的 DeepSeek provider 窗口为 100 万 token，宿主预算为 262144，因此使用 0.18 提前在约 18 万 token 触发整理，给输出和下一轮动态现场留余量。不能仅因当前输入未达到引擎窗口上限就认为安全；整理必须早于宿主的完整输入加预留输出检查。更换模型或预算时重新核对这两个容量，并在线验收整理完成后目标仍为 `armed`。
+`compaction.triggerRatio` 以宿主 `contextTokens` 为分母，默认 0.55；适配器再换算成原生 DSH 相对于模型窗口的阈值，并给主调用及摘要输出留余量。旧 `compaction.thresholdRatio` 仍以 provider 的模型窗口为分母，若越过宿主预算会在启动时报错，建议迁移到 triggerRatio。更换模型或预算时读取当前目录的容量信息并核对整理边界，不能因为输入尚未达到引擎窗口就认为安全；在线验收还应确认整理后原目标仍为 `armed`。
 
 切换模型并恢复旧会话时，DSH 摘要默认可能选择旧请求的路由。需要固定摘要入口时，成对设置 `compaction.summarizationProvider` 与 `compaction.summarizationModel`，由适配器透传给官方摘要插件；不配置则保留其默认策略。内置 provider 的 `reasoningEffort: off` 也覆盖没有单独指定等级的后台摘要，避免仅主循环关闭了思考。
 
 操作员明确需要下一阶段工作时，可配置 `operatorRequest: {id,text}`；宿主向同一会话投递一次并保存已投递 ID，重启不重复投递，也不把旧目标改回未完成。新指令必须来自操作员授权，不能由巡检凭空生成任务。
 如需持续目标，可同时提供 `operatorRequest.goal`，由宿主在原目标已经完成后建立。DSH 的模型工具仍要求真人回合才能创建目标；游戏事件保持 notice 身份，不提升权限。已有活动、暂停或受阻目标时此配置报错，须先明确处理原目标。
 
-已耗尽轮次的原目标可通过显式操作员配置 `goalControl: {id, action:"extend-and-resume", goalId, expectedRevision, maxGoalRounds}` 延长总预算并恢复。仅接受匹配原 ID、版本及 `round-limit` 的目标；保留已用轮次、目标、会话和账本，不清空后新建。命令先保存准备回执，分别持久化 edit/resume，完成后记录已应用 ID；重启不重复延长。暂停、错误、其他阻塞原因及已完成目标不会被此机制自动唤醒，预算仍有限。
+默认持续模式现在会在同一目标中按需延长原生窗口，累计轮数不清零，见[持续运行说明](continuous-autonomy.md)。以下显式控制用于主人选择的有限模式：已耗尽轮次的原目标可通过 `goalControl: {id, action:"extend-and-resume", goalId, expectedRevision, maxGoalRounds}` 延长总预算并恢复。仅接受匹配原 ID、版本及 `round-limit` 的目标；保留已用轮次、目标、会话和账本，不清空后新建。命令先保存准备回执，分别持久化 edit/resume，完成后记录已应用 ID；重启不重复延长。暂停、错误、其他阻塞原因及已完成目标不会被此机制自动唤醒。
 
 失败的游戏动作仍可能携带 `control.endTurnRequested`。适配器必须消费该控制信号并让 DSH 落下原生轮次边界，再进入下一轮；不能因 `isError` 忽略。原生执行方法通过闭包保留原始执行对象，不能在复制后的 `exec` 上调用依赖 `this` 的 `concludeTurn()`。DSH rc.2 的原生错误分支不保留 conclude，因此这种回执保留为“已返回的失败动作”，完整 `failed/isError/control` 仍在内容中，不能算成功动作。其余 MCP 错误通过原生错误分支返回完整回执，包括事件游标的明确恢复读法；适配器不猜测 run，不自动重置或重放操作。
 
