@@ -1,3 +1,5 @@
+import { nativeGoalRounds } from './harness-autonomy.mjs';
+
 /** Apply the owner's configured objective at an explicit activation boundary.
  * Settled goals remain in the native journal: only a different owner-configured
  * objective replaces them. Never reopen the same settled task or replace an
@@ -8,7 +10,7 @@ export async function activateConfiguredGoal(config, { goals, agent, flush }) {
   const objective = config.goal?.trim();
   const settled = goal && ['complete', 'blocked', 'paused'].includes(goal.phase);
   if (objective && (!goal || settled && goal.objective.trim() !== objective)) {
-    const maxGoalRounds = config.maxGoalRounds ?? 40;
+    const maxGoalRounds = nativeGoalRounds(config);
     if (!Number.isSafeInteger(maxGoalRounds) || maxGoalRounds < 1) throw Error('Invalid configured goal round budget');
     // Native DSH only permits create over complete. An explicitly different
     // owner objective may replace a pause/block through its durable clear API.
@@ -34,7 +36,7 @@ export function prepareOperatorGoal(request, config, { goals, agent }) {
   const current = goals.get(agent);
   if (current?.phase === 'active' && current.objective.trim() === request.goal.trim()) return current;
   if (current && current.phase !== 'complete') throw Error('Finish or explicitly handle the current goal before adding an operator goal');
-  return goals.create(agent, { objective: request.goal, maxGoalRounds: config.maxGoalRounds ?? 40 });
+  return goals.create(agent, { objective: request.goal, maxGoalRounds: nativeGoalRounds(config) });
 }
 
 /** A host budget is a pause, not evidence that the owner's objective succeeded. */

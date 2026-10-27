@@ -35,6 +35,20 @@ test('fresh profile setup only reads metadata; install does not create data, a s
   assert.deepEqual(f.setup.snapshot().model,{provider:'existing-dsh',model:'existing-model'});
 });
 
+test('continuous versus bounded autonomy survives host recovery without a new account or conversation',async t=>{
+  const f=await fixture(t);
+  await f.setup.configure({...input,goal:'自主生存',continuousAutonomy:false});await settled(f.setup);
+  const original=f.launches.at(-1);assert.equal(original.autonomy.mode,'bounded');
+  await f.setup.close();
+  const recovered=await createQuickSetup(f.options);t.after(()=>recovered.close());
+  recovered.resume();await settled(recovered);
+  assert.equal(f.launches.at(-1).autonomy.mode,'bounded');assert.equal(recovered.snapshot().fields.continuousAutonomy,false);
+  await recovered.stop();
+  await recovered.configure({...input,goal:'自主生存',continuousAutonomy:true});await settled(recovered);
+  const continued=f.launches.at(-1);assert.equal(continued.autonomy.mode,'continuous');
+  assert.equal(continued.dataDir,original.dataDir);assert.equal(continued.sessionKey,original.sessionKey);
+});
+
 test('generic Mineflayer servers need no password, login commands or server-specific capability pack',async t=>{
   const f=await fixture(t);await f.setup.configure(input);await settled(f.setup);
   const config=f.launches[0];assert.equal(config.serverPack,'none');assert.equal(config.minecraft.auth,'offline');

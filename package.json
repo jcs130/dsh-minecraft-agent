@@ -67,6 +67,7 @@
     "lib/plugins/harness-panel.mjs",
     "lib/plugins/harness-lifecycle.mjs",
     "lib/plugins/harness-goal.mjs",
+    "lib/plugins/harness-autonomy.mjs",
     "lib/plugins/harness2.mjs",
     "lib/plugins/harness-budget.mjs",
     "lib/plugins/event-condenser-fallback.mjs",
@@ -77,6 +78,8 @@
     "docs/desktop.md",
     "docs/quick-start.md",
     "docs/goal-session-reset.md",
+    "docs/continuous-autonomy.md",
+    "docs/autonomy-viewer-20261028.md",
     "docs/survival-decision.md",
     "docs/minedojo-knowledge.md",
     "docs/authme-login.md",
@@ -121,7 +124,8 @@
     "docs/release-rc24.md",
     "docs/release-rc24-verification.json",
     "docs/core-viewer-sync-20261027.md",
-    "docs/core-viewer-sync-20261027.json"
+    "docs/core-viewer-sync-20261027.json",
+    "docs/autonomy-viewer-20261028.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

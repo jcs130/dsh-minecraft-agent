@@ -1,0 +1,103 @@
+{
+  "schema": "dsh-autonomy-viewer-verification/v1",
+  "status": "passed-source-and-isolated-packed-consumers-publication-held",
+  "publication": "held-by-user",
+  "core": {
+    "version": "0.5.7-rc.115",
+    "mainCommit": "1e728bcad626f011a6374d3d148607f9101c7bbd",
+    "buildSource": "1e728bcad626f011a6374d3d148607f9101c7bbd",
+    "archiveSha256": "326649c2c0e0bd66db31309eec9cf34f6631cc054e3ea33066342b02c79111f9",
+    "fullRegression": {
+      "passed": 2443,
+      "skipped": 1,
+      "failed": 0
+    },
+    "typecheck": true,
+    "declarations": 357,
+    "buildVerified": true,
+    "archiveBytes": 86589001,
+    "packagePublished": false
+  },
+  "viewer": {
+    "commit": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+    "archiveSha256": "3e2d3d9e79e496569eaa03675ba5f173be6871a4122700718e9af4adc9092916",
+    "rendererToolTests": {
+      "passed": 1398,
+      "skipped": 39,
+      "failed": 0
+    },
+    "typecheck": true,
+    "proceduralWebGLVersions": [
+      "1.21.1",
+      "1.21.11"
+    ],
+    "originalUserSkinPngAvailable": false,
+    "exactUserSceneReproduced": false,
+    "completeJavaPixelParityVerified": false,
+    "firstPersonWallsVisible": true,
+    "vanillaSkinArmorPreviewVisible": true,
+    "optional12111ContentResourcesComplete": false
+  },
+  "dsh": {
+    "versions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.4"
+    ],
+    "priorCore114": {
+      "passedPerHost": 173,
+      "skippedPerHost": 1
+    },
+    "finalCore115": [
+      {
+        "version": "0.2.1-rc.2",
+        "passed": 175,
+        "skipped": 1,
+        "failed": 0,
+        "sharedPhysicalCore": true,
+        "runtimeFilesCompared": 19,
+        "mcpTools": 38,
+        "officialMainAndWorker": true,
+        "hostFilesUnchanged": true,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true
+      },
+      {
+        "version": "0.2.1-rc.4",
+        "passed": 175,
+        "skipped": 1,
+        "failed": 0,
+        "sharedPhysicalCore": true,
+        "runtimeFilesCompared": 19,
+        "mcpTools": 38,
+        "officialMainAndWorker": true,
+        "hostFilesUnchanged": true,
+        "offlineEngineIpc": true,
+        "offlineGameMemory": true
+      }
+    ],
+    "continuation": {
+      "cumulativeFixtureRounds": 1200,
+      "nativeJournalRounds": 100,
+      "stepYield": 30,
+      "manualPausePreserved": true,
+      "lateNativeOwnerGoalCovered": true,
+      "crashRecoveryCovered": true
+    },
+    "packedCandidate": {
+      "version": "0.3.0-rc.25-preview.6",
+      "sha256": "b7de109a5c195f2c52df7d5722ac44a2c0d3ee6b79c56ed32aba419002676297",
+      "registryPublished": false,
+      "githubReleasePublished": false,
+      "runtimeBytesMatchWorkingSource": true
+    }
+  },
+  "gameConnections": 0,
+  "externalModelCalls": 0,
+  "productionReloads": 0,
+  "formalDependency": "0.5.7-rc.99",
+  "privateOverrideForUnpublishedCoreOnly": true,
+  "defaultPublicInstallOfCore115Verified": false,
+  "nativeDesktopPixelsVerified": false,
+  "longTermLiveAutonomyVerified": false,
+  "verifiedAt": "2026-10-27T17:34:48.737Z"
+}
