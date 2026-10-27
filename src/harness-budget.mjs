@@ -5,7 +5,7 @@ export const DEFAULT_CONTEXT_TOKENS = 131072;
 
 /** Rarely needed tools hidden by default; `tools.profile: "full"` or `tools.include` restores them. */
 export const LEAN_EXCLUDED_SUFFIXES = ['_combat_tactic', '_blueprint', '_railway', '_flight_plan', '_photo',
-  '_policy', '_map', '_view_map', '_artifact', '_metrics', '_events', '_check', '_cast', '_trace'];
+  '_policy', '_map', '_view_map', '_artifact', '_metrics', '_check', '_cast', '_trace'];
 
 /**
  * Compaction must trigger from the plugin's own contextTokens budget, not the model's (much larger)
@@ -345,7 +345,7 @@ export class GoalProgressGuard {
     const what = kind === 'look' ? `张望/侦察没有新发现` : `只在约 ${v.spread} 格范围内走动/张望，没有到达新地方`;
     if (this.closeAfter > 0 && v.streak >= this.closeAfter) return { close: kind === 'look' ? `${v.streak} actions without progress, ending in repeated look-arounds with nothing new`
       : `${v.streak} movement-only actions in one ~${v.spread}-block area without new ground` };
-    return { notice: `[宿主提示] 最近 ${v.streak} 次${what}。目标若已达成请调用 update_goal 标记完成并停下；否则换一件实际的事或去新的区域。继续原地打转会自动结束本目标。` };
+    return { notice: `[宿主提示] 最近 ${v.streak} 次${what}。目标若已达成请调用 update_goal 标记完成并停下；否则换一件实际的事或去新的区域。继续原地打转会暂停本目标并保留进度，不算完成。` };
   }
 }
 

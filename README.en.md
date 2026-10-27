@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+**2026-10-27 main update:** locally validated core rc.110 and the shared viewer, bounded post-goal tool loops, preserved unfinished goals on host-budget pauses, and retained event waiting in the lean catalogue. The published dependency remains installable core rc.99. [Measured windows and verification scope](docs/core-viewer-sync-20261027.md).
+
 **[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) is published on GitHub and [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)** with npm latest, exact core **0.5.7-rc.99** and optional Qiandengji **0.5.0-rc.24**. Explicit read-only queries can overlap navigation; batch message readback, recovery and memory deduplication preserve task and evidence semantics.
 
 Unmodified official DSH **0.2.1-rc.2 / rc.3** passed default public-registry pnpm installation, main/Worker loading, **38 MCP tools** and real local knowledge queries. Each host passed 154 tests with one optional skip. Anonymous archive bytes match the reviewed build. See [npm verification](docs/npm-publish-rc24.json) and [release notes](docs/release-rc24.md). Missing exact materials still use compatible rendering. Publication does not reload live Agents; native Desktop pixels and long-term gameplay remain separate checks. Candidate flags inside the immutable archive are build-time snapshots.

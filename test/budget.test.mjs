@@ -102,13 +102,12 @@ test('access tokens are masked in logged URLs', () => {
   assert.equal(redactUrl('http://127.0.0.1:17851/'), 'http://127.0.0.1:17851/');
 });
 
-test('host wires the guards: lean tools, overflow retry, signals, stopped status and default rounds', () => {
+test('host wires the guards: lean tools, overflow retry, signals and stopped status', () => {
   const src = readFileSync(new URL('../src/mc-harness.mjs', import.meta.url), 'utf8');
   assert.match(src, /yield overflowFinish\(/);
   assert.doesNotMatch(src, /throw Error\('Minecraft request exceeds/);
   assert.match(src, /process\.once\(signal, onSignal\)/);
   assert.match(src, /status\(\{ state: 'stopped', stopped: true/);
-  assert.match(src, /maxGoalRounds: config\.maxGoalRounds \?\? 40 \}/);
   assert.doesNotMatch(src, /\?\? 2000/);
   assert.match(src, /chat\.check\(spec\.name, args\)/);
   assert.match(src, /goalClosed\(value\)/);

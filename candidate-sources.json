@@ -531,5 +531,18 @@
     "mcpTools": 38,
     "defaultGithubInstallVerified": true,
     "defaultRegistryInstallVerified": false
+  },
+  "developmentPreview": {
+    "status": "source-and-local-packed-preview-tested",
+    "version": "0.3.0-rc.25-preview.3",
+    "coreVersion": "0.5.7-rc.110",
+    "coreSource": "4e2cf948df7fcca40dfa3483891c321dbb623058",
+    "coreArchiveSha256": "1575e19dd20c6747ba25b518632e75a60f5c9a2d2d3603f13ee04a558bf085cb",
+    "viewerSource": "127eb1874786cfb64f949d4ce1a2549aeffbab72",
+    "viewerUpstreamMain": "b99464bb7efce76dedb00471605019932b1e8d7e",
+    "verification": "docs/core-viewer-sync-20261027.json",
+    "registryPublished": false,
+    "formalDependencyRetained": "0.5.7-rc.99",
+    "privateWorkspaceOverrideShipped": false
   }
 }
