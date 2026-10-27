@@ -1,0 +1,653 @@
+{
+  "schema": "dsh-core-viewer-live-verification/v1",
+  "verifiedAt": "2026-10-27T07:11:37.867Z",
+  "core": {
+    "version": "0.5.7-rc.110",
+    "file": "agent-mc-world-0.5.7-rc.110.tgz",
+    "sha256": "1575e19dd20c6747ba25b518632e75a60f5c9a2d2d3603f13ee04a558bf085cb",
+    "integrity": "sha512-B4+xG4YYJFPEIPo9EqUs9YCa6xTofRrf2fHseDgXwkoDjRZGdKityggoNtE1fuCgVUDAvkKhHnNIASfpvK0hew==",
+    "sourceCommit": "4e2cf948df7fcca40dfa3483891c321dbb623058",
+    "registryPublished": false
+  },
+  "viewer": {
+    "sourceCommit": "127eb1874786cfb64f949d4ce1a2549aeffbab72",
+    "upstreamMain": "b99464bb7efce76dedb00471605019932b1e8d7e",
+    "difference": "documentation only",
+    "archiveSha256": "a0f5d80aa062f87a882c98f1e52a25b0868ba393766440f298f85028623925f3"
+  },
+  "adapter": {
+    "version": "0.3.0-rc.25-preview.3",
+    "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.25-preview.3.tgz",
+    "sha256": "d6b36b54c0e4ec88802d3bdff77405a790a5b707d069a1cc6d4d606622c0171d",
+    "integrity": "sha512-Igwm3mGSlbYMV5ja93qe9LWSFdr+T/01rf5cvfePV9RMZI7Gt9dSKaM90cNtzEdxUNISFhlzaHQETJJBruMDng=="
+  },
+  "sourceRuntimeMatchesPreview": true,
+  "model": {
+    "provider": "deepseek-official",
+    "id": "deepseek-flash",
+    "requestedReasoningEffort": "off",
+    "contextTokens": 262144,
+    "maxTokens": 6000,
+    "configurationPreserved": true,
+    "engineEffectiveThinking": null,
+    "system1ModelEnabled": false
+  },
+  "windows": [
+    {
+      "name": "initial-core110",
+      "from": "2026-10-27T06:39:42.809Z",
+      "to": "2026-10-27T06:45:17.826Z",
+      "roles": [
+        {
+          "purpose": "foreground",
+          "streamAttempts": 80,
+          "dispatchedStreams": 80,
+          "completed": 80,
+          "usageSamples": 78,
+          "fullInputTokens": 5569719,
+          "uncachedInputTokens": 420535,
+          "cachedInputTokens": 5149184,
+          "outputTokens": 17008,
+          "weightedCacheRatio": 0.9244961909209424,
+          "inputLength": {
+            "samples": 78,
+            "min": 38634,
+            "p50": 70215,
+            "p95": 104103,
+            "max": 107291
+          },
+          "outputLength": {
+            "samples": 78,
+            "min": 23,
+            "p50": 167,
+            "p95": 854,
+            "max": 1149
+          },
+          "clientElapsedMs": {
+            "samples": 80,
+            "min": 596,
+            "p50": 2532,
+            "p95": 6342,
+            "max": 10366
+          },
+          "ttftMs": {
+            "samples": 78,
+            "min": 1024,
+            "p50": 1418,
+            "p95": 2835,
+            "max": 4585
+          },
+          "outcomes": {
+            "success": 78,
+            "failed": 1,
+            "unknown": 1
+          },
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        },
+        {
+          "purpose": "compaction",
+          "streamAttempts": 1,
+          "dispatchedStreams": 1,
+          "completed": 1,
+          "usageSamples": 1,
+          "fullInputTokens": 183118,
+          "uncachedInputTokens": 52174,
+          "cachedInputTokens": 130944,
+          "outputTokens": 3007,
+          "weightedCacheRatio": 0.7150798938389453,
+          "inputLength": {
+            "samples": 1,
+            "min": 183118,
+            "p50": 183118,
+            "p95": 183118,
+            "max": 183118
+          },
+          "outputLength": {
+            "samples": 1,
+            "min": 3007,
+            "p50": 3007,
+            "p95": 3007,
+            "max": 3007
+          },
+          "clientElapsedMs": {
+            "samples": 1,
+            "min": 19391,
+            "p50": 19391,
+            "p95": 19391,
+            "max": 19391
+          },
+          "ttftMs": {
+            "samples": 1,
+            "min": 3760,
+            "p50": 3760,
+            "p95": 3760,
+            "max": 3760
+          },
+          "outcomes": {
+            "success": 1
+          },
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        }
+      ],
+      "tools": {
+        "mymc_bag": 3,
+        "mymc_attention": 1,
+        "mymc_do": 37,
+        "mymc_queue": 14,
+        "mymc_options": 2,
+        "mymc_memory": 5,
+        "mymc_help": 3,
+        "mymc_observe": 4,
+        "get_goal": 1,
+        "update_goal": 1,
+        "mymc_risk": 4,
+        "mymc_hear": 1,
+        "mymc_messages": 3,
+        "mymc_knowledge": 2,
+        "mymc_stop": 2,
+        "mymc_combat_tactic": 1
+      },
+      "toolClientElapsedMs": {
+        "samples": 84,
+        "min": 4,
+        "p50": 53,
+        "p95": 428,
+        "max": 1206
+      },
+      "staticPrefix": {
+        "samples": 79,
+        "systemStable": true,
+        "toolSchemaStable": true
+      },
+      "goalCompleteAt": null,
+      "requestsAfterComplete": null,
+      "toolCallsAfterComplete": null
+    },
+    {
+      "name": "first-guard-iteration",
+      "from": "2026-10-27T06:55:51.787Z",
+      "to": "2026-10-27T06:57:34.109Z",
+      "roles": [
+        {
+          "purpose": "foreground",
+          "streamAttempts": 32,
+          "dispatchedStreams": 32,
+          "completed": 32,
+          "usageSamples": 32,
+          "fullInputTokens": 3903429,
+          "uncachedInputTokens": 247749,
+          "cachedInputTokens": 3655680,
+          "outputTokens": 7239,
+          "weightedCacheRatio": 0.936530419792444,
+          "inputLength": {
+            "samples": 32,
+            "min": 107360,
+            "p50": 122498,
+            "p95": 133736,
+            "max": 134389
+          },
+          "outputLength": {
+            "samples": 32,
+            "min": 40,
+            "p50": 194,
+            "p95": 584,
+            "max": 1208
+          },
+          "clientElapsedMs": {
+            "samples": 32,
+            "min": 1547,
+            "p50": 2562,
+            "p95": 4777,
+            "max": 8951
+          },
+          "ttftMs": {
+            "samples": 32,
+            "min": 1003,
+            "p50": 1459,
+            "p95": 2271,
+            "max": 2709
+          },
+          "outcomes": {
+            "success": 32
+          },
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        },
+        {
+          "purpose": "compaction",
+          "streamAttempts": 0,
+          "dispatchedStreams": 0,
+          "completed": 0,
+          "usageSamples": 0,
+          "fullInputTokens": null,
+          "uncachedInputTokens": null,
+          "cachedInputTokens": null,
+          "outputTokens": null,
+          "weightedCacheRatio": null,
+          "inputLength": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "outputLength": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "clientElapsedMs": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "ttftMs": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "outcomes": {},
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        }
+      ],
+      "tools": {
+        "mymc_attention": 1,
+        "mymc_hear": 1,
+        "mymc_messages": 1,
+        "mymc_do": 12,
+        "mymc_queue": 10,
+        "mymc_help": 1,
+        "mymc_memory": 1,
+        "mymc_protocol": 1,
+        "mymc_events": 3
+      },
+      "toolClientElapsedMs": {
+        "samples": 31,
+        "min": 6,
+        "p50": 48,
+        "p95": 469,
+        "max": 1280
+      },
+      "staticPrefix": {
+        "samples": 31,
+        "systemStable": true,
+        "toolSchemaStable": true
+      },
+      "goalCompleteAt": "2026-10-27T06:57:34.267Z",
+      "requestsAfterComplete": 0,
+      "toolCallsAfterComplete": 0
+    },
+    {
+      "name": "final-short-goal",
+      "from": "2026-10-27T07:03:29.309Z",
+      "to": "2026-10-27T07:03:56.278Z",
+      "roles": [
+        {
+          "purpose": "foreground",
+          "streamAttempts": 7,
+          "dispatchedStreams": 7,
+          "completed": 7,
+          "usageSamples": 7,
+          "fullInputTokens": 962136,
+          "uncachedInputTokens": 31192,
+          "cachedInputTokens": 930944,
+          "outputTokens": 2601,
+          "weightedCacheRatio": 0.9675804667947151,
+          "inputLength": {
+            "samples": 7,
+            "min": 134680,
+            "p50": 136794,
+            "p95": 140172,
+            "max": 140172
+          },
+          "outputLength": {
+            "samples": 7,
+            "min": 40,
+            "p50": 252,
+            "p95": 940,
+            "max": 940
+          },
+          "clientElapsedMs": {
+            "samples": 7,
+            "min": 1657,
+            "p50": 2924,
+            "p95": 6978,
+            "max": 6978
+          },
+          "ttftMs": {
+            "samples": 7,
+            "min": 1177,
+            "p50": 1583,
+            "p95": 1905,
+            "max": 1905
+          },
+          "outcomes": {
+            "success": 7
+          },
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        },
+        {
+          "purpose": "compaction",
+          "streamAttempts": 0,
+          "dispatchedStreams": 0,
+          "completed": 0,
+          "usageSamples": 0,
+          "fullInputTokens": null,
+          "uncachedInputTokens": null,
+          "cachedInputTokens": null,
+          "outputTokens": null,
+          "weightedCacheRatio": null,
+          "inputLength": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "outputLength": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "clientElapsedMs": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "ttftMs": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "outcomes": {},
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        }
+      ],
+      "tools": {
+        "mymc_bag": 1,
+        "mymc_do": 1,
+        "mymc_queue": 1,
+        "mymc_memory": 1,
+        "get_goal": 1,
+        "update_goal": 1
+      },
+      "toolClientElapsedMs": {
+        "samples": 6,
+        "min": 8,
+        "p50": 24,
+        "p95": 171,
+        "max": 171
+      },
+      "staticPrefix": {
+        "samples": 6,
+        "systemStable": true,
+        "toolSchemaStable": true
+      },
+      "goalCompleteAt": "2026-10-27T07:03:50.544Z",
+      "requestsAfterComplete": 1,
+      "toolCallsAfterComplete": 0
+    },
+    {
+      "name": "later-separate-threat-turn",
+      "from": "2026-10-27T07:07:07.586Z",
+      "to": "2026-10-27T07:07:31.406Z",
+      "roles": [
+        {
+          "purpose": "foreground",
+          "streamAttempts": 7,
+          "dispatchedStreams": 7,
+          "completed": 7,
+          "usageSamples": 7,
+          "fullInputTokens": 1001357,
+          "uncachedInputTokens": 30605,
+          "cachedInputTokens": 970752,
+          "outputTokens": 2179,
+          "weightedCacheRatio": 0.9694364747038269,
+          "inputLength": {
+            "samples": 7,
+            "min": 140881,
+            "p50": 142775,
+            "p95": 146344,
+            "max": 146344
+          },
+          "outputLength": {
+            "samples": 7,
+            "min": 40,
+            "p50": 151,
+            "p95": 969,
+            "max": 969
+          },
+          "clientElapsedMs": {
+            "samples": 7,
+            "min": 1646,
+            "p50": 2981,
+            "p95": 6701,
+            "max": 6701
+          },
+          "ttftMs": {
+            "samples": 7,
+            "min": 1034,
+            "p50": 1563,
+            "p95": 2451,
+            "max": 2451
+          },
+          "outcomes": {
+            "success": 7
+          },
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        },
+        {
+          "purpose": "compaction",
+          "streamAttempts": 0,
+          "dispatchedStreams": 0,
+          "completed": 0,
+          "usageSamples": 0,
+          "fullInputTokens": null,
+          "uncachedInputTokens": null,
+          "cachedInputTokens": null,
+          "outputTokens": null,
+          "weightedCacheRatio": null,
+          "inputLength": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "outputLength": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "clientElapsedMs": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "ttftMs": {
+            "samples": 0,
+            "min": null,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "outcomes": {},
+          "executionMs": null,
+          "queueMs": null,
+          "httpRetryAttempts": null
+        }
+      ],
+      "tools": {
+        "mymc_do": 2,
+        "mymc_queue": 2,
+        "mymc_risk": 1,
+        "mymc_memory": 1
+      },
+      "toolClientElapsedMs": {
+        "samples": 6,
+        "min": 31,
+        "p50": 34,
+        "p95": 67,
+        "max": 67
+      },
+      "staticPrefix": {
+        "samples": 7,
+        "systemStable": true,
+        "toolSchemaStable": true
+      },
+      "goalCompleteAt": null,
+      "requestsAfterComplete": null,
+      "toolCallsAfterComplete": null
+    }
+  ],
+  "finalState": {
+    "observedAt": "2026-10-27T07:11:37.745Z",
+    "state": "paused",
+    "goalPhase": "complete",
+    "goalCalls": 6,
+    "wrapUp": {
+      "closingSteps": 1,
+      "blockedTools": 0,
+      "rejectedSteps": 0
+    },
+    "firstGoalTurn": 997,
+    "firstGoalTurnReason": "completed",
+    "quietGapBeforeSeparateWakeSeconds": 191.303,
+    "laterTurnEnds": [
+      {
+        "turn": 998,
+        "reason": "completed",
+        "at": "2026-10-27T07:07:31.409Z"
+      }
+    ],
+    "pausedAfterTest": true,
+    "reconnects": null,
+    "gameAuthenticatedAtLastSample": false
+  },
+  "preserved": {
+    "sameSession": true,
+    "samePersona": true,
+    "memoryAndReceiptsNotRolledBack": true,
+    "newAccounts": 0
+  },
+  "validation": {
+    "core": {
+      "passed": 2377,
+      "skipped": 1,
+      "typecheck": true,
+      "declarations": 355,
+      "packedBuild": true
+    },
+    "viewer": {
+      "compatibilityPassed": 8,
+      "vitestPassed": 16,
+      "hostPassed": 87,
+      "webControlsPassed": 24,
+      "streamPassed": 22,
+      "rendererPassed": 1380,
+      "rendererSkipped": 39,
+      "typecheck": true
+    },
+    "dsh": {
+      "officialVersions": [
+        "0.2.1-rc.2",
+        "0.2.1-rc.3"
+      ],
+      "passedPerHost": 161,
+      "skippedPerHost": 1,
+      "publishedCore99Compatibility": true,
+      "mcpTools": 38,
+      "mainAndWorker": true,
+      "frameworkModified": false,
+      "runtimeFilesCompared": 18,
+      "sharedPhysicalCore": true,
+      "packageIdentityTests": 6
+    }
+  },
+  "limitations": {
+    "controlledAB": false,
+    "windowsHaveDifferentTasksAndContextLengths": true,
+    "modelElapsedIsNotEngineExecutionOrGameReaction": true,
+    "toolCompletionIsNotGoalSuccess": true,
+    "firstGuardIterationStoppedAtHostCallBudget": true,
+    "finalGoalIncludedNoArtificialHunger": true,
+    "automaticLearningOrTraining": false,
+    "productionCormyChanged": false
+  },
+  "publication": {
+    "npmChanged": false,
+    "marketChanged": false,
+    "publicAdapter": "0.3.0-rc.24",
+    "publicCoreDependency": "0.5.7-rc.99",
+    "newCoreRegistryPublished": false,
+    "previewWorkspaceOverrideIsPrivate": true
+  },
+  "privacy": {
+    "promptOrResponseBodiesRecordedByMonitoring": false,
+    "credentialsInReport": false,
+    "reasoningBodiesInReport": false
+  },
+  "upstreamCoreMainAtFinalCheck": "42ec13f471d18ab1a2e8522801b556847a5a4a88",
+  "upstreamAfterFrozenBuildChangedCorePackage": false,
+  "actualGameEvidence": [
+    {
+      "kind": "bread-crafting",
+      "wheatDelta": -9,
+      "breadDelta": 3,
+      "window": "initial-core110"
+    },
+    {
+      "kind": "harvest",
+      "wheatDelta": 4,
+      "window": "first-guard-iteration",
+      "notWholeGoalAcceptance": true
+    },
+    {
+      "kind": "bread-crafting",
+      "wheatDelta": -6,
+      "breadDelta": 2,
+      "window": "final-short-goal"
+    }
+  ],
+  "visualValidation": {
+    "sameActionConnection": true,
+    "firstPerson": true,
+    "thirdPerson": true,
+    "dungeon": true,
+    "exactJavaVersion": "1.21.1",
+    "originalServerNarutoModelObserved": true,
+    "privateScreenshotsRetained": true,
+    "liveFrameRateBenchmark": false
+  },
+  "sourceStatus": "verification snapshot before main merge",
+  "futureReleaseRequiresPublishedCore110": true
+}

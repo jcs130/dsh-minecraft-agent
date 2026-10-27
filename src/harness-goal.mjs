@@ -28,6 +28,55 @@ export async function activateConfiguredGoal(config, { goals, agent, flush }) {
   return goal;
 }
 
+/** An owner follow-up may reuse the identical active goal created at activation. */
+export function prepareOperatorGoal(request, config, { goals, agent }) {
+  if (!request.goal) return;
+  const current = goals.get(agent);
+  if (current?.phase === 'active' && current.objective.trim() === request.goal.trim()) return current;
+  if (current && current.phase !== 'complete') throw Error('Finish or explicitly handle the current goal before adding an operator goal');
+  return goals.create(agent, { objective: request.goal, maxGoalRounds: config.maxGoalRounds ?? 40 });
+}
+
+/** A host budget is a pause, not evidence that the owner's objective succeeded. */
+export function settleHostGoal(reason, disposition, { goals, agent }) {
+  const goal = goals.get(agent);
+  if (!reason || !goal || goal.phase === 'complete') return goal;
+  const ref = { id: goal.id, revision: goal.revision };
+  if (disposition === 'complete') return goals.complete(agent, ref);
+  if (goal.phase === 'active') return goals.pause(agent, ref);
+  return goal;
+}
+
+/** A settled native goal gets one closing response, never another autonomous tool loop.
+ * New human input or a new goal/turn remains eligible; the native reject boundary
+ * parks unadmitted inbox items rather than deleting them. No body task is cancelled.
+ */
+export class GoalWrapUp {
+  closing = null;
+  stats = { closingSteps: 0, blockedTools: 0, rejectedSteps: 0 };
+  close(turn, goal) {
+    if (!Number.isSafeInteger(turn) || !goal?.id || !['complete', 'blocked'].includes(goal.phase)) return;
+    if (this.closing?.turn === turn && this.closing.goalId === goal.id) return;
+    this.closing = { turn, goalId: goal.id, steps: 0 };
+  }
+  admit(payload, goal) {
+    const c = this.closing;
+    if (!c) return true;
+    const freshOwner = payload.messages?.some(m => m.source?.kind === 'user'
+      || m.source?.kind === 'mc-harness' && m.source?.form === 'notice' && m.source?.summary?.startsWith('Operator request '));
+    if (payload.turn !== c.turn || goal?.id !== c.goalId || !['complete', 'blocked'].includes(goal?.phase) || freshOwner) {
+      this.closing = null; return true;
+    }
+    if (c.steps++ === 0) { this.stats.closingSteps++; return true; }
+    this.stats.rejectedSteps++; return false;
+  }
+  denial(goal) {
+    if (!this.closing || goal?.id !== this.closing.goalId || !['complete', 'blocked'].includes(goal?.phase)) return;
+    this.stats.blockedTools++;
+    return '本轮目标已结案。请只根据已有回执作收尾说明；不要继续调用工具。新的工作等待主人指令或下一轮真实事件。';
+  }
+}
+
 /** Apply an explicit operator budget command once, preserving goal/session history.
  * The prepared receipt permits recovery after a crash between edit and resume.
  * This is never invoked by game events or by a round-limit watchdog.

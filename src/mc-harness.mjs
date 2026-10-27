@@ -11,7 +11,7 @@ import { HarnessBridge, gameToolConcurrencySafe, nativeToolContext, renderReceip
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
-import { activateConfiguredGoal, applyGoalControl } from './harness-goal.mjs';
+import { activateConfiguredGoal, applyGoalControl, prepareOperatorGoal, settleHostGoal, GoalWrapUp } from './harness-goal.mjs';
 import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
 import {composeMinecraftAgent,constrainMinecraftTools,minecraftPlanningGuidance} from './harness-composition.mjs';
 import {conversationDirectory} from './profile-settings.mjs';
@@ -145,18 +145,19 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   let shownCursor = 0, renderedCursor = 0;
   const eventTail = eventsConfig.tail ?? 2;
   let wrapUpSteps = 1;
+  const goalWrapUp = new GoalWrapUp();
+  let activeTurn = null;
   const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|blocked|risk|hear|attention)$/;
   const gameToolNames = new Set(tools.map(t => t.name));
   const noop = new NoopRounds(config.noopRoundLimit ?? 3, name => gameToolNames.has(name) && !quiet.test(name));
   // Goal mutations are applied between turns, never inside a running tool call or event dispatch.
-  const closeSessionGoal = reason => { pendingGoalClose ??= reason; };
+  const closeSessionGoal = (reason, disposition = 'pause') => { pendingGoalClose ??= { reason, disposition }; };
   const settleGoalClose = () => {
-    const reason = pendingGoalClose; pendingGoalClose = null; wrapUpSteps = 1;
-    // A host cancel pauses the goal first; completing from paused is a valid DSH transition.
-    const goal = reason && handle && ctx.goals.get(handle.agent);
-    if (!goal || goal.phase === 'complete') return;
-    try { ctx.goals.complete(handle.agent, { id: goal.id, revision: goal.revision }); log.info('Session goal completed: %s', reason); }
-    catch (error) { log.warn('Could not complete session goal (%s): %s', reason, error.message); }
+    const pending = pendingGoalClose; pendingGoalClose = null; wrapUpSteps = 1;
+    if (!pending || !handle) return;
+    try { const goal = settleHostGoal(pending.reason, pending.disposition, { goals: ctx.goals, agent: handle.agent });
+      log.info('Session goal %s: %s', goal?.phase ?? 'unknown', pending.reason); }
+    catch (error) { log.warn('Could not settle session goal (%s): %s', pending.reason, error.message); }
   };
   const shutdown = reason => shuttingDown ??= (async () => {
     clearTimeout(timer);
@@ -285,14 +286,14 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
           try { value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal)); }
           catch (error) { chat.refund(); throw error; }
           if (value?.isError) chat.refund();
-          if (goalClosed(value)) closeSessionGoal('in-game goal closed');
+          if (goalClosed(value)) closeSessionGoal('in-game goal closed', 'complete');
           const looking = /_(scout|visual)$/.test(spec.name);
           if ((!spec.name.endsWith('_do') && !looking) || value?.isError) return value;
           const verdict = looking ? guard.observe(currentGoal(), JSON.stringify(value?.structuredContent?.text ?? value?.content ?? ''))
             : guard.action(currentGoal(), args?.steps);
           if (verdict.close) { progressStats.closedBy = verdict.close; closeSessionGoal(verdict.close); }
           if (verdict.notice) progressStats.nudges++;
-          return withNotice(value, verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因长时间没有进展将在本轮结束时自动完成，请简短收尾，不要再移动。` : undefined));
+          return withNotice(value, verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因长时间没有进展将在本轮结束时暂停并保留进度，未证实完成。请简短收尾，不要再移动。` : undefined));
         },
       });
     }
@@ -316,8 +317,10 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     constrainMinecraftTools(agentCtx,composition);
     const goalPlugin = await import('@deepseek-ai/dsh-tool-goal');
     await agentCtx.plugin(goalPlugin.default ?? goalPlugin).await();
+    agentCtx.tools.guard(() => goalWrapUp.denial(currentGoal()));
     agentCtx.on('agent/pre-step', async (payload, next) => {
       if (paused) throw Error('Minecraft is paused');
+      if (!goalWrapUp.admit(payload, currentGoal())) return { kind: 'reject' };
       // A guard-closed goal gets one wrap-up step, then the turn ends so the close settles now, not rounds later.
       if (progressStats.closedBy && pendingGoalClose && wrapUpSteps-- <= 0) {
         handle.agent.cancel({ kind: 'hook', reason: `Goal closed by host: ${progressStats.closedBy}` });
@@ -328,6 +331,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
       await abortableDelay(Math.max(0, (config.minStepIntervalMs ?? 3000) - (Date.now() - lastStep)), payload.signal);
       const decision = await next();
       if (decision.kind === 'enter') {
+        activeTurn = payload.turn;
         await bridge.enter(sessionId, payload.turn, payload.step); lastStep = Date.now();
         shownCursor = renderedCursor; // the previous snapshot was read; this step's list starts after it
         const over = guard.step(currentGoal());
@@ -340,10 +344,12 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     agentCtx.on('session/event', (session, event) => {
       if (session.id !== sessionId) return;
       if (event.type === 'goal/change' && event.data?.operation === 'complete') {
+        goalWrapUp.close(activeTurn, event.data.goal);
         // Receipts queued for the finished goal must not wake the model afterwards.
         wakeStats.droppedAfterGoal += inbox.pending.length; inbox.clear(); goalClosedAt = Date.now();
         return;
       }
+      if (event.type === 'goal/change' && ['block', 'blocked'].includes(event.data?.operation)) goalWrapUp.close(activeTurn, event.data.goal);
       if (event.type !== 'turn/end') return;
       lifecycle.ended(event.data.turn, event.data.reason);
       const reason = event.data.reason;
@@ -407,9 +413,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
       // Only explicit local operator configuration may create a follow-up goal.
       // Game events retain notice authority and cannot grant themselves a goal.
       if (!request.goal) return;
-      const current = ctx.goals.get(handle.agent);
-      if (current && current.phase !== 'complete') throw Error('Finish or explicitly handle the current goal before adding an operator goal');
-      ctx.goals.create(handle.agent, { objective: request.goal, maxGoalRounds: config.maxGoalRounds ?? 40 });
+      prepareOperatorGoal(request, config, { goals: ctx.goals, agent: handle.agent });
     },
     steer: request => handle.agent.steer(createUserMessage({ content: [{ type: 'text', text: request.text }],
       source: { kind: 'mc-harness', form: 'notice', summary: `Operator request ${request.id}` } })),
@@ -433,7 +437,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
       wakeStats.seen += events.events?.length ?? 0; wakeStats.woken += important.length;
       inbox.add(important);
       inbox.flush(handle.agent, currentGoal(), paused || lifetime.signal.aborted, createUserMessage);
-      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls }, events: condenser.stats, coreBudget });
+      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls, wrapUp: goalWrapUp.stats }, events: condenser.stats, coreBudget });
     } catch (error) { if (!lifetime.signal.aborted && !shuttingDown) {
       if (!paused) lifecycle.failed('poll', error);
       status(paused ? { state: 'paused', goal: currentGoal() }

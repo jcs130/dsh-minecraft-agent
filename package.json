@@ -119,7 +119,9 @@
     "docs/core-sync-verification-20261026.json",
     "docs/core-sync-rc99-verification-20261026.json",
     "docs/release-rc24.md",
-    "docs/release-rc24-verification.json"
+    "docs/release-rc24-verification.json",
+    "docs/core-viewer-sync-20261027.md",
+    "docs/core-viewer-sync-20261027.json"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

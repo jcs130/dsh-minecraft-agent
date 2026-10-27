@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { activateConfiguredGoal } from '../src/harness-goal.mjs';
+import { activateConfiguredGoal, settleHostGoal } from '../src/harness-goal.mjs';
 const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.json'));
 const load = async name => import(pathToFileURL(require.resolve(name)).href);
 
@@ -54,6 +54,11 @@ test('official DSH replaces the completed goal, resumes from its real journal an
       assert.deepEqual(restored.log.slice(before).map(event => event.data.operation), ['clear', 'create']);
       ctx.goals.complete(recovered, { id: replaced.id, revision: replaced.revision });
     }
+    const guarded = ctx.goals.create(recovered, { objective: 'Unfinished budget fixture', maxGoalRounds: 40 });
+    const stop = () => settleHostGoal('per-goal call budget used up', 'pause', { goals: ctx.goals, agent: recovered });
+    stop(); assert.equal(ctx.goals.get(recovered).phase, 'paused'); assert.equal(ctx.goals.get(recovered).id, guarded.id);
+    const stoppedCount = restored.log.length; stop(); assert.equal(restored.log.length, stoppedCount);
+    assert.equal(restored.log.at(-1).data.operation, 'pause');
   } }).await();
   try { assert.ok(live); } finally { await live.dispose(); await goalPlugin.dispose(); await services.dispose(); }
 });

@@ -1,5 +1,7 @@
 # DSH Minecraft Agent
 
+**2026-10-27 主干更新**：已验证核心 rc.110 与最新共享观战的本地候选，修复目标结案后空转、预算耗尽误报完成，并保留事件等待入口。正式 npm 依赖仍保持可安装的 rc.99；实测 token、缓存、延迟及验收边界见[同步记录](docs/core-viewer-sync-20261027.md)。
+
 **[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，latest 指向 rc.24，精确依赖核心 **0.5.7-rc.99** 和可选千灯纪 **0.5.0-rc.24**。核心只读查询可与导航并行，批量消息读回、纠错和记忆去重保留原任务及证据语义。
 
 两版未修改官方 DSH **0.2.1-rc.2 / rc.3** 均通过默认 pnpm 公开 registry 安装、主进程／Worker、**38 个 MCP 工具**和真实本地知识库查询；两版各 154 项通过、1 项可选跳过。匿名下载与已验收归档字节一致，见[npm 分发验收](docs/npm-publish-rc24.json)及[本版说明](docs/release-rc24.md)。
