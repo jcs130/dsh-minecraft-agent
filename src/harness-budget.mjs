@@ -339,9 +339,10 @@ export class GoalProgressGuard {
     return this.judge(this.progress.record(steps), 'move');
   }
   /** Call for each look-around tool with its result text. */
-  observe(goal, text) {
+  observe(goal, text, revision) {
     if (goal?.phase !== 'active' || typeof this.progress.recordObservation !== 'function') return {};
-    return this.judge(this.progress.recordObservation(this.digest(text)), 'look');
+    const digest=typeof revision==='string'&&/^[a-f0-9]{64}$/.test(revision)?revision:this.digest(text);
+    return this.judge(this.progress.recordObservation(digest), 'look');
   }
   judge(v, kind) {
     if (!v.repetitive) return {};

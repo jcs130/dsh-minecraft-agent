@@ -12,8 +12,45 @@ import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { HarnessBridge, MinecraftEventInbox, modelToolSchema } from '../src/harness-bridge.mjs';
 import { selectTools } from '../src/harness-budget.mjs';
 import { minecraftPlanningGuidance } from '../src/harness-composition.mjs';
+import { RetryEvidenceContext, renderReceipt } from '../src/harness-bridge.mjs';
+import { EvidenceReflection } from '../src/harness-reflection.mjs';
+import { capBlocks } from '../src/harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
+test('packed SDK and MCP carry current spatial read evidence into one existing thinking request',async t=>{
+  const {spatialReadout}=await import('agent-mc-world/client');
+  if(typeof spatialReadout!=='function')return t.skip('Installed core predates typed current spatial reads');
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-core-'));
+  const raw={summary:{observedCells:12,unknownCells:39,materials:[{name:'air',cells:11},{name:'chest',cells:1}]},
+    source:'client-visible-world',kind:'voxels',format:'dense',dimension:'overworld',complete:false,retryable:false,
+    coverage:{origin:[0,64,0],remainingCount:0,coverageComplete:true,unknownCount:39},cells:[...Array(11).fill(0),1,...Array(39).fill(-1)],next:null};
+  const data={readout:spatialReadout(raw),...raw};
+  const world={id:'offline-spatial-fixture',tools:()=>withToolHelp([{name:'mc_observe',tags:['read'],description:'Offline read',
+    parameters:{type:'object'},handler:async()=>({text:JSON.stringify(data),data,meta:{observation:data.readout}})}],'mc_tool_help'),
+    envPromptVars:()=>({}),async start(){},async stop(){}};
+  const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'offline.invalid',username:'SpatialQA'},dataDir:dir,log:nullLogger()},world);
+  const server=createMinecraftMcpServer(runtime,'spatial-consumer'),client=new Client({name:'spatial-consumer',version:'1'});
+  const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
+  try{
+    await server.connect(left);await client.connect(right);await runtime.connect();await bridge.enter('original-session',2,0);
+    const spec=(await client.listTools()).tools.find(x=>x.name==='mc_observe');
+    for(const id of ['original-read-1','original-read-2']){
+      const result=await bridge.call('mc_observe',{}, {id});
+      assert.deepEqual(result.structuredContent.meta.observation,data.readout);
+      assert.equal(result.structuredContent.execution,null);assert.equal(result.isError,undefined);
+      view.observeSpatialRead({run:runtime.journal.run,requestId:id,spec,result});
+      const visible=capBlocks(renderReceipt(result),1500)[0].text;
+      assert.ok(visible.includes('"scanComplete":true'));assert.ok(visible.includes('"unknownCount":39'));
+      assert.ok(visible.includes('"name":"chest"'));
+    }
+    const base={provider:'unchanged',model:'unchanged',reasoningEffort:'none',maxTokens:6000};
+    const reflection=new EvidenceReflection({enabled:true,attempts:2});
+    assert.deepEqual(reflection.select(base,view.snapshot(),{turn:2,step:1}),{...base,reasoningEffort:'low'});
+    assert.equal(reflection.snapshot().lastReason,'repeated-unchanged-current-observation');
+    await bridge.ended('original-session',2);
+  }finally{await bridge.stop();await server.close();await removeFixture(dir);}
+});
+
 test('installed core matches the adapter pin and exposes the authored-method lifecycle', async () => {
   const adapter = require('@jcs130/dsh-minecraft-agent/package.json'), core = require('agent-mc-world/package.json');
   const pin=adapter.dependencies['agent-mc-world'];

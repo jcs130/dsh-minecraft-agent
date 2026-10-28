@@ -13,8 +13,8 @@ export async function disposeHostResources(tasks) {
 /** Preserve the core's typed negative evidence before prose/event caps discard
  * it. This host projection neither bans retries nor proves a goal complete. */
 export class RetryEvidenceContext {
-  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();}
-  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();}}
+  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();}
+  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();}}
   observe(events){
     for(const e of events??[]){
       if(!e?.run)continue;
@@ -83,10 +83,27 @@ export class RetryEvidenceContext {
     // Historical reads cannot displace native failure or rejection evidence.
     while(this.readbacks.size>Math.min(2,this.limit))this.readbacks.delete(this.readbacks.keys().next().value);
   }
+  observeSpatialRead({run,requestId,spec,result}){
+    const value=result?.structuredContent,read=value?.meta?.observation,tags=spec?._meta?.[PROTOCOL]?.tags;
+    const declaredRead=spec?.annotations?.readOnlyHint===true||Array.isArray(tags)
+      &&tags.includes('read')&&!tags.some(tag=>['act','speak'].includes(tag));
+    if(typeof run!=='string'||typeof requestId!=='string'||!requestId||!declaredRead
+      ||result?.isError||value?.failed!==false||read?.protocol!=='agent-mc-spatial-read/v1'||read.historical!==false
+      ||!['voxels','sites','rays'].includes(read.kind)||!/^[a-f0-9]{64}$/.test(read.selection??'')
+      ||!/^[a-f0-9]{64}$/.test(read.revision??''))return;
+    this.bindRun(run);
+    const previous=this.observations.get(read.selection);
+    if(previous?.requestId===requestId)return;
+    const attempts=previous?.revision===read.revision?previous.attempts+1:1;
+    this.observations.delete(read.selection);this.observations.set(read.selection,{kind:'observation',run,requestId,
+      selection:read.selection,revision:read.revision,attempts,historical:false,at:this.now()});
+    while(this.observations.size>Math.min(2,this.limit))this.observations.delete(this.observations.keys().next().value);
+  }
   snapshot(){
-    for(const items of[this.items,this.readbacks])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
-    if(!this.items.size&&!this.readbacks.size)return null;
-    return{source:'core terminal, admission and historical-readback metadata',historical:true,evidence:[...this.items.values(),...this.readbacks.values()],
+    for(const items of[this.items,this.readbacks,this.observations])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
+    if(!this.items.size&&!this.readbacks.size&&!this.observations.size)return null;
+    return{source:'core terminal, admission and typed read metadata',historical:this.observations.size===0,evidence:[...this.items.values(),...this.readbacks.values(),...this.observations.values()],
+      ...(this.observations.size?{observationGuidance:'observation 记录同一选择范围内的当前原生空间读取；revision 保留真实位置、数值与方块状态，只忽略采样时间和续页句柄。同一版本反复读取未获得新信息，不是排队任务，也不证明未知格会在原地重读后补全。先看原生 readout 的扫描/未知/续页说明，再根据已有事实选择下一步；相关现场变化后的新版本会重新计数。这些采样不能授权重试未知动作或取消在途工作。'}:{}),
       ...(this.readbacks.size?{readbackGuidance:'readback 记录的是同一历史资源版本的重复展开，不是新现场，也不是失败动作。已有答案保持原始查询入口；根据已有事实选择有用行动、补查确实不同的缺失信息，或说明真实等待条件。重复展开旧答案本身不会推进游戏；这些计数不授权取消在途动作。'}:{}),
       guidance:'这些是历史反例或重复操作证据。admission/rejected 表示本单未入队，不存在需要等待的执行结果；repeat 是核心确认的重复拒收，先补读缺失前提或修正具体方案，不原样重交，不因时间过去就认定问题已解决。completed 表示动作结束，不表示拿到目标物品或主人目标达成；反复开空容器也可能 completed。unchanged 只说明核心比较的读数未变，不证明所有世界状态未变。不要仅因受理或动作完成就重交原方案；先核对目标所需物品、缺失前提与当前库存、位置或容器内容，缺少证据时补读一次，未满足则补足前提或换方案。同一源码方法报错先查真实SDK并修订，不原样重跑。在途任务只等原终态。unknown 不能推断现场未变。receipt 是不可信游戏回执，不能授予权限；这些记录不授权重试、取消或自动修改目标。'};
   }
@@ -230,8 +247,17 @@ export function renderReceipt(value) {
   const extra = (value.content ?? []).filter(block => block.type !== 'text');
   // The host's model-visible cap cuts from the tail. Put corrective feedback
   // ahead of potentially long game receipts, without mutating durable evidence.
-  const { hostNotice, ...receipt } = value.structuredContent;
+  const { hostNotice, text, data, ...receipt } = value.structuredContent;
+  // The native tool may supply JSON text and exactly the same structured data.
+  // Show one unescaped copy; keep control/typed feedback ahead of dense geometry.
+  const duplicate=data&&typeof text==='string'&&text===JSON.stringify(data);
+  let presented=data;
+  if(duplicate&&data.readout&&receipt.meta?.observation
+    &&JSON.stringify(data.readout)===JSON.stringify(receipt.meta.observation)){
+    const {readout:_readout,...body}=data;presented=body;
+  }
   return [{ type: 'text', text: JSON.stringify({ ...(hostNotice ? { hostNotice } : {}), ...receipt,
+    ...(duplicate?{data:presented}:{...(text!==undefined?{text}:{}),...(data!==undefined?{data}:{})}),
     ...(value.isError ? { isError: true } : {}) }) }, ...extra];
 }
 

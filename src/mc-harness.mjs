@@ -337,12 +337,16 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
             requestId:value.structuredContent?.control?.requestId??exec.callId});
           retryEvidence.observeReadback({run:runtime.journal.run,spec,result:value,
             requestId:value.structuredContent?.control?.requestId??exec.callId});
+          retryEvidence.observeSpatialRead({run:runtime.journal.run,spec,result:value,
+            requestId:value.structuredContent?.control?.requestId??exec.callId});
           if (value?.isError) chat.refund();
           else noop.call(spec.name);
           if (goalClosed(value)) closeSessionGoal('in-game goal closed', 'complete');
           const looking = observationTool(spec.name);
           if ((!spec.name.endsWith('_do') && !looking) || value?.isError) return value;
-          const verdict = looking ? guard.observe(currentGoal(), JSON.stringify(value?.structuredContent?.text ?? value?.content ?? ''))
+          const read=value?.structuredContent?.meta?.observation;
+          const revision=read?.protocol==='agent-mc-spatial-read/v1'&&read.historical===false?read.revision:undefined;
+          const verdict = looking ? guard.observe(currentGoal(), JSON.stringify(value?.structuredContent?.text ?? value?.content ?? ''),revision)
             : guard.action(currentGoal(), args?.steps);
           if (verdict.close) { progressStats.closedBy = verdict.close; closeSessionGoal(verdict.close); }
           if (verdict.notice) progressStats.nudges++;
