@@ -195,6 +195,17 @@ test('chat guard refunds a line whose call was rejected', async () => {
   g.refund(); g.refund(); assert.equal(g.sent, 0);
 });
 
+test('server help/status commands remain usable after the public cap and do not consume speech spacing',()=>{
+ const g=new ChatGuard({maxPublicLines:1,minIntervalMs:20000},()=>0);
+ const say=text=>g.check('mymc_do',{steps:[{skill:'chat',text}]});
+ assert.equal(say('大家好'),null);
+ for(const command of ['/appearance help','/appearance status','/mycli help','/login synthetic-fixture'])assert.equal(say(command),null);
+ assert.equal(g.sent,1);assert.match(say('另一句话'),/上限/);
+ const b=new ChatGuard({maxPublicLines:1,minIntervalMs:0},()=>0);
+ assert.equal(b.check('mc_do',{steps:[{skill:'chat',text:'/minecraft:say public'}]}),null);
+ assert.match(b.check('mc_do',{steps:[{skill:'chat',text:'/me public action'}]}),/上限/);
+});
+
 test('guard counts repeated look-arounds; compactFacts fallback matches core when available', async () => {
   const { GoalProgressGuard, MovementProgressFallback, compactFactsFallback } = await import('../src/harness-budget.mjs');
   const guard = new GoalProgressGuard({ progress: new MovementProgressFallback(), closeAfter: 8 });

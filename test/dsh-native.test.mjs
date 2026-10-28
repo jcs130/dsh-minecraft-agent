@@ -8,6 +8,24 @@ const require = createRequire(resolve(process.env.DSH_RUNTIME ?? '.', 'package.j
 const { Session } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-session')).href);
 const { createUserMessage } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm')).href);
 
+test('game checkpoint uses the native summarizer, preserves cache prefix and rejects truncated summaries',async()=>{
+  const {BasicCompactionEngine}=await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-compaction-basic')).href);
+  const {minecraftCompactionBackend}=await import('../src/harness-compaction.mjs');
+  const Backend=minecraftCompactionBackend(BasicCompactionEngine),engine=Object.create(Backend.prototype);
+  let request,finish={kind:'stop'};const prefix=[{role:'system',content:[{type:'text',text:'original world rules'}]}];
+  Object.defineProperties(engine,{config:{value:{summarizationProvider:'same-provider',summarizationModel:'same-model',maxTokens:6000,modelPolicies:[]}},
+    ctx:{value:{llm:{stream:async function*(options){request=options;yield{type:'text-delta',index:0,text:'confirmed item; queued task is not completion'};
+      yield{type:'usage',usage:{inputTokens:10,outputTokens:8}};yield{type:'finish',reason:finish};}}}}});
+  const agent={session:{id:'same-session',requestHeader:()=>({config:{provider:'same-provider',model:'same-model'}}),toolHistory:()=>({})},options:{}};
+  const signal=new AbortController().signal,tools=[{name:'existing'}];
+  const result=await engine.summarize({messages:prefix,tools},agent,signal);
+  assert.equal(request.messages[0],prefix[0]);assert.equal(request.messages.length,3);assert.equal(request.tools[0],tools[0]);
+  assert.equal(request.signal,signal);assert.equal(request.purpose,'compaction');assert.equal(request.sessionId,'same-session');
+  assert.equal(request.maxTokens,6000);assert.match(request.messages[1].content[0].text,/Minecraft Agent session/);
+  assert.match(result.summary[0].text,/queued task is not completion/);assert.equal(result.llmStreamCall,true);
+  finish={kind:'max-tokens'};await assert.rejects(engine.summarize({messages:prefix,tools},agent,signal),x=>x.code==='MAX_TOKENS');
+});
+
 test('real DSH ancestor preset tools survive selected composition, while the default Agent keeps its game-only boundary',async()=>{
   const {Context}=await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
   const {ToolRuntime}=await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-tools')).href);
@@ -95,6 +113,67 @@ test('MCP renderer does not repeat receipt; durable result is unchanged', () => 
   assert.equal((JSON.stringify(renderReceipt(value)).match(/original receipt/g) ?? []).length, 1);
   assert.equal(value.content[0].text, 'original receipt');
   assert.equal(value.structuredContent.execution.goalCompleted, false);
+});
+
+test('corrective host feedback survives the real model receipt cap without changing durable game evidence', async () => {
+  const {capBlocks, withNotice} = await import('../src/harness-budget.mjs');
+  const original = {structuredContent:{text:'Long game receipt '.repeat(500), control:{requestId:'r',endTurnRequested:false},failed:false}};
+  const before=structuredClone(original);
+  const value=withNotice(original,'Change the plan: no new movement has occurred.');
+  const visible=capBlocks(renderReceipt(value),1500).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  assert.ok(visible.includes(value.structuredContent.hostNotice));
+  assert.ok(visible.includes('dsh_history'));
+  assert.deepEqual(original,before);
+  assert.equal(value.structuredContent.control.requestId,'r');
+  assert.equal(value.structuredContent.failed,false);
+});
+
+test('session and transport cleanup failures still close the panel and MCP listener',async()=>{
+ const {disposeHostResources}=await import('../src/harness-bridge.mjs');
+ const called=[];
+ await assert.rejects(disposeHostResources([
+  async()=>{called.push('session');throw Error('already disposed');},
+  async()=>{called.push('transport');throw Error('already closed');},
+  async()=>{called.push('panel');},async()=>{called.push('mcp');},
+ ]),e=>e instanceof AggregateError&&e.errors.length===2);
+ assert.deepEqual(called,['session','transport','panel','mcp']);
+});
+
+test('core retry metadata remains visible separately from capped event prose, retains unknowns, expires and isolates runs',async()=>{
+ const {RetryEvidenceContext}=await import('../src/harness-bridge.mjs');let now=100000;
+ const view=new RetryEvidenceContext({now:()=>now,limit:2,ttlMs:1000});
+ const e=(taskId,observation='unchanged',run='a')=>({run,ts:new Date(now).toISOString(),text:'untrusted text '.repeat(1000),
+  execution:{kind:'task',id:'epoch:'+taskId,terminal:true,phase:'blocked'},meta:{repeatFailure:{taskId,attempts:4,scope:'shape',observation}}});
+ view.observe([e(1),e(2,'unknown'),e(3,'changed')]);
+ assert.deepEqual(view.snapshot().evidence.map(x=>x.observation),['unknown','changed']);
+ assert.equal(JSON.stringify(view.snapshot()).includes('untrusted text'),false);
+ assert.equal(view.snapshot().historical,true);
+ const bad=e(4);bad.execution.terminal=false;view.observe([bad]);assert.equal(view.items.size,2);
+ view.observe([e(5,'unchanged','b')]);assert.equal(view.snapshot().evidence.length,1);assert.equal(view.snapshot().evidence[0].run,'b');
+ now+=1001;assert.equal(view.snapshot(),null);
+});
+
+test('asynchronous method errors preserve source identity, not just the earlier accepted receipt',async()=>{
+ const {RetryEvidenceContext}=await import('../src/harness-bridge.mjs');
+ const view=new RetryEvidenceContext({now:()=>100000});
+ const event={run:'a',ts:new Date(100000).toISOString(),execution:{kind:'method',id:'epoch:1',phase:'blocked',terminal:true,
+  evidence:{sourceHash:'a'.repeat(64),receipt:'TypeError: unavailable SDK method. '.repeat(100)}}};
+ view.observe([event]);const value=view.snapshot();
+ assert.equal(value.evidence[0].sourceHash,'a'.repeat(64));assert.equal(value.evidence[0].methodId,'epoch:1');
+ assert.equal(value.evidence[0].receipt.length,600);assert.equal(value.evidence[0].receiptIsUntrusted,true);
+ const ignored=new RetryEvidenceContext();ignored.observe([{...event,execution:{...event.execution,terminal:false}}]);assert.equal(ignored.snapshot(),null);
+});
+
+test('the current observe tool and risk reads enter observation progress handling without classifying body actions as reads',async()=>{
+ const {observationTool}=await import('../src/harness-bridge.mjs');
+ for(const name of ['mc_observe','mymc_observe','mymc_scout','mymc_visual','mymc_risk'])assert.equal(observationTool(name),true);
+ for(const name of ['mymc_do','mymc_script','mymc_goal','mymc_query'])assert.equal(observationTool(name),false);
+});
+
+test('completed operations can preserve unchanged evidence without being relabelled as failed goals',async()=>{
+ const {RetryEvidenceContext}=await import('../src/harness-bridge.mjs');const now=100000,view=new RetryEvidenceContext({now:()=>now});
+ view.observe([{run:'r',ts:new Date(now).toISOString(),execution:{kind:'task',id:'epoch:4',terminal:true,phase:'completed'},meta:{repeatFailure:{taskId:4,attempts:2,scope:'target',observation:'unchanged'}}}]);
+ const s=view.snapshot();assert.equal(s.evidence[0].phase,'completed');assert.equal(s.evidence[0].observation,'unchanged');assert.match(s.guidance,/不表示拿到目标物品/);
 });
 
 test('live observation retires only current owned snapshots without reading archived payloads', async () => {

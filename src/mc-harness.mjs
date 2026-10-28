@@ -7,10 +7,14 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { EventCondenser as EventCondenserFallback } from './event-condenser-fallback.mjs';
 import { prepareDshNativeStreams } from './dsh-native-streams.mjs';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
-import { HarnessBridge, gameToolConcurrencySafe, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, modelToolSchema } from './harness-bridge.mjs';
+import { HarnessBridge, observationTool, RetryEvidenceContext, disposeHostResources, gameToolConcurrencySafe, nativeToolContext, renderReceipt, mcpResultDecision, retireLiveFacts, measuredStream, abortableDelay, MinecraftEventInbox, deliverOperatorRequest, agentModelOptions, modelToolSchema } from './harness-bridge.mjs';
 import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { AutonomousContinuation } from './harness-autonomy.mjs';
+import { EvidenceReflection, installEvidenceReflection } from './harness-reflection.mjs';
+import { minecraftCompactionBackend } from './harness-compaction.mjs';
+import { AppendOnlyFactsContext } from './harness-context.mjs';
+import { evidenceCompactionBackend } from './harness-handoff.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
 import { activateConfiguredGoal, applyGoalControl, prepareOperatorGoal, settleHostGoal, GoalWrapUp } from './harness-goal.mjs';
 import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
@@ -70,6 +74,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   const modelInfo = await ctx.llm.resolveModelInfo(config.provider, config.model);
   const budget = compactionForBudget(config, modelInfo?.context?.contextWindow);
   const summaryOptions = budget.options;
+  if(config.compaction?.strategy&&!['guided-model','evidence'].includes(config.compaction.strategy))throw Error('Unknown compaction.strategy');
+  let checkpointPresentation=null;
   const chat = new ChatGuard(config.chat ?? {});
   const view = { receiptChars: config.context?.receiptChars ?? 1500, events: config.context?.events ?? 10,
     eventChars: config.context?.eventChars ?? 200, descriptionChars: config.tools?.descriptionChars ?? 300,
@@ -119,8 +125,13 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   await server.connect(serverTransport); await client.connect(clientTransport);
   const bridge = new HarnessBridge(runtime, client);
   const tools = (await client.listTools()).tools;
+  if(config.context?.factsMode&&!['updates','legacy'].includes(config.context.factsMode))throw Error('Unknown context.factsMode');
+  const appendFacts=config.context?.factsMode!=='legacy'&&typeof coreClient.FactUpdateStream==='function';
+  if(config.context?.factsMode==='updates'&&!appendFacts)throw Error('This core does not provide public fact-update contracts');
+  let factContext;
   const prefix = await runtime.environment() + (onboarding ? '\n\n' + onboarding : '')
-    + '\n\n' + minecraftPlanningGuidance(selectTools(tools, config.tools));
+    + '\n\n' + minecraftPlanningGuidance(selectTools(tools, config.tools))
+    + (appendFacts?'\n\n'+coreClient.FACT_UPDATE_GUIDANCE:'');
   const persona = readFileSync(resolve(config.personaFile), 'utf8');
   const conversationDir=conversationDirectory(dataDir,config.sessionKey);mkdirSync(conversationDir,{recursive:true});
   const sessionFile = join(conversationDir, 'session-id.txt');
@@ -153,7 +164,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   let wrapUpSteps = 1;
   const goalWrapUp = new GoalWrapUp();
   let activeTurn = null;
-  const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|blocked|risk|hear|attention)$/;
+  const quiet = /_(tool_help|help|memory|knowledge|life|connection|protocol|options|bag|queue|goal|blocked|observe|risk|hear|messages|attention|query)$/;
   const gameToolNames = new Set(tools.map(t => t.name));
   const noop = new NoopRounds(config.noopRoundLimit ?? 3, name => gameToolNames.has(name) && !quiet.test(name));
   // Goal mutations are applied between turns, never inside a running tool call or event dispatch.
@@ -200,6 +211,10 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   }); };
   for (const signal of signals) process.once(signal, onSignal);
   const inbox = new MinecraftEventInbox();
+  const retryEvidence=new RetryEvidenceContext();
+  const reflectionFile=join(conversationDir,'reflection-selections.json');
+  const reflection=new EvidenceReflection(config.reflection,{read:()=>{try{return JSON.parse(readFileSync(reflectionFile,'utf8'));}catch{return null;}},
+    write:value=>{writeFileSync(reflectionFile+'.tmp',JSON.stringify(value)+'\n',{mode:0o600});renameSync(reflectionFile+'.tmp',reflectionFile);}});
   const statusFile = join(dataDir, 'status.json');
   // DSH may dispose the goal service before this plugin during shutdown; status must still be writable.
   const currentGoal = () => { try { return handle ? ctx.goals.get(handle.agent) : undefined; } catch { return undefined; } };
@@ -221,10 +236,14 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     for (const signal of signals) process.removeListener(signal, onSignal);
     await shutdown('dispose');
     lifetime.abort(); clearTimeout(timer);
-    if (handle) { ctx.goals.disarm(handle.agent); handle.agent.cancel({ kind: 'disposed' });
-      await handle.agent.whenIdle(); await ctx.sessions.flush(handle.agent.session); await handle.dispose(); }
-    await bridge.stop(); await consoleServer?.close(); await server.close();
-    status({ state: 'stopped', stopped: true });
+    await disposeHostResources([
+      async()=>{if(handle){try{ctx.goals.disarm(handle.agent);}finally{handle.agent.cancel({kind:'disposed'});}}},
+      async()=>{if(handle)await handle.agent.whenIdle();},
+      async()=>{if(handle)await ctx.sessions.flush(handle.agent.session);},
+      async()=>{if(handle)await handle.dispose();},
+      ()=>bridge.stop(), ()=>consoleServer?.close(), ()=>server.close(),
+      ()=>status({state:'stopped',stopped:true}),
+    ]);
   }, 'minecraft host lifetime');
   const connect = async () => {
     try { await verifyQiandengjiConnection(portalAccess, cfg); }
@@ -267,6 +286,9 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   } : undefined);
   const setup = async agentCtx => {
     const composition=await composeMinecraftAgent(agentCtx,{dshPreset:config.dshPreset,persona,environment:prefix});
+    // Native request config is frozen and logged before dispatch. This does
+    // not mutate the user's selected model or add a second generation loop.
+    installEvidenceReflection(agentCtx,{reflection,retryEvidence,sessionQuery:ctx.sessionQuery});
     agentCtx.systemPrompt.context({ name: 'minecraft:autonomy', order: 9989,
       text: () => JSON.stringify({ ...continuation.snapshot(),
         guidance: continuation.policy.continuous
@@ -274,8 +296,15 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
           : '按主人配置的有限预算运行，预算用尽不等于目标完成。' }) });
     // The complete section deliberately includes every stable game instruction, byte for byte.
     // Dynamic facts use DSH named snapshots at the request tail and remain in its durable log.
-    agentCtx.systemPrompt.context({ name: 'minecraft:current-facts', order: 9990,
+    if(appendFacts){
+      factContext=new AppendOnlyFactsContext({core:coreClient,
+        facts:()=>(coreClient.compactFacts??compactFactsFallback)(runtime.currentFacts()),
+        retire:payload=>retireLiveFacts(payload.agent.session,createUserMessage,ctx.sessionQuery,payload.signal)});
+      factContext.install(agentCtx);
+    }else agentCtx.systemPrompt.context({ name: 'minecraft:current-facts', order: 9990,
       text: () => JSON.stringify((coreClient.compactFacts ?? compactFactsFallback)(runtime.currentFacts())) });
+    agentCtx.systemPrompt.context({name:'minecraft:retry-evidence',order:9992,
+      text:()=>JSON.stringify(retryEvidence.snapshot())});
     agentCtx.systemPrompt.context({ name: 'minecraft:events', order: 9991,
       text: () => JSON.stringify({ run: runtime.journal.run, nextCursor: eventCursor, events: (() => {
         const list = (coreClient.compactEvents ?? compactEvents)(condenser.since(shownCursor, eventTail), view.events, view.eventChars, runtimeOptions.timezone);
@@ -295,15 +324,15 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
         output: { schema: { type: 'object' }, render: (_args, value) => capBlocks(renderReceipt(value), view.receiptChars) },
         isConcurrencySafe: () => gameToolConcurrencySafe(spec),
         execute: async (args, exec) => {
-          noop.call(spec.name);
           const refusal = chat.check(spec.name, args);
           if (refusal) return { isError: true, content: [{ type: 'text', text: refusal }], structuredContent: { text: refusal, chatLimited: true } };
           let value;
           try { value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal)); }
           catch (error) { chat.refund(); throw error; }
           if (value?.isError) chat.refund();
+          else noop.call(spec.name);
           if (goalClosed(value)) closeSessionGoal('in-game goal closed', 'complete');
-          const looking = /_(scout|visual)$/.test(spec.name);
+          const looking = observationTool(spec.name);
           if ((!spec.name.endsWith('_do') && !looking) || value?.isError) return value;
           const verdict = looking ? guard.observe(currentGoal(), JSON.stringify(value?.structuredContent?.text ?? value?.content ?? ''))
             : guard.action(currentGoal(), args?.steps);
@@ -345,7 +374,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
         return { kind: 'reject' };
       }
       await waitReady(payload.signal);
-      await retireLiveFacts(payload.agent.session, createUserMessage, ctx.sessionQuery, payload.signal);
+      if(factContext)await factContext.prepare(payload);
+      else await retireLiveFacts(payload.agent.session, createUserMessage, ctx.sessionQuery, payload.signal);
       await abortableDelay(Math.max(0, (config.minStepIntervalMs ?? 3000) - (Date.now() - lastStep)), payload.signal);
       const decision = await next();
       if (decision.kind === 'enter') {
@@ -359,7 +389,12 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
       return decision;
     });
     const compaction = await import('@deepseek-ai/dsh-compaction-basic');
-    if(!composition.compaction)await agentCtx.plugin(compaction.default, summaryOptions).await();
+    if(!composition.compaction){
+      const backend=config.compaction?.strategy==='evidence'
+        ?evidenceCompactionBackend(compaction.default,{sessionQuery:ctx.sessionQuery,goal:currentGoal,onCheckpoint:value=>{checkpointPresentation=value;}})
+        :minecraftCompactionBackend(compaction.default);
+      await agentCtx.plugin(backend,summaryOptions).await();
+    }
     agentCtx.on('session/event', (session, event) => {
       if (session.id !== sessionId) return;
       if (event.type === 'goal/change' && event.data?.operation === 'complete') {
@@ -387,6 +422,9 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   // LLM service events are service-scoped, not agent-scoped. Filter the real session explicitly.
   ctx.on('llm/stream', async function* (request, next) {
       if (request.sessionId !== sessionId) { yield* next(); return; }
+      // Native request selection precedes runtime-context admission. Check
+      // again at dispatch, after the durable context frame was validated.
+      if(factContext?.fault)throw factContext.fault;
       const meter = ctx.tokenMeter;
       const estimate = request.purpose
         ? request.messages.reduce((sum, message) => sum + meter.estimateMessage(message), 0)
@@ -449,7 +487,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
       eventCursor = events.nextCursor;
-      if (events.events?.length) { recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
+      if (events.events?.length) { retryEvidence.observe(events.events);recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
       // Wake only for events a person would interrupt for; everything else rides the next snapshot.
       const goalNow = currentGoal();
       const wakeOn = configuredWake(goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle,config.wake);
@@ -466,7 +504,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
         ready: () => !paused && !lifetime.signal.aborted && !shuttingDown,
         flush: () => ctx.sessions.flush(handle.agent.session),
         beforeResume: () => { guard.progress.reset(); noop.reset(); progressStats.closedBy = null; } });
-      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls, wrapUp: goalWrapUp.stats }, events: condenser.stats, coreBudget });
+      status({ state: handle.agent.status, goal: currentGoal(), console: redactUrl(consoleServer?.url), tokens: lastTokens, triggerTokens: budget.triggerTokens, wake: wakeStats, progress: { ...progressStats, goalCalls: guard.calls, wrapUp: goalWrapUp.stats }, reflection:reflection.snapshot(), contextPresentation:factContext?.snapshot()??{mode:'legacy-snapshot-retirement'}, checkpointPresentation, events: condenser.stats, coreBudget });
     } catch (error) { if (!lifetime.signal.aborted && !shuttingDown) {
       if (!paused) lifecycle.failed('poll', error);
       status(paused ? { state: 'paused', goal: currentGoal() }

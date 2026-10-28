@@ -108,7 +108,9 @@ export function capBlocks(blocks, max = 1500) {
   });
 }
 
-const WHISPER = /^\/(?:minecraft:)?(msg|tell|w|whisper|r|reply)\s/i;
+// Core action permissions still apply. Meter ordinary public speech and the
+// vanilla broadcast commands; do not confuse server commands with speech.
+const SERVER_COMMAND = /^\/(?!((?:minecraft:)?(?:say|me))(?:\s|$))\S+/i;
 /** Enforce the public chat budget in code, not only in the persona. */
 export class ChatGuard {
   constructor({ maxPublicLines = 0, minIntervalMs = 5000, goodbye } = {}, now = Date.now) {
@@ -117,7 +119,7 @@ export class ChatGuard {
   }
   static publicLines(name, args) {
     if (!name.endsWith('_do') || !Array.isArray(args?.steps)) return [];
-    return args.steps.filter(s => s?.skill === 'chat' && typeof s.text === 'string' && !WHISPER.test(s.text.trim()));
+    return args.steps.filter(s => s?.skill === 'chat' && typeof s.text === 'string' && !SERVER_COMMAND.test(s.text.trim()));
   }
   /** Returns a refusal string, or null after recording the lines as sent. */
   check(name, args) {
