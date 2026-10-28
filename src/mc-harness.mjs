@@ -218,14 +218,18 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   const statusFile = join(dataDir, 'status.json');
   // DSH may dispose the goal service before this plugin during shutdown; status must still be writable.
   const currentGoal = () => { try { return handle ? ctx.goals.get(handle.agent) : undefined; } catch { return undefined; } };
-  const hostLifecycle = () => lifecycle.snapshot({ paused, stopped: lifetime.signal.aborted,
-    state: handle?.agent.status, goal: currentGoal(), autonomy: continuation.snapshot() });
+  const hostLifecycle = (native = runtime.status()) => lifecycle.snapshot({ paused, stopped: lifetime.signal.aborted,
+    state: handle?.agent.status, goal: currentGoal(), autonomy: continuation.snapshot(), connection: native.connection });
   // Merge: later writes (e.g. shutdown) must not erase wake/progress counters or the goodbye result.
   let statusExtra = {};
-  const status = extra => writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
+  const status = extra => {
+    const native = runtime.status(), host = hostLifecycle(native);
+    writeFileSync(statusFile, JSON.stringify({ at: new Date().toISOString(),
     name: config.name, sessionId, model: config.model, coreVersion, adapterVersion,
-    reasoningEffort: config.reasoningEffort ?? null, phase: runtime.status().phase, paused,
-    stopped: lifetime.signal.aborted, ...(statusExtra = { ...statusExtra, error: undefined, ...extra }), lifecycle: hostLifecycle() }, null, 2));
+    reasoningEffort: config.reasoningEffort ?? null, phase: native.phase, paused,
+    stopped: lifetime.signal.aborted, ...(statusExtra = { ...statusExtra, error: undefined, ...extra }),
+    connection: host.connection, lifecycle: host }, null, 2));
+  };
   ctx.on('agent/error', payload => {
     if (payload.agent?.id === sessionId) lifecycle.failed('agent', payload.error, { turn: payload.turn, step: payload.step });
   });
@@ -330,6 +334,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
           try { value = await bridge.call(spec.name, args, nativeToolContext(exec, lifetime.signal)); }
           catch (error) { chat.refund(); throw error; }
           retryEvidence.observeAdmission({run:runtime.journal.run,name:spec.name,args,result:value,
+            requestId:value.structuredContent?.control?.requestId??exec.callId});
+          retryEvidence.observeReadback({run:runtime.journal.run,spec,result:value,
             requestId:value.structuredContent?.control?.requestId??exec.callId});
           if (value?.isError) chat.refund();
           else noop.call(spec.name);

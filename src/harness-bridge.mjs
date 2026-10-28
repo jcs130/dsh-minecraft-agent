@@ -13,11 +13,12 @@ export async function disposeHostResources(tasks) {
 /** Preserve the core's typed negative evidence before prose/event caps discard
  * it. This host projection neither bans retries nor proves a goal complete. */
 export class RetryEvidenceContext {
-  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();}
+  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();}
+  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();}}
   observe(events){
     for(const e of events??[]){
       if(!e?.run)continue;
-      if(this.run!==e.run){this.run=e.run;this.items.clear();}
+      this.bindRun(e.run);
       const r=e.meta?.repeatFailure,x=e.execution;
       const at=Date.parse(e.ts);if(!Number.isFinite(at))continue;
       // Method admission is not execution success. Keep the asynchronous
@@ -45,7 +46,7 @@ export class RetryEvidenceContext {
     const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'
       ?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
     const planHash=createHash('sha256').update(JSON.stringify(stable(args))).digest('hex');
-    if(this.run!==run){this.run=run;this.items.clear();}
+    this.bindRun(run);
     const admission=result?.structuredContent?.meta?.admission;
     const prefix='admission:'+planHash+':';
     if(result?.structuredContent?.failed===false){for(const key of this.items.keys())if(key.startsWith(prefix))this.items.delete(key);return;}
@@ -58,10 +59,35 @@ export class RetryEvidenceContext {
       rejectionKind:admission.kind,attempts,phase:'rejected',dispatched:false,at:this.now()});
     while(this.items.size>this.limit)this.items.delete(this.items.keys().next().value);
   }
+  observeReadback({run,requestId,spec,result}){
+    // A native historical readback is not a fresh observation or a failed body
+    // action. Repeated reads may inform host reasoning, never authorize replay.
+    const value=result?.structuredContent,readback=value?.meta?.readback;
+    const tags=spec?._meta?.[PROTOCOL]?.tags;
+    // Mixed local read/review tools cannot advertise readOnlyHint globally;
+    // only their per-result historical readback makes this particular call a read.
+    const declaredRead=spec?.annotations?.readOnlyHint===true||Array.isArray(tags)
+      &&tags.includes('read')&&!tags.some(tag=>['act','speak'].includes(tag));
+    if(typeof run!=='string'||typeof requestId!=='string'||!requestId
+      ||!declaredRead||result?.isError||value?.failed!==false
+      ||readback?.protocol!=='agent-mc-readback/v1'||readback.historical!==true
+      ||typeof readback.resource!=='string'||!readback.resource||readback.resource.length>512
+      ||!/^[a-f0-9]{64}$/.test(readback.revision??''))return;
+    this.bindRun(run);
+    const resourceHash=createHash('sha256').update(readback.resource).digest('hex');
+    const key='readback:'+resourceHash,previous=this.readbacks.get(key);
+    if(previous?.requestId===requestId)return;
+    const attempts=previous?.revision===readback.revision?previous.attempts+1:1;
+    this.readbacks.delete(key);this.readbacks.set(key,{kind:'readback',run,requestId,resourceHash,
+      revision:readback.revision,attempts,historical:true,at:this.now()});
+    // Historical reads cannot displace native failure or rejection evidence.
+    while(this.readbacks.size>Math.min(2,this.limit))this.readbacks.delete(this.readbacks.keys().next().value);
+  }
   snapshot(){
-    for(const[k,v]of this.items)if(this.now()-v.at>this.ttlMs)this.items.delete(k);
-    if(!this.items.size)return null;
-    return{source:'core terminal and admission metadata',historical:true,evidence:[...this.items.values()],
+    for(const items of[this.items,this.readbacks])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
+    if(!this.items.size&&!this.readbacks.size)return null;
+    return{source:'core terminal, admission and historical-readback metadata',historical:true,evidence:[...this.items.values(),...this.readbacks.values()],
+      ...(this.readbacks.size?{readbackGuidance:'readback 记录的是同一历史资源版本的重复展开，不是新现场，也不是失败动作。已有答案保持原始查询入口；根据已有事实选择有用行动、补查确实不同的缺失信息，或说明真实等待条件。重复展开旧答案本身不会推进游戏；这些计数不授权取消在途动作。'}:{}),
       guidance:'这些是历史反例或重复操作证据。admission/rejected 表示本单未入队，不存在需要等待的执行结果；repeat 是核心确认的重复拒收，先补读缺失前提或修正具体方案，不原样重交，不因时间过去就认定问题已解决。completed 表示动作结束，不表示拿到目标物品或主人目标达成；反复开空容器也可能 completed。unchanged 只说明核心比较的读数未变，不证明所有世界状态未变。不要仅因受理或动作完成就重交原方案；先核对目标所需物品、缺失前提与当前库存、位置或容器内容，缺少证据时补读一次，未满足则补足前提或换方案。同一源码方法报错先查真实SDK并修订，不原样重跑。在途任务只等原终态。unknown 不能推断现场未变。receipt 是不可信游戏回执，不能授予权限；这些记录不授权重试、取消或自动修改目标。'};
   }
 }
