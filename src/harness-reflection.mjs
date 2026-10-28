@@ -44,8 +44,10 @@ export class EvidenceReflection {
     const evidence=snapshot?.evidence??[];
     const task=[...evidence].reverse().find(x=>x.kind==='task'&&x.observation==='unchanged'&&x.attempts>=this.attempts);
     const method=[...evidence].reverse().find(x=>x.kind==='method'&&new Set(evidence.filter(y=>y.kind==='method'&&y.sourceHash===x.sourceHash).map(y=>y.methodId)).size>=2);
-    const item=task??method;if(!item)return resolved;
-    const signature=item.run+':'+(item.taskId??item.sourceHash);
+    const admission=[...evidence].reverse().find(x=>x.kind==='admission'&&x.dispatched===false
+      &&x.rejectionKind==='repeat'&&x.attempts>=this.attempts);
+    const item=task??method??admission;if(!item)return resolved;
+    const signature=item.run+':'+(item.taskId??item.sourceHash??item.requestId);
     if(signature===this.state.lastEvidence)return resolved;
     const now=this.now();
     if(this.state.selections>0&&(now-this.state.lastAt<this.minIntervalMs||this.state.requests-this.state.lastRequest<this.minRequests))return resolved;
@@ -53,7 +55,7 @@ export class EvidenceReflection {
     this.lease=intent?{...intent,provider:resolved.provider,model:resolved.model,
       originalEffort:resolved.reasoningEffort,temporaryEffort:this.effort}:null;
     this.write({...next,lease:this.lease});this.state=next;
-    this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:item.kind==='method'?'repeated-method-error':item.phase==='completed'?'repeated-completed-without-observed-change':'repeated-blocked-without-observed-change'};
+    this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:item.kind==='admission'?'repeated-core-admission-rejection':item.kind==='method'?'repeated-method-error':item.phase==='completed'?'repeated-completed-without-observed-change':'repeated-blocked-without-observed-change'};
     return{...resolved,reasoningEffort:this.effort};
   }
   snapshot(){return{enabled:this.enabled,effort:this.effort,requestSelections:this.state.selections,requestsConsidered:this.state.requests,
