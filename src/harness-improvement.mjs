@@ -9,7 +9,7 @@ export function registerImprovementSkill(agentCtx) {
  if(typeof raw!=='string'||raw.length>16000)throw Error('Bundled Minecraft improvement skill unavailable');
  const skill={name:'minecraft-self-improvement',source:'bundled',description:'Minecraft 中需要自己写脚本、改进战术、反思失败并复用经验时，使用真实回执驱动的方法改进流程。',
   content:raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/u,'').trim()};
- const fork=agentCtx.inject(['skills'],scoped=>{const off=scoped.skills.register(skill);scoped.effect(()=>off,'Minecraft improvement skill');});
+ const fork=agentCtx.inject(['skills'],scoped=>{if(typeof scoped.skills.register!=='function')return;const off=scoped.skills.register(skill);scoped.effect(()=>off,'Minecraft improvement skill');});
  return()=>fork.dispose();
 }
 export function improvementGuidance({script,memory,practice,reason,authoring=true}={}) {

@@ -61,6 +61,10 @@ test('bundled skill is registered in the native scoped registry instead of depen
  off();assert.equal(removed,true);assert.ok(!improvementGuidance({script:'mc_script',authoring:false}).includes('api:"authoring"'));
 });
 test('dynamic practice exposes the real core contract and capability without model or body calls during discovery',async()=>{
+ const core=await import('agent-mc-world/learning');
+ if(!core.Harness2PracticeService||!core.createPracticeCandidateStager){
+  await assert.rejects(configuredMethodPractice({config:{harness2:{enabled:true,backend:'physics',worker:{command:'fixture',workspace:'fixture'}}}}),/Upgrade the shared core/);return;
+ }
  const directory=await mkdtemp(join(tmpdir(),'dsh-dynamic-method-'));let calls=0,monitor;const effects=[];
  try{
  const tool=await configuredMethodPractice({ctx:{llm:{stream:()=>{calls++;throw Error('No model on help');}},effect:f=>effects.push(f()),systemPrompt:{context(){}}},
