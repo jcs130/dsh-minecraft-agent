@@ -23,6 +23,12 @@
 无进展检查使用原生内容版本，不删除坐标或方块状态数字后再比较。缺少该契约的旧核心保持旧的兼容路径，不伪造新元数据。实际思考次数及耗时以调用端请求和最终 usage 验收；选择 low 本身不证明模型已经生成思考 token，也不证明策略变好。
 # Event-only continuation after a body reload
 
+Core rc.123 also materializes MCP results with actual JSON wire semantics on
+in-memory links. The real DSH lossless-value validator runs before the renderer:
+optional `undefined` event fields must not reach that boundary. The packed-core
+consumer regression includes such native event fields and uses DSH's public
+`snapshotJsonValue` validator, in addition to checking the visible projection.
+
 The private preview.24 consumer uses the core execution-state/event-read
 contracts. Model-visible receipt limits preserve valid JSON, typed metadata,
 control and execution identities; partial bodies are labelled with their

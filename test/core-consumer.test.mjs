@@ -20,8 +20,13 @@ const require = createRequire(import.meta.url);
 test('packed SDK/MCP event pages survive the real host cap and distinguish cursor updates from registered work',async t=>{
   const {runtimeExecutionState}=await import('agent-mc-world/client');
   if(typeof runtimeExecutionState!=='function')return t.skip('Installed core predates runtime execution state');
-  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-events-'));let host;
-  const world={id:'event-consumer-fixture',tools:()=>[],envPromptVars:()=>({}),async start(h){host=h;},async stop(){}};
+  const nativeRequire=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));
+  const {snapshotJsonValue}=await import(pathToFileURL(nativeRequire.resolve('@deepseek-ai/dsh-util-values')));
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-events-'));let host,bodyCalls=0;
+  const world={id:'event-consumer-fixture',tools:()=>[{name:'mc_fixture',description:'Inert accepted action fixture',tags:['act'],parameters:{type:'object'},
+    handler:async()=>{bodyCalls++;return{text:'accepted fixture',data:{optional:undefined,zero:0},
+      execution:{kind:'task',id:'original-generation:3',phase:'accepted',terminal:false,goalCompleted:false}};}}],
+    envPromptVars:()=>({}),async start(h){host=h;},async stop(){}};
   const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'fixture.invalid',username:'EventConsumer'},dataDir:dir,log:nullLogger()},world);
   const server=createMinecraftMcpServer(runtime,'event-consumer'),client=new Client({name:'event-consumer',version:'1'});
   const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
@@ -32,6 +37,7 @@ test('packed SDK/MCP event pages survive the real host cap and distinguish curso
     const spec=(await client.listTools()).tools.find(x=>x.name==='mc_events');
     for(const id of ['event-page-1','event-page-2']){
       const value=await bridge.call('mc_events',{run:runtime.journal.run,after:0},{id});
+      assert.notEqual(snapshotJsonValue(value),undefined,'Real DSH must accept the MCP value before any renderer is called');
       view.observeEventRead({run:runtime.journal.run,spec,requestId:id,result:value});
       const visible=capBlocks(renderReceipt(value),1500)[0].text,p=JSON.parse(visible);
       assert.equal(p.meta.eventRead.execution.activeCount,0);
@@ -41,7 +47,8 @@ test('packed SDK/MCP event pages survive the real host cap and distinguish curso
       assert.equal(p.meta.eventRead.cursor.nextCursor,value.structuredContent.data.nextCursor);
       assert.equal(value.structuredContent.data.events[0].text,'original task receipt '.repeat(1000));
       assert.ok(visible.length<=1500);
-      await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.chat',text:'new untrusted chat '.repeat(1000)});
+      await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.chat',text:'new untrusted chat '.repeat(1000),
+        senderKey:undefined,meta:{optionalReading:undefined,observedCount:0}});
     }
     assert.equal(view.snapshot().evidence.at(-1).attempts,2);
     const reflection=new EvidenceReflection({enabled:true,effort:'low',attempts:2});
@@ -51,6 +58,15 @@ test('packed SDK/MCP event pages survive the real host cap and distinguish curso
     const active=await bridge.call('mc_events',{run:runtime.journal.run,after:0},{id:'event-page-3'});
     view.observeEventRead({run:runtime.journal.run,spec,requestId:'event-page-3',result:active});
     assert.equal(view.snapshot(),null);
+    for(let i=0;i<2;i++){
+      const admitted=await bridge.call('mc_fixture',{}, {id:'same-original-action-request'});
+      assert.notEqual(snapshotJsonValue(admitted),undefined,'Native DSH must retain a JSON-safe admission receipt');
+      assert.deepEqual(admitted.structuredContent.data,{zero:0});
+      assert.equal(admitted.structuredContent.execution.id,'original-generation:3');
+      assert.equal(admitted.structuredContent.execution.terminal,false);
+      assert.equal(admitted.structuredContent.execution.goalCompleted,false);
+    }
+    assert.equal(bodyCalls,1,'Querying/replaying the original receipt must not dispatch the action twice');
   }finally{await bridge.ended('original-session',3);await bridge.stop();await client.close();await server.close();
     assert.equal(dirname(dir),resolve(tmpdir()));await rm(dir,{recursive:true,force:true});}
 });
