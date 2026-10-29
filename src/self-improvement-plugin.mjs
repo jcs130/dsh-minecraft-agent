@@ -1,7 +1,9 @@
 /** Scoped migration entry: add learning tools to an existing Agent, no new body. */
-import{readFileSync,writeFileSync,appendFileSync}from'node:fs';import{createHash}from'node:crypto';
+import{readFileSync,writeFileSync,appendFileSync,renameSync}from'node:fs';import{createHash}from'node:crypto';
+import{join}from'node:path';
 import{installImprovementContext}from'./harness-improvement.mjs';
 import{nativePracticePorts,configuredMethodPractice}from'./harness-practice.mjs';
+import{MethodProgress,installMethodProgress}from'./harness-method-progress.mjs';
 import{createUserMessage}from'@deepseek-ai/dsh-llm';
 export const name='minecraft-self-improvement';export const inject=['agents','goals','tools','skills','workingDirectory','llm'];
 export function apply(ctx,options){
@@ -45,6 +47,10 @@ export function apply(ctx,options){
     const reflection={snapshot:()=>{if(!c.reflectionFile)return{};const r=JSON.parse(readFileSync(c.reflectionFile,'utf8'));
      return Date.now()-r.lastAt<15000?{lastReason:'evidence-reflection-selected'}:{};}};
     const off=installImprovementContext(agent.ctx,{tools:[script,...(memory?[memory]:[])],reflection,practice});if(off)disposers.push(off);
+    if(c.dataDir){const file=join(c.dataDir,'method-progress.json'),progress=new MethodProgress({sessionId:c.sessionId,currentRun:()=>null,
+     read:()=>{try{return JSON.parse(readFileSync(file,'utf8'));}catch{return null;}},
+     write:value=>{writeFileSync(file+'.tmp',JSON.stringify(value),{mode:0o600});renameSync(file+'.tmp',file);}});
+     disposers.push(installMethodProgress(agent.ctx,progress,script.name));}
     if(!agent.ctx.tools.get('skill',agent))throw Error('Native skill loader remains hidden');
     // Explicit maintainer feedback, queued once without waking a new model loop.
     // Original receipts are never edited or converted into completed outcomes.

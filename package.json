@@ -71,6 +71,7 @@
     "lib/plugins/harness-autonomy.mjs",
     "lib/plugins/harness-reflection.mjs",
     "lib/plugins/harness-improvement.mjs",
+    "lib/plugins/harness-method-progress.mjs",
     "lib/plugins/harness-practice.mjs",
     "lib/plugins/self-improvement-plugin.mjs",
     "skills/minecraft-self-improvement",

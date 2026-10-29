@@ -13,6 +13,7 @@ import { HostLifecycle } from './harness-lifecycle.mjs';
 import { AutonomousContinuation } from './harness-autonomy.mjs';
 import { EvidenceReflection, installEvidenceReflection } from './harness-reflection.mjs';
 import { installImprovementContext } from './harness-improvement.mjs';
+import { MethodProgress, installMethodProgress } from './harness-method-progress.mjs';
 import { minecraftCompactionBackend } from './harness-compaction.mjs';
 import { AppendOnlyFactsContext } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
@@ -219,6 +220,10 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   const reflectionFile=join(conversationDir,'reflection-selections.json');
   const reflection=new EvidenceReflection(config.reflection,{read:()=>{try{return JSON.parse(readFileSync(reflectionFile,'utf8'));}catch{return null;}},
     write:value=>{writeFileSync(reflectionFile+'.tmp',JSON.stringify(value)+'\n',{mode:0o600});renameSync(reflectionFile+'.tmp',reflectionFile);}});
+  const methodProgressFile=join(conversationDir,'method-progress.json');
+  const methodProgress=new MethodProgress({sessionId,currentRun:()=>runtime.journal.run,
+    read:()=>{try{return JSON.parse(readFileSync(methodProgressFile,'utf8'));}catch{return null;}},
+    write:value=>{writeFileSync(methodProgressFile+'.tmp',JSON.stringify(value)+'\n',{mode:0o600});renameSync(methodProgressFile+'.tmp',methodProgressFile);}});
   const statusFile = join(dataDir, 'status.json');
   // DSH may dispose the goal service before this plugin during shutdown; status must still be writable.
   const currentGoal = () => { try { return handle ? ctx.goals.get(handle.agent) : undefined; } catch { return undefined; } };
@@ -300,6 +305,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     installEvidenceReflection(agentCtx,{reflection,retryEvidence,sessionQuery:ctx.sessionQuery});
     installImprovementContext(agentCtx,{tools,reflection,enabled:config.selfImprovement?.enabled!==false,
       practice:config.harness2?.enabled===true&&!Array.isArray(config.harness2.jobs)?'mc_practice':undefined});
+    const scriptTool=tools.find(t=>t.name.endsWith('_script'))?.name;
+    if(config.selfImprovement?.enabled!==false&&scriptTool)installMethodProgress(agentCtx,methodProgress,scriptTool);
     agentCtx.systemPrompt.context({ name: 'minecraft:autonomy', order: 9989,
       text: () => JSON.stringify({ ...continuation.snapshot(),
         guidance: continuation.policy.continuous
@@ -520,7 +527,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
       eventCursor = events.nextCursor;
-      if (events.events?.length) { retryEvidence.observe(events.events);recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
+      if (events.events?.length) { retryEvidence.observe(events.events);methodProgress.observeEvents(events.events);recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
       // Wake only for events a person would interrupt for; everything else rides the next snapshot.
       const goalNow = currentGoal();
       const wakeOn = configuredWake(goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle,config.wake);
