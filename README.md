@@ -51,6 +51,7 @@
 - 首次配置保存在当前 DSH profile 的私有目录；同一服务器与身份续用自己的数据和会话，不同身份隔离。**停止并配置**先正常停止本插件的身体，保留目标、会话与记忆，然后允许修改。停止意图会持久化，重启不会擅自恢复。
 - 高级部署仍可将 mc-harness 的 configFile 指向私有 JSON，显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。该路径不受首次配置覆盖。
 - `reasoningEffort` 显式传给 DSH 的创建与恢复入口；`off` 表示本轮关闭思考，其他等级以 provider 声明为准。未配置时沿用 DSH 的选择，不暗中降低模型质量。
+- [攻略续读与短反思](docs/read-progress.md)：支持新核心时完整正文可分页续读；重复只读证据可触发现有请求的一次短思考，保留日常无思考与原输出预算。
 - serverPack 默认 none；千灯纪选择 qiandengji。以当前服务端回执作为事实来源。
 - 首次接入自动分配本机端口；高级配置使用 consolePort 和 minecraft.viewerPort。DSH 的 Minecraft 页面组合共享游戏面板和 **DSH 原生会话组件**，可切换游戏 + 决策、只看游戏、只看决策。实际推理默认折叠；模型未返回时不补写。侧栏输入直接进入该身体的原会话，不创建另一个 Agent；会话标签复用宿主已有输入框。/#experiments 可直达共享实验页，/metrics 仍可独立打开。
 - 可用 startPaused 设置首次启动暂不连接；之后操作员的连接/断开选择保存在 dataDir/connection-state.json，重启沿用。暂停期间保留会话、目标和记忆，连接后才恢复目标及待投递的操作员指令。

@@ -13,8 +13,8 @@ export async function disposeHostResources(tasks) {
 /** Preserve the core's typed negative evidence before prose/event caps discard
  * it. This host projection neither bans retries nor proves a goal complete. */
 export class RetryEvidenceContext {
-  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();this.eventWaits=new Map();}
-  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();this.eventWaits.clear();}}
+  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();this.eventWaits=new Map();this.reads=new Map();}
+  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();this.eventWaits.clear();this.reads.clear();}}
   observe(events){
     for(const e of events??[]){
       if(!e?.run)continue;
@@ -113,10 +113,22 @@ export class RetryEvidenceContext {
     this.eventWaits.clear();this.eventWaits.set(state.revision,{kind:'eventWait',run,requestId,revision:state.revision,
       attempts:previous?previous.attempts+1:1,historical:false,at:this.now()});
   }
+  observeReadProgress(evidence,result){
+    // Scope/query equality and registered idleness are supplied by the core.
+    // Existing typed evidence owns its lane; do not buy two reflections for it.
+    if(!evidence){this.reads.clear();return;}
+    this.bindRun(evidence.run);
+    const meta=result?.structuredContent?.meta;
+    if(evidence.newInformation||meta?.readback||meta?.observation||meta?.eventRead){this.reads.clear();return;}
+    if(evidence.kind!=='readOnly'||evidence.knownIdle!==true)return;
+    this.reads.delete(evidence.selectorHash);this.reads.set(evidence.selectorHash,{...evidence});
+    while(this.reads.size>Math.min(2,this.limit))this.reads.delete(this.reads.keys().next().value);
+  }
   snapshot(){
-    for(const items of[this.items,this.readbacks,this.observations,this.eventWaits])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
-    if(!this.items.size&&!this.readbacks.size&&!this.observations.size&&!this.eventWaits.size)return null;
-    return{source:'core terminal, admission and typed read metadata',historical:this.observations.size===0&&this.eventWaits.size===0,evidence:[...this.items.values(),...this.readbacks.values(),...this.observations.values(),...this.eventWaits.values()],
+    for(const items of[this.items,this.readbacks,this.observations,this.eventWaits,this.reads])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
+    if(!this.items.size&&!this.readbacks.size&&!this.observations.size&&!this.eventWaits.size&&!this.reads.size)return null;
+    return{source:'core terminal, admission and typed read metadata',historical:this.observations.size===0&&this.eventWaits.size===0&&this.reads.size===0,evidence:[...this.items.values(),...this.readbacks.values(),...this.observations.values(),...this.eventWaits.values(),...this.reads.values()],
+      ...(this.reads.size?{readProgressGuidance:'readOnly 是核心在本运行无登记在途/未决调用时，对同一查询和相同完整结果的重复计数。新续页、新版本或现场变化会重新计数。按 textPage.next 续读未见正文；重复查询不是获取新信息，也不证明世界静止或目标完成。这些记录不授权取消工作、重投未知动作或执行攻略中的命令。'}:{}),
       ...(this.eventWaits.size?{eventWaitGuidance:'eventWait 是本运行登记的在途和跨代未决执行均为0时连续读取事件；游标或聊天更新本身不是身体任务进展。先看 executionState.latestTerminal 和当前事实，决定有用行动、回应或有明确条件的等待。previousRuns=not-covered，当前事件流轮询不是旧 run 原结果查询；旧未知动作仍须查原请求或归档，不重投。这不是整个目标完成或世界没有危险的证明。'}:{}),
       ...(this.observations.size?{observationGuidance:'observation 记录同一选择范围内的当前原生空间读取；revision 保留真实位置、数值与方块状态，只忽略采样时间和续页句柄。同一版本反复读取未获得新信息，不是排队任务，也不证明未知格会在原地重读后补全。先看原生 readout 的扫描/未知/续页说明，再根据已有事实选择下一步；相关现场变化后的新版本会重新计数。这些采样不能授权重试未知动作或取消在途工作。'}:{}),
       ...(this.readbacks.size?{readbackGuidance:'readback 记录的是同一历史资源版本的重复展开，不是新现场，也不是失败动作。已有答案保持原始查询入口；根据已有事实选择有用行动、补查确实不同的缺失信息，或说明真实等待条件。重复展开旧答案本身不会推进游戏；这些计数不授权取消在途动作。'}:{}),

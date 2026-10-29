@@ -380,8 +380,16 @@ export class GoalProgressGuard {
     const digest=typeof revision==='string'&&/^[a-f0-9]{64}$/.test(revision)?revision:this.digest(text);
     return this.judge(this.progress.recordObservation(digest), 'look');
   }
+  read(goal, evidence) {
+    if(goal?.phase!=='active'||evidence?.kind!=='readOnly'||evidence.knownIdle!==true)return {};
+    return this.judge(evidence,'read');
+  }
   judge(v, kind) {
     if (!v.repetitive) return {};
+    if(kind==='read'){
+      if(this.closeAfter>0&&v.streak>=this.closeAfter)return{close:`${v.streak} repeated read-only queries without new information or registered work`};
+      return{notice:`[宿主提示] 最近 ${v.streak} 次只读查询没有新增信息，也没有登记在途执行。按 textPage.next 续读未见正文，或根据已有事实选择有用行动、不同的缺失信息或有明确条件的等待。重复读同一开头不会推进游戏；继续重复会临时休整并保留目标，不表示目标完成。`};
+    }
     const what = kind === 'look' ? `张望/侦察没有新发现` : `只在约 ${v.spread} 格范围内走动/张望，没有到达新地方`;
     if (this.closeAfter > 0 && v.streak >= this.closeAfter) return { close: kind === 'look' ? `${v.streak} actions without progress, ending in repeated look-arounds with nothing new`
       : `${v.streak} movement-only actions in one ~${v.spread}-block area without new ground` };
