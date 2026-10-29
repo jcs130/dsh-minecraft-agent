@@ -103,9 +103,45 @@ export function capBlocks(blocks, max = 1500) {
   return blocks.map(block => {
     if (block.type !== 'text') return block;
     if (block.text.length <= left) { left -= block.text.length; return block; }
-    const text = block.text.slice(0, Math.max(0, left)) + `…[回执已截断 ${block.text.length - left} 字；完整内容用 dsh_history 查看]`;
+    let json;try{json=JSON.parse(block.text);}catch{}
+    if(json&&typeof json==='object'&&!Array.isArray(json)){
+      const text=boundedJsonReceipt(json,Math.max(0,left),block.text.length);
+      left=Math.max(0,left-text.length);return{...block,text};
+    }
+    const text = block.text.slice(0, Math.max(0, left)) + `…[回执已截断 ${block.text.length - left} 字；原件见核心请求/事件归档，dsh_history 保留本投影]`;
     left = 0; return { ...block, text };
   });
+}
+
+/** Keep the model boundary parseable. Durable values stay complete; typed root
+ * metadata/control and execution identities are never cut into JSON fragments.
+ * The budget is soft only if those irreducible identities exceed it. */
+function boundedJsonReceipt(value,max,originalChars){
+  const partial=new Set(),note={truncated:true,originalChars,original:'core request/event archive',history:'dsh_history contains this projection',partialFields:[]};
+  value.projection=note;
+  const mark=path=>{partial.add(path[0]);note.partialFields=[...partial];};
+  const candidates=(object,path=[],out=[])=>{
+    if(!object||typeof object!=='object')return out;
+    for(const[key,v]of Object.entries(object)){
+      const p=[...path,key];
+      if(p[0]==='projection'||p[0]==='control'||p[0]==='meta')continue;
+      if(p[0]==='execution'&&p[1]!=='evidence')continue;
+      if(typeof v==='string'&&v.length>81&&!['id','requestId','run','protocol','kind','phase','revision','sourceHash'].includes(key))
+        out.push({object,key,path:p,size:v.length,reduce:()=>v.slice(0,Math.max(80,Math.floor(v.length/2)))+'…'});
+      else if(Array.isArray(v)&&v.length)
+        out.push({object,key,path:p,size:JSON.stringify(v).length,reduce:()=>v.slice(0,Math.floor(v.length/2))});
+      if(v&&typeof v==='object')candidates(v,p,out);
+    }
+    return out;
+  };
+  let text=JSON.stringify(value);
+  for(let i=0;i<64&&text.length>max;i++){
+    const item=candidates(value).sort((a,b)=>b.size-a.size)[0];if(!item)break;
+    item.object[item.key]=item.reduce();mark(item.path);text=JSON.stringify(value);
+  }
+  for(const key of ['blobs','events','text','data'])if(text.length>max&&key in value){delete value[key];mark([key]);text=JSON.stringify(value);}
+  if(text.length>max&&value.execution?.evidence){delete value.execution.evidence;mark(['execution']);text=JSON.stringify(value);}
+  return text;
 }
 
 // Core action permissions still apply. Meter ordinary public speech and the

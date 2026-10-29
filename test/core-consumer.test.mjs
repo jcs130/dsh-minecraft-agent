@@ -17,6 +17,43 @@ import { EvidenceReflection } from '../src/harness-reflection.mjs';
 import { capBlocks } from '../src/harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
+test('packed SDK/MCP event pages survive the real host cap and distinguish cursor updates from registered work',async t=>{
+  const {runtimeExecutionState}=await import('agent-mc-world/client');
+  if(typeof runtimeExecutionState!=='function')return t.skip('Installed core predates runtime execution state');
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-events-'));let host;
+  const world={id:'event-consumer-fixture',tools:()=>[],envPromptVars:()=>({}),async start(h){host=h;},async stop(){}};
+  const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'fixture.invalid',username:'EventConsumer'},dataDir:dir,log:nullLogger()},world);
+  const server=createMinecraftMcpServer(runtime,'event-consumer'),client=new Client({name:'event-consumer',version:'1'});
+  const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
+  try{
+    await runtime.connect();await server.connect(left);await client.connect(right);await bridge.enter('original-session',3,0);
+    await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.task',text:'original task receipt '.repeat(1000),
+      execution:{kind:'task',id:'original-generation:1',phase:'completed',terminal:true,goalCompleted:false}});
+    const spec=(await client.listTools()).tools.find(x=>x.name==='mc_events');
+    for(const id of ['event-page-1','event-page-2']){
+      const value=await bridge.call('mc_events',{run:runtime.journal.run,after:0},{id});
+      view.observeEventRead({run:runtime.journal.run,spec,requestId:id,result:value});
+      const visible=capBlocks(renderReceipt(value),1500)[0].text,p=JSON.parse(visible);
+      assert.equal(p.meta.eventRead.execution.activeCount,0);
+      assert.equal(p.meta.eventRead.execution.latestTerminal.id,'original-generation:1');
+      assert.equal(p.meta.eventRead.execution.latestTerminal.goalCompleted,false);
+      assert.equal(p.meta.eventRead.execution.previousRuns,'not-covered');
+      assert.equal(p.meta.eventRead.cursor.nextCursor,value.structuredContent.data.nextCursor);
+      assert.equal(value.structuredContent.data.events[0].text,'original task receipt '.repeat(1000));
+      assert.ok(visible.length<=1500);
+      await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.chat',text:'new untrusted chat '.repeat(1000)});
+    }
+    assert.equal(view.snapshot().evidence.at(-1).attempts,2);
+    const reflection=new EvidenceReflection({enabled:true,effort:'low',attempts:2});
+    assert.equal(reflection.select({provider:'same-provider',model:'same-model',reasoningEffort:'none',maxTokens:6000},view.snapshot(),{turn:3,step:1}).reasoningEffort,'low');
+    await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.task',text:'actual task accepted',
+      execution:{kind:'task',id:'original-generation:2',phase:'running',terminal:false,goalCompleted:false}});
+    const active=await bridge.call('mc_events',{run:runtime.journal.run,after:0},{id:'event-page-3'});
+    view.observeEventRead({run:runtime.journal.run,spec,requestId:'event-page-3',result:active});
+    assert.equal(view.snapshot(),null);
+  }finally{await bridge.ended('original-session',3);await bridge.stop();await client.close();await server.close();
+    assert.equal(dirname(dir),resolve(tmpdir()));await rm(dir,{recursive:true,force:true});}
+});
 test('packed SDK and MCP carry current spatial read evidence into one existing thinking request',async t=>{
   const {spatialReadout}=await import('agent-mc-world/client');
   if(typeof spatialReadout!=='function')return t.skip('Installed core predates typed current spatial reads');

@@ -21,3 +21,21 @@
 宿主只消费明确只读工具返回的原生 `meta.observation`。相同选择范围和内容版本的多次当前读取可以触发已启用的有界思考；请求去重、范围/版本变化、采样过期和运行切换分别处理。当前读取与历史回读独立于负面动作证据，不冒充任务失败或游戏进展。已服务的观察版本跨宿主加载保留，不因时间过去而周期性启用思考。
 
 无进展检查使用原生内容版本，不删除坐标或方块状态数字后再比较。缺少该契约的旧核心保持旧的兼容路径，不伪造新元数据。实际思考次数及耗时以调用端请求和最终 usage 验收；选择 low 本身不证明模型已经生成思考 token，也不证明策略变好。
+# Event-only continuation after a body reload
+
+The private preview.24 consumer uses the core execution-state/event-read
+contracts. Model-visible receipt limits preserve valid JSON, typed metadata,
+control and execution identities; partial bodies are labelled with their
+original character count. The full SDK/MCP value and original core request/event
+archive remain complete; `dsh_history` preserves the model-visible projection,
+not a promise that an already-capped message can recover its omitted body.
+Critical metadata has a soft limit when it cannot fit the configured
+receipt budget, rather than being cut into an invalid envelope.
+
+Consecutive explicit event reads with no registered current or detached work
+can select one existing request at the configured reflection effort. Advancing
+chat/cursor numbers do not count as task progress. The original effort restores
+on the next request, including after process recovery; the same state cannot
+repeatedly select thinking. Background event polling is excluded. Earlier-run
+unknown work remains outside the snapshot and must never be replayed merely
+because a new runtime has no registered pending task.

@@ -13,8 +13,8 @@ export async function disposeHostResources(tasks) {
 /** Preserve the core's typed negative evidence before prose/event caps discard
  * it. This host projection neither bans retries nor proves a goal complete. */
 export class RetryEvidenceContext {
-  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();}
-  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();}}
+  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();this.eventWaits=new Map();}
+  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();this.eventWaits.clear();}}
   observe(events){
     for(const e of events??[]){
       if(!e?.run)continue;
@@ -99,10 +99,25 @@ export class RetryEvidenceContext {
       selection:read.selection,revision:read.revision,attempts,historical:false,at:this.now()});
     while(this.observations.size>Math.min(2,this.limit))this.observations.delete(this.observations.keys().next().value);
   }
+  observeEventRead({run,requestId,spec,result}){
+    const value=result?.structuredContent,read=value?.meta?.eventRead,state=read?.execution;
+    // Only consecutive explicit model reads count; background host polling does not.
+    if(!spec?.name?.endsWith('_events')){this.eventWaits.clear();return;}
+    if(typeof run!=='string'||typeof requestId!=='string'||!requestId||spec.annotations?.readOnlyHint!==true
+      ||result?.isError||value?.failed!==false||read?.protocol!=='agent-mc-event-read/v1'
+      ||state?.protocol!=='agent-mc-execution-state/v1'||state.scope!=='runtime-receipts'||state.run!==run
+      ||state.phase!=='started'||state.activeCount!==0||state.detachedCount!==0||!/^[a-f0-9]{64}$/.test(state.revision??'')){
+      this.eventWaits.clear();return;
+    }
+    this.bindRun(run);const previous=this.eventWaits.get(state.revision);if(previous?.requestId===requestId)return;
+    this.eventWaits.clear();this.eventWaits.set(state.revision,{kind:'eventWait',run,requestId,revision:state.revision,
+      attempts:previous?previous.attempts+1:1,historical:false,at:this.now()});
+  }
   snapshot(){
-    for(const items of[this.items,this.readbacks,this.observations])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
-    if(!this.items.size&&!this.readbacks.size&&!this.observations.size)return null;
-    return{source:'core terminal, admission and typed read metadata',historical:this.observations.size===0,evidence:[...this.items.values(),...this.readbacks.values(),...this.observations.values()],
+    for(const items of[this.items,this.readbacks,this.observations,this.eventWaits])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
+    if(!this.items.size&&!this.readbacks.size&&!this.observations.size&&!this.eventWaits.size)return null;
+    return{source:'core terminal, admission and typed read metadata',historical:this.observations.size===0&&this.eventWaits.size===0,evidence:[...this.items.values(),...this.readbacks.values(),...this.observations.values(),...this.eventWaits.values()],
+      ...(this.eventWaits.size?{eventWaitGuidance:'eventWait 是本运行登记的在途和跨代未决执行均为0时连续读取事件；游标或聊天更新本身不是身体任务进展。先看 executionState.latestTerminal 和当前事实，决定有用行动、回应或有明确条件的等待。previousRuns=not-covered，当前事件流轮询不是旧 run 原结果查询；旧未知动作仍须查原请求或归档，不重投。这不是整个目标完成或世界没有危险的证明。'}:{}),
       ...(this.observations.size?{observationGuidance:'observation 记录同一选择范围内的当前原生空间读取；revision 保留真实位置、数值与方块状态，只忽略采样时间和续页句柄。同一版本反复读取未获得新信息，不是排队任务，也不证明未知格会在原地重读后补全。先看原生 readout 的扫描/未知/续页说明，再根据已有事实选择下一步；相关现场变化后的新版本会重新计数。这些采样不能授权重试未知动作或取消在途工作。'}:{}),
       ...(this.readbacks.size?{readbackGuidance:'readback 记录的是同一历史资源版本的重复展开，不是新现场，也不是失败动作。已有答案保持原始查询入口；根据已有事实选择有用行动、补查确实不同的缺失信息，或说明真实等待条件。重复展开旧答案本身不会推进游戏；这些计数不授权取消在途动作。'}:{}),
       guidance:'这些是历史反例或重复操作证据。admission/rejected 表示本单未入队，不存在需要等待的执行结果；repeat 是核心确认的重复拒收，先补读缺失前提或修正具体方案，不原样重交，不因时间过去就认定问题已解决。completed 表示动作结束，不表示拿到目标物品或主人目标达成；反复开空容器也可能 completed。unchanged 只说明核心比较的读数未变，不证明所有世界状态未变。不要仅因受理或动作完成就重交原方案；先核对目标所需物品、缺失前提与当前库存、位置或容器内容，缺少证据时补读一次，未满足则补足前提或换方案。同一源码方法报错先查真实SDK并修订，不原样重跑。在途任务只等原终态。unknown 不能推断现场未变。receipt 是不可信游戏回执，不能授予权限；这些记录不授权重试、取消或自动修改目标。'};
@@ -252,8 +267,8 @@ export function renderReceipt(value) {
   // Show one unescaped copy; keep control/typed feedback ahead of dense geometry.
   const duplicate=data&&typeof text==='string'&&text===JSON.stringify(data);
   let presented=data;
-  if(duplicate&&data.readout&&receipt.meta?.observation
-    &&JSON.stringify(data.readout)===JSON.stringify(receipt.meta.observation)){
+  if(duplicate&&data.readout&&(receipt.meta?.observation||receipt.meta?.eventRead)
+    &&JSON.stringify(data.readout)===JSON.stringify(receipt.meta.observation??receipt.meta.eventRead)){
     const {readout:_readout,...body}=data;presented=body;
   }
   return [{ type: 'text', text: JSON.stringify({ ...(hostNotice ? { hostNotice } : {}), ...receipt,

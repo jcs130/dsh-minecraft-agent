@@ -322,7 +322,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
       // Exact schemas keep every constraint; prose lives behind *_tool_help to keep the fixed prompt small.
       const parameters = !lean || coreBudget ? modelToolSchema(spec.inputSchema)
         : slimToolSchema(modelToolSchema(spec.inputSchema), view.parameterChars);
-      if (spec.name.endsWith('_protocol')) parameters.properties.action.enum = ['task', 'facts', 'archive', 'archive_runs', 'prepare_context', 'cancel'];
+      if (spec.name.endsWith('_protocol')) parameters.properties.action.enum = ['task', 'request', 'facts', 'archive', 'archive_runs', 'prepare_context', 'cancel'];
       if (spec.name.endsWith('_connection')) parameters.properties.action.enum = ['status', 'environment'];
       agentCtx.tools.register({ name: spec.name, description: !lean || coreBudget ? spec.description : slimDescription(spec, helpName, view.descriptionChars), parameters,
         output: { schema: { type: 'object' }, render: (_args, value) => capBlocks(renderReceipt(value), view.receiptChars) },
@@ -338,6 +338,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
           retryEvidence.observeReadback({run:runtime.journal.run,spec,result:value,
             requestId:value.structuredContent?.control?.requestId??exec.callId});
           retryEvidence.observeSpatialRead({run:runtime.journal.run,spec,result:value,
+            requestId:value.structuredContent?.control?.requestId??exec.callId});
+          retryEvidence.observeEventRead({run:runtime.journal.run,spec,result:value,
             requestId:value.structuredContent?.control?.requestId??exec.callId});
           if (value?.isError) chat.refund();
           else noop.call(spec.name);
