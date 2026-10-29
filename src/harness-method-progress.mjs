@@ -20,11 +20,12 @@ export class MethodProgress {
   if(args.validate===true&&typeof args.code==='string'&&args.code.length<=12000&&x?.kind==='method'){
    const sourceHash=sha(args.code);entry=this.entries.find(e=>e.sourceHash===sourceHash&&!e.revision);
    if(!entry){entry={sourceHash,callId,historySeq:this.calls.get(callId),runtimeRun:this.currentRun(),stage:'inspect-validation'};this.entries.push(entry);}
+   else if(entry.callId!==callId)Object.assign(entry,{callId,historySeq:this.calls.get(callId),runtimeRun:this.currentRun(),stage:'inspect-validation'});
    if(typeof x.id==='string')entry.executionId=x.id;
    if(Number.isSafeInteger(x.evidence?.localId))entry.localId=x.evidence.localId;
    if(x.terminal===true)entry.stage=['completed','validated'].includes(x.phase)?'ready-to-save':'revise';
   }else if(Number.isSafeInteger(args.runId)){
-   entry=this.entries.find(e=>e.localId===args.runId&&e.runtimeRun===this.currentRun());
+   entry=[...this.entries].reverse().find(e=>e.localId===args.runId&&e.runtimeRun===this.currentRun());
    if(entry&&body?.id===args.runId&&body.sourceHash===entry.sourceHash){
     if(body.status==='validated')entry.stage='ready-to-save';
     if(['failed','cancelled'].includes(body.status))entry.stage='revise';
@@ -32,7 +33,7 @@ export class MethodProgress {
     if(typeof body.procedure?.executionId==='string')entry.procedureExecutionId=body.procedure.executionId;
    }
   }else if(args.library?.op==='save'&&typeof args.library.code==='string'&&hash(body?.reference?.revision)&&body.sourceHash===sha(args.library.code)){
-   entry=this.entries.find(e=>e.sourceHash===sha(args.library.code));
+   entry=[...this.entries].reverse().find(e=>e.sourceHash===sha(args.library.code));
    if(entry)Object.assign(entry,{methodId:args.library.id,revision:body.reference.revision,handle:body.reference.handle,stage:'ready-for-natural-trial'});
   }else if(args.procedure&&hash(args.procedure.revision)&&x?.kind==='method'){
    entry=this.entries.find(e=>e.revision===args.procedure.revision&&e.handle===args.procedure.handle);

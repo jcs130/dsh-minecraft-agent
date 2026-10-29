@@ -33,6 +33,19 @@ test('actual shared MethodLibrary save receipt retains its reference; saving nev
  assert.equal(p.progress.snapshot().pending[0].stage,'ready-for-natural-trial');
  assert.equal(p.saved().entries[0].stage,'ready-for-natural-trial');
 });
+test('revalidating identical code after recovery binds the new call and original new terminal',()=>{
+ const p=create();p.progress.observe('mc_script',{code,validate:true},accepted,'old-call');
+ p.progress.observeEvents([{run:'body-a',execution:{kind:'method',id:'epoch:1',terminal:true,phase:'validated'}}]);
+ const recovered=new MethodProgress({sessionId:'session-a',currentRun:()=> 'body-b',read:p.saved});
+ recovered.noteCall('new-call',202);
+ recovered.observe('mc_script',{code,validate:true},{structuredContent:{execution:{kind:'method',id:'new-epoch:2',phase:'accepted',terminal:false,evidence:{localId:2}}}},'new-call');
+ assert.equal(recovered.snapshot().pending[0].stage,'inspect-validation');assert.equal(recovered.snapshot().pending[0].sameRuntime,true);
+ assert.equal(recovered.snapshot().pending[0].historySeq,202);
+ recovered.observeEvents([{run:'body-a',execution:{kind:'method',id:'epoch:1',terminal:true,phase:'validated'}}]);
+ assert.equal(recovered.snapshot().pending[0].stage,'inspect-validation');
+ recovered.observeEvents([{run:'body-b',execution:{kind:'method',id:'new-epoch:2',terminal:true,phase:'validated'}}]);
+ assert.equal(recovered.snapshot().pending[0].stage,'ready-to-save');
+});
 test('only the matching revision review and confirmed adoption advance the method state',()=>{
  const p=create(),revision='a'.repeat(64),handle='mem:mc-method/x/'+revision;
  p.progress.observe('mc_script',{code,validate:true},accepted,'c');
