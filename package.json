@@ -32,6 +32,7 @@
     ".": "./lib/plugins/mc-harness.mjs",
     "./client": "./lib/client.js",
     "./harness2": "./lib/plugins/harness2.mjs",
+    "./self-improvement": "./lib/plugins/self-improvement-plugin.mjs",
     "./locale/*.json": "./locales/*.json",
     "./lib/*": "./lib/*",
     "./package.json": "./package.json",
@@ -69,6 +70,11 @@
     "lib/plugins/harness-goal.mjs",
     "lib/plugins/harness-autonomy.mjs",
     "lib/plugins/harness-reflection.mjs",
+    "lib/plugins/harness-improvement.mjs",
+    "lib/plugins/harness-practice.mjs",
+    "lib/plugins/self-improvement-plugin.mjs",
+    "skills/minecraft-self-improvement",
+    "docs/self-improvement.md",
     "lib/plugins/harness-compaction.mjs",
     "lib/plugins/harness-context.mjs",
     "lib/plugins/harness-handoff.mjs",
@@ -143,9 +149,14 @@
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-llm": "^0.2.0-rc.2 || ^0.2.1-rc.2",
-    "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2 || ^0.2.1-rc.2"
+    "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-skill": "^0.2.0-rc.2 || ^0.2.1-rc.2"
   },
-  "peerDependenciesMeta": {},
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-tool-skill": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.1-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.2",

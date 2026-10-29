@@ -108,9 +108,14 @@ export function bindDshHarness2Lab(ctx,sessionId,monitor) {
 }
 
 /** Built-in offline fixture; custom dedicated-server executors use the public runner factory above. */
-export async function configuredDshPractice({ctx,config,dataDir,sessionId,metrics,bridge,memoryTool,lifetimeSignal,onMonitor}) {
+export async function configuredDshPractice(options) {
+  const {ctx,config,dataDir,sessionId,metrics,bridge,memoryTool,lifetimeSignal,onMonitor}=options;
   const c=config.harness2;
   if(!c)return null;
+  if(c.enabled===true&&!Array.isArray(c.jobs)){
+    const {configuredMethodPractice}=await import('./harness-practice.mjs');
+    return configuredMethodPractice(options);
+  }
   if(c.enabled!==true&&(c.backend!=='physics'||!Array.isArray(c.jobs)))return null;
   if(c.backend!=='physics'||!Array.isArray(c.jobs))throw Error('Explicit Harness2 backend and jobs required');
   const {createPhysicsMethodPractice}=await import('agent-mc-world/learning');

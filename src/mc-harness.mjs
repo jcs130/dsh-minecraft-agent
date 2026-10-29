@@ -12,6 +12,7 @@ import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { AutonomousContinuation } from './harness-autonomy.mjs';
 import { EvidenceReflection, installEvidenceReflection } from './harness-reflection.mjs';
+import { installImprovementContext } from './harness-improvement.mjs';
 import { minecraftCompactionBackend } from './harness-compaction.mjs';
 import { AppendOnlyFactsContext } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
@@ -297,6 +298,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     // Native request config is frozen and logged before dispatch. This does
     // not mutate the user's selected model or add a second generation loop.
     installEvidenceReflection(agentCtx,{reflection,retryEvidence,sessionQuery:ctx.sessionQuery});
+    installImprovementContext(agentCtx,{tools,reflection,enabled:config.selfImprovement?.enabled!==false,
+      practice:config.harness2?.enabled===true&&!Array.isArray(config.harness2.jobs)?'mc_practice':undefined});
     agentCtx.systemPrompt.context({ name: 'minecraft:autonomy', order: 9989,
       text: () => JSON.stringify({ ...continuation.snapshot(),
         guidance: continuation.policy.continuous
@@ -385,11 +388,11 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     });
     if(config.harness2){
       const {configuredDshPractice}=await import('./harness2.mjs');
-      const practiceTool=await configuredDshPractice({ctx,config,dataDir,sessionId,metrics:runtime.metrics,
+      const practiceTool=await configuredDshPractice({ctx:agentCtx,config,dataDir,sessionId,metrics:runtime.metrics,runtime,
         bridge,memoryTool:tools.find(t=>t.name.endsWith('_memory'))?.name,lifetimeSignal:lifetime.signal,onMonitor:monitor=>{experimentMonitor=monitor;}});
       if(practiceTool)agentCtx.tools.register(practiceTool);
     }
-    constrainMinecraftTools(agentCtx,composition);
+    constrainMinecraftTools(agentCtx,composition,config.hostTools);
     const goalPlugin = await import('@deepseek-ai/dsh-tool-goal');
     await agentCtx.plugin(goalPlugin.default ?? goalPlugin).await();
     agentCtx.tools.guard(() => pendingGoalClose ? '本轮需要收尾。请根据已有回执简短说明，等待下一轮核对现场并调整方案，不继续调用工具。' : goalWrapUp.denial(currentGoal()));
