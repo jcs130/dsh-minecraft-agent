@@ -347,6 +347,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
             requestId:value.structuredContent?.control?.requestId??exec.callId,spec,args,result:value,
             execution:runtime.executionState?.(),scene:runtime.currentFacts()?.decisionStability}):null;
           retryEvidence.observeReadProgress(readVerdict,value);
+          retryEvidence.observeValidation({run:runtime.journal.run,spec,args,result:value,
+            requestId:value.structuredContent?.control?.requestId??exec.callId});
           retryEvidence.observeAdmission({run:runtime.journal.run,name:spec.name,args,result:value,
             requestId:value.structuredContent?.control?.requestId??exec.callId});
           retryEvidence.observeReadback({run:runtime.journal.run,spec,result:value,
