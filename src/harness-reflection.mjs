@@ -1,7 +1,7 @@
 /** Opt-in host request routing. No extra generation, action or skill adoption. */
 export class EvidenceReflection {
   constructor(config={}, {now=Date.now,read=()=>null,write=()=>{}}={}) {
-    this.enabled=config.enabled===true;this.effort=config.effort??'low';this.now=now;this.write=write;
+    this.enabled=config.enabled===true;this.effort=config.effort??'low';this.now=now;this.write=write;this.repairOnly=config.repairOnly===true;
     this.minIntervalMs=config.minIntervalMs??180000;this.minRequests=config.minRequests??24;this.attempts=config.attempts??3;
     if(typeof this.effort!=='string'||!this.effort.trim()||['off','none'].includes(this.effort))throw Error('Reflection requires an explicit thinking effort');
     for(const [k,min]of [['minIntervalMs',1000],['minRequests',1],['attempts',2]])if(!Number.isSafeInteger(this[k])||this[k]<min)throw Error('Invalid reflection bound: '+k);
@@ -18,6 +18,7 @@ export class EvidenceReflection {
       &&/^[A-Za-z0-9._:-]{1,160}:event-wait:[a-f0-9]{64}$/.test(x)).slice(-8):[];
     this.state.readsSeen=Array.isArray(saved?.readsSeen)?saved.readsSeen.filter(x=>typeof x==='string'
       &&/^[A-Za-z0-9._:-]{1,160}:read-only:[a-f0-9]{64}:[a-f0-9]{64}$/.test(x)).slice(-8):[];
+    this.planRepairs=Array.isArray(saved?.planRepairs)?saved.planRepairs.filter(x=>typeof x?.key==='string'&&x.key.length<=300&&Number.isSafeInteger(x.uses)&&x.uses>=0&&x.uses<=2).slice(-16):[];
     const lease=saved?.lease;
     this.lease=lease&&typeof lease.sessionId==='string'&&Number.isSafeInteger(lease.selectionSeq)
       &&typeof lease.provider==='string'&&typeof lease.model==='string'
@@ -25,7 +26,7 @@ export class EvidenceReflection {
     this.lastStep=null;this.lastChoice=null;
   }
   get needsIntent(){return this.enabled||this.lease!==null;}
-  save(){this.write({...this.state,lease:this.lease});}
+  save(){this.write({...this.state,lease:this.lease,planRepairs:this.planRepairs});}
   select(base, snapshot, {turn,step,signal,intent}={}) {
     if(signal?.aborted)return base;
     // Request headers are durable: a programmatic Agent may inherit our low
@@ -49,6 +50,21 @@ export class EvidenceReflection {
     this.lastStep=id;this.lastChoice={selected:false};this.state.requests++;
     // A human-selected thinking level must never be reduced or replaced.
     if(!['off','none'].includes(resolved.reasoningEffort))return resolved;
+    const plan=snapshot?.planReview?.priority;
+    // A new, correlated failed-plan episode gets at most two existing requests
+    // immediately. Old task IDs do not reset it; changed plans and explicit
+    // human thinking choices keep their own policy. No extra generation.
+    if(plan&&typeof plan.key==='string'&&plan.key.length<=300&&Number.isSafeInteger(plan.count)&&plan.count>=2){
+      let served=this.planRepairs.find(x=>x.key===plan.key);
+      if(!served){served={key:plan.key,uses:0};this.planRepairs.push(served);this.planRepairs=this.planRepairs.slice(-16);}
+      if(served.uses<2){served.uses++;
+        this.state={...this.state,selections:this.state.selections+1,lastAt:this.now(),lastRequest:this.state.requests};
+        this.lease=intent?{...intent,provider:resolved.provider,model:resolved.model,originalEffort:resolved.reasoningEffort,temporaryEffort:this.effort}:null;
+        this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:'repeated-failed-plan'};this.save();
+        return{...resolved,reasoningEffort:this.effort};
+      }
+    }
+    if(this.repairOnly)return resolved;
     const evidence=snapshot?.evidence??[];
     const task=[...evidence].reverse().find(x=>x.kind==='task'&&x.observation==='unchanged'&&x.attempts>=this.attempts);
     const method=[...evidence].reverse().find(x=>x.kind==='method'&&new Set(evidence.filter(y=>y.kind==='method'&&y.sourceHash===x.sourceHash).map(y=>y.methodId)).size>=2);
@@ -84,7 +100,7 @@ export class EvidenceReflection {
       readsSeen:item.kind==='readOnly'?[...this.state.readsSeen,signature].slice(-8):this.state.readsSeen};
     this.lease=intent?{...intent,provider:resolved.provider,model:resolved.model,
       originalEffort:resolved.reasoningEffort,temporaryEffort:this.effort}:null;
-    this.write({...next,lease:this.lease});this.state=next;
+    this.write({...next,lease:this.lease,planRepairs:this.planRepairs});this.state=next;
     this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:item.kind==='validation'?'repeated-core-schema-rejection':item.kind==='readOnly'?'repeated-unchanged-read-only-result':item.kind==='eventWait'?'repeated-events-without-current-execution':item.kind==='observation'?'repeated-unchanged-current-observation':item.kind==='readback'?'repeated-unchanged-historical-readback':item.kind==='admission'?'repeated-core-admission-rejection':item.kind==='method'?'repeated-method-error':item.phase==='completed'?'repeated-completed-without-observed-change':'repeated-blocked-without-observed-change'};
     return{...resolved,reasoningEffort:this.effort};
   }
@@ -96,14 +112,15 @@ export class EvidenceReflection {
 /** Public DSH hooks only. The initial exact observation recovers explicit
  * selection intent; subsequent event metadata keeps it current without
  * scanning history on every request or reading any message content. */
-export function installEvidenceReflection(agentCtx,{reflection,retryEvidence,sessionQuery}) {
-  let sessionId,selectionSeq=-1,hydrated=false;
+export function installEvidenceReflection(agentCtx,{reflection,retryEvidence,sessionQuery,prepend=false,ownerSessionId}) {
+  let sessionId=ownerSessionId,selectionSeq=-1,hydrated=false;
   agentCtx.on('session/event',(session,event)=>{
     if(event.type==='model/selection'&&(sessionId===undefined||session.id===sessionId))
       selectionSeq=Math.max(selectionSeq,event.seq);
   });
   agentCtx.on('agent/request',async(payload,next)=>{
     const base=await next();
+    if(ownerSessionId&&payload.agent?.id!==ownerSessionId)return base;
     if(!reflection.needsIntent||payload.signal?.aborted)return base;
     const session=payload.agent.session;
     if(!hydrated){
@@ -119,5 +136,5 @@ export function installEvidenceReflection(agentCtx,{reflection,retryEvidence,ses
       }finally{observation[Symbol.dispose]();}
     }
     return reflection.select(base,retryEvidence.snapshot(),{...payload,intent:{sessionId:session.id,selectionSeq}});
-  });
+  },prepend);
 }
