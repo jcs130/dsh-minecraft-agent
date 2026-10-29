@@ -1,5 +1,5 @@
 import{test}from'node:test';import assert from'node:assert/strict';import{mkdtemp,rm}from'node:fs/promises';import{tmpdir}from'node:os';import{join,dirname,resolve}from'node:path';
-import{improvementGuidance,installImprovementContext}from'../src/harness-improvement.mjs';
+import{improvementGuidance,installImprovementContext,registerImprovementSkill}from'../src/harness-improvement.mjs';
 import{constrainMinecraftTools}from'../src/harness-composition.mjs';
 import{configuredMethodPractice,nativePracticePorts}from'../src/harness-practice.mjs';
 import{createRequire}from'node:module';import{pathToFileURL}from'node:url';
@@ -24,18 +24,20 @@ test('learning migration retains the exact native goal, queues one notice and ne
 });
 test('real DSH scoped skill plugin restores the loader without lifting the game-only tool restriction',async()=>{
  const require=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json')),load=n=>import(pathToFileURL(require.resolve(n)).href);
- const [{Context},{ToolRuntime},{createScope,scopeOf},skillPlugin]=await Promise.all([load('@deepseek-ai/cordis'),load('@deepseek-ai/dsh-tools'),load('@deepseek-ai/dsh-scope'),load('@deepseek-ai/dsh-tool-skill')]);
+ const [{Context},{ToolRuntime},{createScope,scopeOf},skillPlugin,{SkillRegistry}]=await Promise.all([load('@deepseek-ai/cordis'),load('@deepseek-ai/dsh-tools'),load('@deepseek-ai/dsh-scope'),load('@deepseek-ai/dsh-tool-skill'),load('@deepseek-ai/dsh-skill')]);
  const root=new Context();let owner;const services=await root.plugin({name:'native-learning-services',apply(ctx){
   ctx.provide('systemPrompt',{tools(){},context(){return()=>{};},section(){return()=>{};}});
-  ctx.provide('skills',{list:async()=>[],snapshot:async()=>({skills:[]})});ctx.provide('agents',{get(){}});ctx.provide('workingDirectory',{});
+  new SkillRegistry(ctx);ctx.provide('agents',{get(){}});ctx.provide('workingDirectory',{});
   new ToolRuntime(ctx);
- }}).await();const consumer=await root.plugin({name:'native-learning-owner',inject:['tools'],apply(ctx){owner=ctx;}}).await(),scope=createScope(owner,{});
+ }}).await();const consumer=await root.plugin({name:'native-learning-owner',inject:['tools','skills'],apply(ctx){owner=ctx;}}).await(),scope=createScope(owner,{});
  const def=name=>({name,description:'fixture',parameters:{type:'object'},output:{schema:{type:'object'},render:()=>[]},execute:async()=>({})});
  try{
   root.tools.register(def('shell_fixture'));scope.ctx.tools.register(def('mc_script'));constrainMinecraftTools(scope.ctx,{composed:false});
   assert.deepEqual(root.tools.schemas(scopeOf(scope.ctx)).map(x=>x.name),['mc_script']);
   const fork=scope.ctx.plugin(skillPlugin);await fork.await();
   const names=root.tools.schemas(scopeOf(scope.ctx)).map(x=>x.name);assert.ok(names.includes('skill'));assert.ok(names.includes('mc_script'));assert.ok(!names.includes('shell_fixture'));
+  const off=registerImprovementSkill(scope.ctx);await new Promise(r=>setTimeout(r,10));const skill=await scope.ctx.skills.get('minecraft-self-improvement',{scope:scopeOf(scope.ctx)});
+  assert.equal(skill?.source,'bundled');assert.ok(skill?.content.includes('executionId'));await off();assert.equal(await scope.ctx.skills.get('minecraft-self-improvement',{scope:scopeOf(scope.ctx)}),undefined);
  }finally{await scope.dispose();await consumer.dispose();await services.dispose();}
 });
 test('native practice port uses the original Agent and rejects a changed game scope before any library write',async()=>{
@@ -49,9 +51,14 @@ test('reflection guidance leads to evidence-bound correction and authoring, with
  const text=improvementGuidance({script:'mymc_script',memory:'mymc_memory',practice:'mc_practice',reason:'repeated-method-error'});
  for(const v of ['repeated-method-error','authoring','validate','review','adopt','executionId','平地','不重复执行','自然任务'])assert.ok(text.includes(v));
  assert.equal(improvementGuidance({memory:'mc_memory'}),'');assert.ok(!improvementGuidance({script:'mc_script'}).includes('mc_practice'));
- let section,prefix;installImprovementContext({systemPrompt:{section:v=>{prefix=v;},context:v=>{section=v;}}},{tools:[{name:'mc_script'}],reflection:{snapshot:()=>({lastReason:'repeated-method-error'})}});
+ let section,prefix;installImprovementContext({systemPrompt:{section:v=>{prefix=v;},context:v=>{section=v;}}},{tools:[{name:'mc_script',description:'Use api:"authoring"'}],reflection:{snapshot:()=>({lastReason:'repeated-method-error'})}});
  assert.equal(section.order,9993);assert.equal(section.interpolate,false);assert.ok(section.text().length<1600);
  assert.ok(prefix.text.includes('api:"authoring"'));assert.ok(!section.text().includes('api:"authoring"'));assert.ok(section.text().length<250);
+});
+test('bundled skill is registered in the native scoped registry instead of depending on filesystem-provider defaults',()=>{
+ let skill,removed=false;const off=registerImprovementSkill({inject:(_deps,fn)=>{fn({skills:{register:v=>{skill=v;return()=>{removed=true;};}},effect:f=>f()});return{dispose:()=>{removed=true;}};}});
+ assert.equal(skill.name,'minecraft-self-improvement');assert.ok(skill.content.includes('executionId'));assert.ok(!skill.content.startsWith('---'));
+ off();assert.equal(removed,true);assert.ok(!improvementGuidance({script:'mc_script',authoring:false}).includes('api:"authoring"'));
 });
 test('dynamic practice exposes the real core contract and capability without model or body calls during discovery',async()=>{
  const directory=await mkdtemp(join(tmpdir(),'dsh-dynamic-method-'));let calls=0,monitor;const effects=[];

@@ -15,6 +15,9 @@ export function apply(ctx,options){
  const restore=agent=>{if(!drain)return false;const g=ctx.goals.get(agent);
   if(g?.id!==drain.id||g.revision!==drain.revision||g.phase!=='active'||g.activation!=='disarmed'||hash(g.objective)!==drain.objectiveHash)return false;
   ctx.goals.resume(agent,{id:g.id,revision:g.revision});drain=null;return true;};
+ // Yield only the next admission after existing model/tool work has settled.
+ // A long sequence of read-only waits need not consume the entire step window.
+ ctx.on?.('agent/pre-step',(payload,next)=>!done&&!stopped&&drain&&payload.agent?.id===c.sessionId?{kind:'reject'}:next());
  const tick=async()=>{
   if(busy||done||stopped)return;busy=true;
   const agent=ctx.agents.get(c.sessionId);if(!agent){busy=false;return;}

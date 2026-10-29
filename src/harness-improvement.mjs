@@ -1,9 +1,22 @@
 /** Host guidance only. Core owns authoring, versions, execution and assessment. */
-export function improvementGuidance({script,memory,practice,reason}={}) {
+import{readFileSync}from'node:fs';
+export function registerImprovementSkill(agentCtx) {
+ if(typeof agentCtx.inject!=='function')return;
+ let raw;
+ for(const path of ['../skills/minecraft-self-improvement/SKILL.md','../../skills/minecraft-self-improvement/SKILL.md']){
+  try{raw=readFileSync(new URL(path,import.meta.url),'utf8');break;}catch(error){if(error.code!=='ENOENT')throw error;}
+ }
+ if(typeof raw!=='string'||raw.length>16000)throw Error('Bundled Minecraft improvement skill unavailable');
+ const skill={name:'minecraft-self-improvement',source:'bundled',description:'Minecraft 中需要自己写脚本、改进战术、反思失败并复用经验时，使用真实回执驱动的方法改进流程。',
+  content:raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/u,'').trim()};
+ const fork=agentCtx.inject(['skills'],scoped=>{const off=scoped.skills.register(skill);scoped.effect(()=>off,'Minecraft improvement skill');});
+ return()=>fork.dispose();
+}
+export function improvementGuidance({script,memory,practice,reason,authoring=true}={}) {
  if(!script)return '';
  const text=[
   '需要自我改进：遇到重复失败、低效操作或反射只能勉强保命时，先核对真实回执与当前任务；未决动作先查原结果，不重复执行。找出一个可验证的原因并改变方案，不以“我会改进”或增加思考量代替实际改动。',
-  `已有固定动作不够表达反馈控制时，主动用 ${script} {api:"authoring"} 查自写方法流程，按需查 API。不是只能调用预制脚本；可以自行写有界条件、计算和循环，validate 后保存带 parent 的新版本。按条件在自然任务中运行精确版本，用 executionId 查真实效果、review 成功/失败/未知，证据支持后才 adopt；失败保留反例并修订，保留旧版可回退。反射保命不是已学会战术，程序完成也不是目标达成。`,
+  `已有固定动作不够表达反馈控制时，主动用 ${script} ${authoring?'{api:"authoring"}':'的完整工具帮助与 API 索引'} 查自写方法流程，按需查 API。不是只能调用预制脚本；可以自行写有界条件、计算和循环，validate 后保存带 parent 的新版本。按条件在自然任务中运行精确版本，用 executionId 查真实效果、review 成功/失败/未知，证据支持后才 adopt；失败保留反例并修订，保留旧版可回退。反射保命不是已学会战术，程序完成也不是目标达成。`,
   memory&&`相关经验按需从 ${memory} 取用；把方法版本、原执行/复盘证据与适用条件写回游戏记忆。缺少新证据不重复反思、读目录或空转试验。`,
   practice&&`确有需要时用 ${practice} {op:"help"} 核对当前隔离练习能力，再自行选一个已保存方法与精确 revision 发起对照试验。status/result/compare/stage 延续原 job；练习通过不证明线上有效。当前物理练习只覆盖平地移动碰撞，不用它冒充战斗或法术测试。`,
  ];
@@ -13,17 +26,18 @@ export function improvementGuidance({script,memory,practice,reason}={}) {
 
 export function installImprovementContext(agentCtx,{tools,reflection,practice,enabled=true}={}) {
  if(!enabled)return;
- const script=tools.find(t=>t.name.endsWith('_script'))?.name,memory=tools.find(t=>t.name.endsWith('_memory'))?.name;
+ const scriptSpec=tools.find(t=>t.name.endsWith('_script')),script=scriptSpec?.name,memory=tools.find(t=>t.name.endsWith('_memory'))?.name;
  if(!script)return;
+ const offSkill=registerImprovementSkill(agentCtx),authoring=scriptSpec.description?.includes('api:"authoring"')===true;
  // Keep the workflow in the fixed prefix; only a selected reflection adds a
  // short changing cue at the request tail. Do not append full lessons per step.
  const offPrefix=agentCtx.systemPrompt.section({name:'minecraft:self-improvement',order:7001,interpolate:false,
-  text:improvementGuidance({script,memory,practice})});
+  text:improvementGuidance({script,memory,practice,authoring})});
  const offCue=agentCtx.systemPrompt.context({name:'minecraft:reflection-intent',order:9993,interpolate:false,text:()=>{
   const reason=reflection?.snapshot().lastReason;
   return typeof reason==='string'&&/^[a-z-]{1,100}$/.test(reason)
    ?JSON.stringify({reason,next:'依据当前证据纠正计划；方法缺口可自写、验证、试用与复盘。不要原样重试，不把增加思考当作改善。'})
    :'{}';
  }});
- return()=>{offCue?.();offPrefix?.();};
+ return()=>{offCue?.();offPrefix?.();offSkill?.();};
 }
