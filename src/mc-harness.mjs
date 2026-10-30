@@ -16,7 +16,7 @@ import { installImprovementContext } from './harness-improvement.mjs';
 import { MethodProgress, installMethodProgress } from './harness-method-progress.mjs';
 import { installPlanReview, planReviewEvidence } from './harness-plan-review.mjs';
 import { minecraftCompactionBackend } from './harness-compaction.mjs';
-import { AppendOnlyFactsContext } from './harness-context.mjs';
+import { AppendOnlyFactsContext,installTextReadRecovery } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
 import { activateConfiguredGoal, applyGoalControl, prepareOperatorGoal, settleHostGoal, GoalWrapUp } from './harness-goal.mjs';
@@ -307,6 +307,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     // not mutate the user's selected model or add a second generation loop.
     installEvidenceReflection(agentCtx,{reflection,retryEvidence:planReviewEvidence(retryEvidence,planReview,()=>runtime.journal.run),sessionQuery:ctx.sessionQuery,ownerSessionId:sessionId});
     if(planReview)installPlanReview(agentCtx,{book:planReview,run:()=>runtime.journal.run,sessionId});
+    if(typeof coreClient.TextReadRecoveryBook==='function')
+      installTextReadRecovery(agentCtx,{book:new coreClient.TextReadRecoveryBook(),run:()=>runtime.journal.run,sessionId});
     installImprovementContext(agentCtx,{tools:selectedGameTools,reflection,enabled:config.selfImprovement?.enabled!==false,completeSections:composition.composed?undefined:supplementalSections,
       practice:config.harness2?.enabled===true&&!Array.isArray(config.harness2.jobs)?'mc_practice':undefined});
     const scriptTool=tools.find(t=>t.name.endsWith('_script'))?.name;
