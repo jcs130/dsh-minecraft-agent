@@ -60,5 +60,15 @@ The feedback never starts an action, cancels work or declares the goal complete.
 If reflection is enabled, the existing request coordinator may use the configured
 thinking effort for one natural request per episode, then restore its own
 previous choice. It preserves explicit human thinking choices and output limits,
-and adds no model requests. Older cores keep their existing compatible behavior;
+and adds no independent model requests. Older cores keep their existing compatible behavior;
 they do not fabricate decision evidence. Previously unknown work stays unknown.
+
+Passive context alone does not guarantee that a model acts on the feedback.
+At DSH's public `agent/turn-stopping` boundary, an autonomous turn may therefore
+receive one bounded correction for an already proven no-tool episode. This
+continues the same turn once; it does not start an inference worker or a monitor
+probe. It requires the original active and armed goal, no tool call in the
+current turn, and a fresh execution revision matching the proven idle episode.
+Human turns, cancellation, changed execution or a paused goal never qualify.
+The Agent still chooses its own action or evidenced wait. The same episode
+cannot repeatedly inject corrections or grow an unbounded retry loop.

@@ -15,7 +15,7 @@ import { EvidenceReflection, installEvidenceReflection } from './harness-reflect
 import { installImprovementContext } from './harness-improvement.mjs';
 import { MethodProgress, installMethodProgress } from './harness-method-progress.mjs';
 import { installPlanReview, planReviewEvidence } from './harness-plan-review.mjs';
-import { installDecisionReview } from './harness-decision-review.mjs';
+import { installDecisionReview,decisionReviewNotice } from './harness-decision-review.mjs';
 import { minecraftCompactionBackend } from './harness-compaction.mjs';
 import { AppendOnlyFactsContext,installTextReadRecovery } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
@@ -307,7 +307,9 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     // Native request config is frozen and logged before dispatch. This does
     // not mutate the user's selected model or add a second generation loop.
     const decisionReview=typeof coreClient.DecisionReviewBook==='function'?installDecisionReview(agentCtx,{book:new coreClient.DecisionReviewBook(),sessionId,
-      run:()=>runtime.journal.run,goal:currentGoal,execution:()=>({...runtime.executionState(),observedAt:Date.now()})}):null;
+      run:()=>runtime.journal.run,goal:currentGoal,execution:()=>({...runtime.executionState(),observedAt:Date.now()}),
+      repair:({agent,review})=>agent.steer(createUserMessage({content:[{type:'text',text:decisionReviewNotice(review)}],
+        source:{kind:'mc-decision-review',form:'notice',summary:'Bounded autonomous no-action correction'}}))}):null;
     if(decisionReview)agentCtx.effect(()=>()=>decisionReview.dispose());
     installEvidenceReflection(agentCtx,{reflection,retryEvidence:planReviewEvidence(retryEvidence,planReview,()=>runtime.journal.run,decisionReview),sessionQuery:ctx.sessionQuery,ownerSessionId:sessionId});
     if(planReview)installPlanReview(agentCtx,{book:planReview,run:()=>runtime.journal.run,sessionId});
