@@ -2,6 +2,7 @@ import { mkdir, copyFile } from 'node:fs/promises';
 import { build } from 'esbuild';
 await mkdir('lib/plugins', { recursive: true });
 await copyFile('src/harness-plan-review.mjs','lib/plugins/harness-plan-review.mjs');
+await copyFile('src/harness-decision-review.mjs','lib/plugins/harness-decision-review.mjs');
 for (const name of ['mc-harness', 'harness-bridge', 'harness-panel', 'harness-lifecycle', 'harness-goal', 'harness-autonomy', 'harness-reflection', 'harness-improvement', 'harness-method-progress', 'harness-practice', 'self-improvement-plugin', 'harness-compaction', 'harness-context', 'harness-handoff', 'harness-budget', 'event-condenser-fallback', 'harness2', 'dsh-compat', 'dsh-native-streams', 'qiandengji-access', 'quick-setup','profile-settings','harness-composition']) await copyFile(`src/${name}.mjs`, `lib/plugins/${name}.mjs`);
 await build({entryPoints:['src/client.tsx'],bundle:true,format:'cjs',platform:'browser',target:'es2020',jsx:'automatic',
   outfile:'lib/client.js',external:['react','react/jsx-runtime'],define:{'process.env.NODE_ENV':JSON.stringify('production')},

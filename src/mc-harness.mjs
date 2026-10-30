@@ -15,6 +15,7 @@ import { EvidenceReflection, installEvidenceReflection } from './harness-reflect
 import { installImprovementContext } from './harness-improvement.mjs';
 import { MethodProgress, installMethodProgress } from './harness-method-progress.mjs';
 import { installPlanReview, planReviewEvidence } from './harness-plan-review.mjs';
+import { installDecisionReview } from './harness-decision-review.mjs';
 import { minecraftCompactionBackend } from './harness-compaction.mjs';
 import { AppendOnlyFactsContext,installTextReadRecovery } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
@@ -305,7 +306,10 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     const composition=await composeMinecraftAgent(agentCtx,{dshPreset:config.dshPreset,persona,environment:prefix,supplementalSections});
     // Native request config is frozen and logged before dispatch. This does
     // not mutate the user's selected model or add a second generation loop.
-    installEvidenceReflection(agentCtx,{reflection,retryEvidence:planReviewEvidence(retryEvidence,planReview,()=>runtime.journal.run),sessionQuery:ctx.sessionQuery,ownerSessionId:sessionId});
+    const decisionReview=typeof coreClient.DecisionReviewBook==='function'?installDecisionReview(agentCtx,{book:new coreClient.DecisionReviewBook(),sessionId,
+      run:()=>runtime.journal.run,goal:currentGoal,execution:()=>({...runtime.executionState(),observedAt:Date.now()})}):null;
+    if(decisionReview)agentCtx.effect(()=>()=>decisionReview.dispose());
+    installEvidenceReflection(agentCtx,{reflection,retryEvidence:planReviewEvidence(retryEvidence,planReview,()=>runtime.journal.run,decisionReview),sessionQuery:ctx.sessionQuery,ownerSessionId:sessionId});
     if(planReview)installPlanReview(agentCtx,{book:planReview,run:()=>runtime.journal.run,sessionId});
     if(typeof coreClient.TextReadRecoveryBook==='function')
       installTextReadRecovery(agentCtx,{book:new coreClient.TextReadRecoveryBook(),run:()=>runtime.journal.run,sessionId});
