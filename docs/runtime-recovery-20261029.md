@@ -45,3 +45,20 @@ on the next request, including after process recovery; the same state cannot
 repeatedly select thinking. Background event polling is excluded. Earlier-run
 unknown work remains outside the snapshot and must never be replayed merely
 because a new runtime has no registered pending task.
+
+## Autonomous replies without tool calls
+
+When the installed core exposes `DecisionReviewBook`, the host also records
+completed autonomous rounds that advertised tools but invoked none. It keeps
+only response hashes and lengths. Three consecutive rounds with fresh, empty
+current-runtime receipts add a bounded review to the next natural request:
+acknowledgement is not execution; reconcile facts and choose a feasible step,
+or explain an evidenced wait and its wake condition. Human turns, cancelled
+rounds, actual tool calls, busy work and unknown or stale state do not qualify.
+The feedback never starts an action, cancels work or declares the goal complete.
+
+If reflection is enabled, the existing request coordinator may use the configured
+thinking effort for one natural request per episode, then restore its own
+previous choice. It preserves explicit human thinking choices and output limits,
+and adds no model requests. Older cores keep their existing compatible behavior;
+they do not fabricate decision evidence. Previously unknown work stays unknown.

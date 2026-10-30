@@ -19,6 +19,7 @@ export class EvidenceReflection {
     this.state.readsSeen=Array.isArray(saved?.readsSeen)?saved.readsSeen.filter(x=>typeof x==='string'
       &&/^[A-Za-z0-9._:-]{1,160}:read-only:[a-f0-9]{64}:[a-f0-9]{64}$/.test(x)).slice(-8):[];
     this.planRepairs=Array.isArray(saved?.planRepairs)?saved.planRepairs.filter(x=>typeof x?.key==='string'&&x.key.length<=300&&Number.isSafeInteger(x.uses)&&x.uses>=0&&x.uses<=2).slice(-16):[];
+    this.decisionRepairs=Array.isArray(saved?.decisionRepairs)?saved.decisionRepairs.filter(x=>/^decision:[a-f0-9]{64}$/.test(x?.key??'')&&x.uses===1).slice(-16):[];
     const lease=saved?.lease;
     this.lease=lease&&typeof lease.sessionId==='string'&&Number.isSafeInteger(lease.selectionSeq)
       &&typeof lease.provider==='string'&&typeof lease.model==='string'
@@ -26,7 +27,7 @@ export class EvidenceReflection {
     this.lastStep=null;this.lastChoice=null;
   }
   get needsIntent(){return this.enabled||this.lease!==null;}
-  save(){this.write({...this.state,lease:this.lease,planRepairs:this.planRepairs});}
+  save(){this.write({...this.state,lease:this.lease,planRepairs:this.planRepairs,decisionRepairs:this.decisionRepairs});}
   select(base, snapshot, {turn,step,signal,intent}={}) {
     if(signal?.aborted)return base;
     // Request headers are durable: a programmatic Agent may inherit our low
@@ -64,6 +65,17 @@ export class EvidenceReflection {
         return{...resolved,reasoningEffort:this.effort};
       }
     }
+    const decision=snapshot?.decisionReview?.priority;
+    if(decision?.protocol==='agent-mc-decision-review/v1'&&decision.reviewNeeded===true&&decision.knownIdle===true
+      &&decision.idleScope==='registered-current-runtime'&&Number.isSafeInteger(decision.noToolRounds)&&decision.noToolRounds>=3
+      &&Number.isSafeInteger(decision.toolsAvailable)&&decision.toolsAvailable>0&&/^decision:[a-f0-9]{64}$/.test(decision.key??'')
+      &&!this.decisionRepairs.some(x=>x.key===decision.key)){
+      this.decisionRepairs=[...this.decisionRepairs,{key:decision.key,uses:1}].slice(-16);
+      this.state={...this.state,selections:this.state.selections+1,lastAt:this.now(),lastRequest:this.state.requests};
+      this.lease=intent?{...intent,provider:resolved.provider,model:resolved.model,originalEffort:resolved.reasoningEffort,temporaryEffort:this.effort}:null;
+      this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:'repeated-autonomous-replies-without-tool-calls'};this.save();
+      return{...resolved,reasoningEffort:this.effort};
+    }
     if(this.repairOnly)return resolved;
     const evidence=snapshot?.evidence??[];
     const task=[...evidence].reverse().find(x=>x.kind==='task'&&x.observation==='unchanged'&&x.attempts>=this.attempts);
@@ -100,7 +112,7 @@ export class EvidenceReflection {
       readsSeen:item.kind==='readOnly'?[...this.state.readsSeen,signature].slice(-8):this.state.readsSeen};
     this.lease=intent?{...intent,provider:resolved.provider,model:resolved.model,
       originalEffort:resolved.reasoningEffort,temporaryEffort:this.effort}:null;
-    this.write({...next,lease:this.lease,planRepairs:this.planRepairs});this.state=next;
+    this.write({...next,lease:this.lease,planRepairs:this.planRepairs,decisionRepairs:this.decisionRepairs});this.state=next;
     this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:item.kind==='validation'?'repeated-core-schema-rejection':item.kind==='readOnly'?'repeated-unchanged-read-only-result':item.kind==='eventWait'?'repeated-events-without-current-execution':item.kind==='observation'?'repeated-unchanged-current-observation':item.kind==='readback'?'repeated-unchanged-historical-readback':item.kind==='admission'?'repeated-core-admission-rejection':item.kind==='method'?'repeated-method-error':item.phase==='completed'?'repeated-completed-without-observed-change':'repeated-blocked-without-observed-change'};
     return{...resolved,reasoningEffort:this.effort};
   }

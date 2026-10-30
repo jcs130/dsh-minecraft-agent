@@ -13,6 +13,7 @@ export function installPlanReview(ctx,{book,run,sessionId}) {
  const prompt=ctx.systemPrompt.context({name:'minecraft:plan-review',order:9996,interpolate:false,text:()=>JSON.stringify(book.context(run()))});
  return()=>{off?.();prompt?.();};
 }
-export function planReviewEvidence(retryEvidence,book,run) {
- return{snapshot:()=>({...retryEvidence?.snapshot()??{evidence:[]},planReview:{priority:book?.priority(run())??null}})};
+export function planReviewEvidence(retryEvidence,book,run,decisionReview) {
+ return{snapshot:()=>({...retryEvidence?.snapshot()??{evidence:[]},planReview:{priority:book?.priority(run())??null},
+  decisionReview:{priority:decisionReview?.priority()??null}})};
 }
