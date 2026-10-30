@@ -225,6 +225,18 @@ export class HarnessBridge {
   }
   async call(name, args, exec) {
     if (this.closed) throw Error('Minecraft adapter is stopped');
+    // Hiding these actions in the model schema is insufficient: resumed model
+    // history can still emit them. Never forward them into a host-owned turn,
+    // including when using an older core without the matching MCP option.
+    if (name.endsWith('_protocol') && ['begin_turn', 'end_turn', 'ack_barrier'].includes(args?.action)) {
+      const text = 'HOST_MANAGED_TURN: DSH already opens/closes the Minecraft decision turn and acknowledges barriers. '
+        + 'No lifecycle or game action was submitted. Do not call begin_turn/end_turn/ack_barrier or invent another turn id. '
+        + 'Use the advertised facts/task/request reads or a game tool for the next useful action; the host closes this decision boundary.';
+      exec.concludeTurn();
+      return {isError:true,content:[{type:'text',text}],structuredContent:{text,failed:true,
+        data:{code:'HOST_MANAGED_TURN',retryable:false,lifecycleSubmitted:false,gameActionSubmitted:false},
+        control:{endTurnRequested:true,turnEnded:false}}};
+    }
     const requestId = `${this.runtime.journal.run}:${exec.id ?? randomUUID()}`;
     const result = await this.transport.callTool({ name, arguments: args,
       _meta: { [PROTOCOL]: { requestId, ...(this.turnId ? { turnId: this.turnId } : {}),

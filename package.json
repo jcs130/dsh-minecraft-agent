@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.24",
+  "version": "0.3.0-rc.25-preview.61",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -87,6 +87,7 @@
     "lib/client.js",
     "bin/prepare-assets.mjs",
     "docs/harness-migration.md",
+    "docs/host-turn-ownership.md",
     "docs/harness2.md",
     "docs/desktop.md",
     "docs/quick-start.md",
@@ -144,7 +145,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.99",
+    "agent-mc-world": "0.5.7-rc.143",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
@@ -167,7 +168,7 @@
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-rc.24"
+    "agent-mc-qiandengji": "0.5.0-rc.44"
   },
   "engines": {
     "node": ">=24",

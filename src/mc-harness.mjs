@@ -123,7 +123,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   const lifetime = new AbortController();
   const lean = config.tools?.profile !== 'full';
   // Newer cores advertise the compact catalogue themselves; older ones ignore the option.
-  const server = createMinecraftMcpServer(runtime, coreVersion, lean ? { catalog: 'compact', compact: { descriptionChars: config.tools?.descriptionChars ?? 300, parameterChars: config.tools?.parameterChars ?? 80 } } : {});
+  const server = createMinecraftMcpServer(runtime, coreVersion, { turnOwnership: 'host', ...(lean ? { catalog: 'compact', compact: { descriptionChars: config.tools?.descriptionChars ?? 300, parameterChars: config.tools?.parameterChars ?? 80 } } : {}) });
   const client = new Client({ name: 'dsh-minecraft-agent', version: adapterVersion });
   const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport); await client.connect(clientTransport);
@@ -133,7 +133,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   const appendFacts=config.context?.factsMode!=='legacy'&&typeof coreClient.FactUpdateStream==='function';
   if(config.context?.factsMode==='updates'&&!appendFacts)throw Error('This core does not provide public fact-update contracts');
   let factContext;
-  const prefix = await runtime.environment() + (onboarding ? '\n\n' + onboarding : '')
+  const prefix = await runtime.environment({ turnOwnership: 'host' }) + (onboarding ? '\n\n' + onboarding : '')
     + '\n\n' + minecraftPlanningGuidance(selectTools(tools, config.tools))
     + (appendFacts?'\n\n'+coreClient.FACT_UPDATE_GUIDANCE:'');
   const persona = readFileSync(resolve(config.personaFile), 'utf8');

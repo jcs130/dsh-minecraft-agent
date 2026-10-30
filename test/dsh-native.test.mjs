@@ -76,6 +76,28 @@ test('real DSH tool pipeline preserves a failed action conclusion and projects o
   } finally { await tools.dispose(); await prompts.dispose(); }
 });
 
+test('a forbidden model lifecycle call concludes one real DSH decision without closing or replaying the host body',async()=>{
+  const {Context}=await import(pathToFileURL(require.resolve('@deepseek-ai/cordis')).href);
+  const {ToolRuntime}=await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-tools')).href);
+  const root=new Context(),boundaries=[];let sent=0;
+  const bridge=new HarnessBridge({journal:{run:'offline'},beginTurn:id=>boundaries.push(['begin',id]),endTurn:async id=>boundaries.push(['end',id])},
+    {callTool:async()=>{sent++;return{content:[{type:'text',text:'current facts'}]};}});
+  const prompt=await root.plugin({name:'turn-prompt',apply(ctx){ctx.provide('systemPrompt',{tools(){}});}}).await();
+  const tools=await root.plugin({name:'turn-tools',inject:['systemPrompt'],apply(ctx){new ToolRuntime(ctx);}}).await();
+  try{
+    root.tools.register({name:'mymc_protocol',description:'Host reads',parameters:{type:'object'},
+      output:{schema:{type:'object'},render:(_args,value)=>renderReceipt(value)},
+      execute:(args,exec)=>bridge.call('mymc_protocol',args,nativeToolContext(exec))});
+    root.on('tools/post-execute',mcpResultDecision);await bridge.enter('same-session',7,1);
+    const rejected=await root.tools.execute({name:'mymc_protocol',arguments:{protocol:'agent-mc/v1',action:'begin_turn',id:'invented'},callId:'wrong-turn',signal:new AbortController().signal});
+    assert.equal(rejected.concludesTurn,true);assert.equal(sent,0);assert.equal(bridge.turnId,'same-session:7');
+    assert.equal(JSON.parse(rejected.content[0].text).data.code,'HOST_MANAGED_TURN');
+    await bridge.ended('same-session',7);await bridge.enter('same-session',8,1);
+    const read=await root.tools.execute({name:'mymc_protocol',arguments:{protocol:'agent-mc/v1',action:'facts'},callId:'next-read',signal:new AbortController().signal});
+    assert.equal(read.isError,false);assert.equal(sent,1);
+    assert.deepEqual(boundaries,[['begin','same-session:7'],['end','same-session:7'],['begin','same-session:8']]);
+  }finally{await tools.dispose();await prompt.dispose();}
+});
 test('native DSH surface replaces stale facts and preserves raw source attribution', () => {
   const session = Session.create('offline');
   const snapshot = session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'old health=2' }],
