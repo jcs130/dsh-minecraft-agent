@@ -73,9 +73,10 @@ test('native error projection preserves original MCP receipts without stripping 
   const next = async () => { accepted++; return { kind: 'accept' }; };
   const decision = await mcpResultDecision({}, { isError: false, value }, next);
   assert.equal(decision.kind, 'block'); assert.equal(accepted, 0);
-  assert.equal(JSON.parse(decision.feedback[0].text).meta.code, 'EVENT_RUN_REQUIRED');
+  assert.equal(JSON.parse(decision.feedback[1].text).meta.code, 'EVENT_RUN_REQUIRED');
   value.structuredContent.control = { endTurnRequested: true };
-  assert.deepEqual(await mcpResultDecision({}, { isError: false, value }, next), { kind: 'accept' });
+  const concluding=await mcpResultDecision({}, { isError: false, value }, next);
+  assert.equal(concluding.kind,'accept');assert.match(concluding.content[0].text,/action FAILED/);
   assert.equal(accepted, 1); assert.equal(value.isError, true);
 });
 

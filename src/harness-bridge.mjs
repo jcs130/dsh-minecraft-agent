@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { nativeMcpOutcomeDecision } from './native-mcp-outcome.mjs';
 
 export const PROTOCOL = 'agent-mc/v1';
 export const observationTool = name => /_(?:observe|scout|visual|risk)$/.test(name);
@@ -263,10 +264,7 @@ export class HarnessBridge {
  * Other MCP errors must enter the native error arm, retaining the full receipt.
  */
 export async function mcpResultDecision(exec, result, next) {
-  const value = result.value;
-  if (!result.isError && value?.isError === true && !value.structuredContent?.control?.endTurnRequested)
-    return { kind: 'block', feedback: renderReceipt(value) };
-  return next();
+  return nativeMcpOutcomeDecision(exec,result,next,()=>renderReceipt(result.value));
 }
 
 /** DSH binds the explicit request options on both session creation and resumption. */

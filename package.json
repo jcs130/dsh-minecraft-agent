@@ -65,6 +65,7 @@
   "files": [
     "lib/plugins/mc-harness.mjs",
     "lib/plugins/harness-bridge.mjs",
+    "lib/plugins/native-mcp-outcome.mjs",
     "lib/plugins/harness-panel.mjs",
     "lib/plugins/harness-lifecycle.mjs",
     "lib/plugins/harness-goal.mjs",
@@ -88,6 +89,7 @@
     "bin/prepare-assets.mjs",
     "docs/harness-migration.md",
     "docs/host-turn-ownership.md",
+    "docs/native-tool-outcomes.md",
     "docs/harness2.md",
     "docs/desktop.md",
     "docs/quick-start.md",
