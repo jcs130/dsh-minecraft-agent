@@ -24,9 +24,13 @@ export function constrainMinecraftTools(agentCtx,composition,hostTools=[]) {
   if(!Array.isArray(hostTools)||hostTools.some(n=>n!=='skill'))throw Error('Only the explicit native skill loader can be inherited by the game-only Agent');
   if(!composition.composed)agentCtx.tools.restrict({allow:[...new Set(hostTools)]});
 }
-export async function composeMinecraftAgent(agentCtx,{dshPreset,persona,environment}) {
+export async function composeMinecraftAgent(agentCtx,{dshPreset,persona,environment,supplementalSections}) {
   if(!dshPreset){
-    agentCtx.systemPrompt.section({name:'minecraft:persona',order:0,text:persona+'\n\n'+environment,complete:true,interpolate:false});
+    const base=persona+'\n\n'+environment;
+    // A complete prompt suppresses separately registered sections. Keep the
+    // game-only/persona boundary, but include this host's explicit supplements.
+    const text=supplementalSections?()=>[base,...[...supplementalSections].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name)).map(s=>s.text)].filter(Boolean).join('\n\n'):base;
+    agentCtx.systemPrompt.section({name:'minecraft:persona',order:0,text,complete:true,interpolate:false});
     return {composed:false,compaction:undefined};
   }
   const registry=agentCtx.get('agentPresets');

@@ -5,9 +5,10 @@ description: Minecraft 中反复失败、打法低效、现有动作不能表达
 
 你可以创作自己的方法，不只调用预制动作。身体反射负责紧急保命；长期战术、方法改进和采用由你决定。也不必为了显得有学习而把每个简单动作写成脚本。
 
-先辨认当前宿主实际暴露的 `*_script`、`*_memory`、`*_combat_tactic` 和可选 `mc_practice`。工具前缀以当前目录为准。下面是调用契约，不是要盲目执行的任务清单。
+先辨认当前宿主实际暴露的 `*_script`、`*_memory`、`*_knowledge`、`*_help`、`*_combat_tactic` 和可选 `mc_practice`。工具前缀以当前目录为准，未暴露的入口不要猜。下面是调用契约，不是要盲目执行的任务清单。
 
 1. 明确一个需要改善的具体问题，以及怎样从现场确认改善。例如能否抵达、净损血、消耗、任务进展或实际命中。检查原任务终态，未决动作先查原 ID，不能重投。检索相关游戏记忆和方法，旧记录不是当前事实。
+   规则、配方、食物风险或设备用法不清时，用已有 `*_knowledge search/get` 和 `*_help {skill}` 按需查对应片段；同伴建议是待核验线索。原版知识不等于服务器实际配方。装料导致库存减少、拿着工作台使用、走到村民身旁，都不能当作烧炼、放置或交易已成功；明确 fail 不能被“状态变了”冲掉。
 2. 现有动作无法表达你的条件、计算、连招或反馈循环时，主动读 `*_script {api:"authoring"}`，再按需查询 API。写有界 async 函数体，串行 await API，在 finally 释放自己持有的控制。不得绕过安全检查、切换账号、修改引擎或读取凭据。
 3. `validate:true` 只查语法，不跑身体。保留原 validation runId，再用 `library:{op:"save",id,code,description,conditions,parent,validationRunId}` 保存。新方法 parent:null；修订用当前精确 revision。避免为相同问题不停新建 ID。
 4. 在自然适合的短任务中执行精确 `procedure:{handle,revision}`，核对同一 runId/executionId 的终态和现场净变化。执行 unknown 时停下查原结果，不把程序完成、发出命令或自己的解释当作成功。护命反射抢占、装备被换、目标遮挡等影响要记入反例。

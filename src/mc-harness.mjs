@@ -301,12 +301,13 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     query: async () => publicAccessState(await portalAccess.status(), (await runtime.operatorState()).connection?.connection?.ready),
   } : undefined);
   const setup = async agentCtx => {
-    const composition=await composeMinecraftAgent(agentCtx,{dshPreset:config.dshPreset,persona,environment:prefix});
+    const supplementalSections=[];
+    const composition=await composeMinecraftAgent(agentCtx,{dshPreset:config.dshPreset,persona,environment:prefix,supplementalSections});
     // Native request config is frozen and logged before dispatch. This does
     // not mutate the user's selected model or add a second generation loop.
     installEvidenceReflection(agentCtx,{reflection,retryEvidence:planReviewEvidence(retryEvidence,planReview,()=>runtime.journal.run),sessionQuery:ctx.sessionQuery,ownerSessionId:sessionId});
     if(planReview)installPlanReview(agentCtx,{book:planReview,run:()=>runtime.journal.run,sessionId});
-    installImprovementContext(agentCtx,{tools,reflection,enabled:config.selfImprovement?.enabled!==false,
+    installImprovementContext(agentCtx,{tools:selectedGameTools,reflection,enabled:config.selfImprovement?.enabled!==false,completeSections:composition.composed?undefined:supplementalSections,
       practice:config.harness2?.enabled===true&&!Array.isArray(config.harness2.jobs)?'mc_practice':undefined});
     const scriptTool=tools.find(t=>t.name.endsWith('_script'))?.name;
     if(config.selfImprovement?.enabled!==false&&scriptTool)installMethodProgress(agentCtx,methodProgress,scriptTool);

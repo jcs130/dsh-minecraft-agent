@@ -24,20 +24,42 @@ export function improvementGuidance({script,memory,practice,reason,authoring=tru
  return text.filter(Boolean).join('\n');
 }
 
-export function installImprovementContext(agentCtx,{tools,reflection,practice,enabled=true}={}) {
+/** Discover only exposed read tools; knowledge stays on demand and out of the changing tail. */
+function fixedSection(agentCtx,section,completeSections) {
+ if(!completeSections)return agentCtx.systemPrompt.section(section);
+ if(completeSections.some(s=>s.name===section.name))throw Error('Duplicate Minecraft supplemental section');
+ completeSections.push(section);const off=()=>{const i=completeSections.indexOf(section);if(i>=0)completeSections.splice(i,1);};
+ agentCtx.effect?.(()=>off);return off;
+}
+export function installKnowledgeRecoveryContext(agentCtx,{tools=[],completeSections,when}={}) {
+ const knowledge=tools.find(t=>t.name.endsWith('_knowledge'))?.name,
+  help=tools.find(t=>t.name.endsWith('_help')&&!t.name.endsWith('_tool_help')&&(t.inputSchema??t.parameters)?.properties?.skill)?.name;
+ if(!knowledge&&!help)return;
+ const text=[
+  '规则或设备用法不确定、同类操作失败时，先核对原生失败原因，再按需查一小段对应说明；不要只凭同伴说过就重复尝试。',
+  knowledge&&`配方、食物风险和生存知识用 ${knowledge} {action:"search",query:"物品英文ID或问题",limit:3}，再 get 返回的精确 id。这是版本化原版参考，服务器自定义配方仍须核验，未收录不代表服务端绝无配方。`,
+  help&&`操作字段和交互含义用 ${help} {skill:"当前技能名"}。装料、拿着使用物品、走到NPC旁、发出命令都不是制作、放置、交易或交付已经成功；按实际效果判断。`,
+  '不确定才补查相关片段，不每轮重读整份攻略；记录有原执行引用的教训后继续原目标。',
+ ].filter(Boolean).join('\n');
+ if(typeof when==='function')return agentCtx.systemPrompt.context({name:'minecraft:knowledge-recovery',order:9994,interpolate:false,required:true,text:()=>when()?text:''});
+ return fixedSection(agentCtx,{name:'minecraft:knowledge-recovery',order:7002,interpolate:false,text},completeSections);
+}
+
+export function installImprovementContext(agentCtx,{tools,reflection,practice,enabled=true,completeSections}={}) {
  if(!enabled)return;
+ const offKnowledge=installKnowledgeRecoveryContext(agentCtx,{tools,completeSections});
  const scriptSpec=tools.find(t=>t.name.endsWith('_script')),script=scriptSpec?.name,memory=tools.find(t=>t.name.endsWith('_memory'))?.name;
- if(!script)return;
+ if(!script)return offKnowledge;
  const offSkill=registerImprovementSkill(agentCtx),authoring=scriptSpec.description?.includes('api:"authoring"')===true;
  // Keep the workflow in the fixed prefix; only a selected reflection adds a
  // short changing cue at the request tail. Do not append full lessons per step.
- const offPrefix=agentCtx.systemPrompt.section({name:'minecraft:self-improvement',order:7001,interpolate:false,
-  text:improvementGuidance({script,memory,practice,authoring})});
+ const offPrefix=fixedSection(agentCtx,{name:'minecraft:self-improvement',order:7001,interpolate:false,
+  text:improvementGuidance({script,memory,practice,authoring})},completeSections);
  const offCue=agentCtx.systemPrompt.context({name:'minecraft:reflection-intent',order:9993,interpolate:false,text:()=>{
   const reason=reflection?.snapshot().lastReason;
   return typeof reason==='string'&&/^[a-z-]{1,100}$/.test(reason)
    ?JSON.stringify({reason,next:'依据当前证据纠正计划；方法缺口可自写、验证、试用与复盘。不要原样重试，不把增加思考当作改善。'})
    :'{}';
  }});
- return()=>{offCue?.();offPrefix?.();offSkill?.();};
+ return()=>{offCue?.();offPrefix?.();offSkill?.();offKnowledge?.();};
 }
