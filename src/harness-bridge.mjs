@@ -117,7 +117,7 @@ export class RetryEvidenceContext {
     // Historical reads cannot displace native failure or rejection evidence.
     while(this.readbacks.size>Math.min(2,this.limit))this.readbacks.delete(this.readbacks.keys().next().value);
   }
-  observeSpatialRead({run,requestId,spec,result}){
+  observeSpatialRead({run,requestId,spec,result,goalId,execution}){
     const value=result?.structuredContent,read=value?.meta?.observation,tags=spec?._meta?.[PROTOCOL]?.tags;
     const declaredRead=spec?.annotations?.readOnlyHint===true||Array.isArray(tags)
       &&tags.includes('read')&&!tags.some(tag=>['act','speak'].includes(tag));
@@ -126,11 +126,23 @@ export class RetryEvidenceContext {
       ||!['voxels','sites','rays'].includes(read.kind)||!/^[a-f0-9]{64}$/.test(read.selection??'')
       ||!/^[a-f0-9]{64}$/.test(read.revision??''))return;
     this.bindRun(run);
+    let scopeHash;
+    // Terrain equality is not an execution-episode identity. A real intervening
+    // task may leave this spatial selection unchanged, but permits a new review.
+    // Request IDs and automatic round numbers must never re-arm recovery.
+    if(goalId!==undefined||execution!==undefined){
+      const e=execution,now=this.now();
+      if(typeof goalId!=='string'||!goalId||goalId.length>240||e?.protocol!=='agent-mc-execution-state/v1'||e.scope!=='runtime-receipts'
+        ||e.run!==run||e.phase!=='started'||!Number.isSafeInteger(e.generation)||e.generation<1||!/^[a-f0-9]{64}$/.test(e.revision??'')
+        ||[e.activeCount,e.pendingCalls,e.pendingTactics,e.detachedCount].some(n=>n!==0)
+        ||!Number.isFinite(e.observedAt)||now-e.observedAt>15000||e.observedAt>now+5000){this.observations.delete(read.selection);return;}
+      scopeHash=evidenceHash({goalId,generation:e.generation,executionRevision:e.revision});
+    }
     const previous=this.observations.get(read.selection);
     if(previous?.requestId===requestId)return;
-    const attempts=previous?.revision===read.revision?previous.attempts+1:1;
+    const attempts=previous?.revision===read.revision&&previous.scopeHash===scopeHash?previous.attempts+1:1;
     this.observations.delete(read.selection);this.observations.set(read.selection,{kind:'observation',run,requestId,
-      selection:read.selection,revision:read.revision,attempts,historical:false,at:this.now()});
+      selection:read.selection,revision:read.revision,attempts,historical:false,at:this.now(),...(scopeHash?{scopeHash,knownIdle:true}:{})});
     while(this.observations.size>Math.min(2,this.limit))this.observations.delete(this.observations.keys().next().value);
   }
   observeEventRead({run,requestId,spec,result}){

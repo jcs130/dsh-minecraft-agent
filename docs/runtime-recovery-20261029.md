@@ -72,3 +72,19 @@ current turn, and a fresh execution revision matching the proven idle episode.
 Human turns, cancellation, changed execution or a paused goal never qualify.
 The Agent still chooses its own action or evidenced wait. The same episode
 cannot repeatedly inject corrections or grow an unbounded retry loop.
+
+## Re-reading unchanged terrain after real work
+
+A terrain fingerprint alone must not permanently consume reflection for the
+entire runtime. Crafting or finishing another task can leave nearby voxels
+unchanged. With a current execution-state port, observation recovery is scoped
+to the owning goal, generation and execution-registry revision as well as the
+spatial selection and terrain revision. New real execution starts a new
+episode; new request IDs, turn numbers and automatic window resumes do not.
+
+Scoped evidence requires fresh, matching, empty registered work. Busy, missing,
+foreign or stale state is unknown and cannot be turned into idle zeros. Legacy
+unscoped reads retain their existing behavior and never claim registered
+idleness. Both scoped and older persisted reflection keys survive reloads.
+This changes the host's next natural reasoning choice only: it does not
+dispatch an action, replay an earlier unknown task or add a model probe.
