@@ -110,7 +110,7 @@ test('host wires the guards: lean tools, overflow retry, signals and stopped sta
   assert.match(src, /status\(\{ state: 'stopped', stopped: true/);
   assert.doesNotMatch(src, /\?\? 2000/);
   assert.match(src, /chat\.check\(spec\.name, args\)/);
-  assert.match(src, /goalClosed\(value\)/);
+  assert.match(src, /gameGoalCompletesSession\(value, \{ continuous: continuation\.owns\(currentGoal\(\)\) \}\)/);
 });
 
 test('wake filter offers public conversation and suppresses countdowns, self and system chat', async () => {

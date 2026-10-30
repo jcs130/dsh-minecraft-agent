@@ -1,5 +1,25 @@
 import { nativeGoalRounds } from './harness-autonomy.mjs';
 
+/** A body-owned stage closing does not finish an owner-controlled continuous
+ * session. Preserve its original receipt; bounded sessions retain completion. */
+export function gameGoalCompletesSession(value, { continuous = false } = {}) {
+  return !continuous && value?.isError !== true && value?.structuredContent?.failed !== true
+    && value?.structuredContent?.meta?.goalClosure?.phase === 'closed';
+}
+
+/** Continuous lifetime is owned by the human controller. Game messages and a
+ * model's stage completion cannot close it through the model-facing tool.
+ * Direct native owner controls remain available outside the model tool path. */
+export function installContinuousGoalAuthority(agentCtx, { sessionId, continuous, goal } = {}) {
+  return agentCtx.tools.guard(exec => {
+    const current = goal();
+    if (exec.agent?.id !== sessionId || !continuous() || !current
+      || exec.name !== 'update_goal' || exec.arguments?.action !== 'complete'
+      || exec.arguments?.goal_id !== current.id) return;
+    return '当前是主人要求持续运行的目标。阶段完成请记录真实成果并继续选择下一阶段；只有主人的显式目标控制可以结束整个目标。';
+  });
+}
+
 /** Apply the owner's configured objective at an explicit activation boundary.
  * Settled goals remain in the native journal: only a different owner-configured
  * objective replaces them. Never reopen the same settled task or replace an
