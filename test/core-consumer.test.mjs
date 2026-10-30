@@ -111,28 +111,40 @@ test('packed SDK and MCP carry current spatial read evidence into one existing t
     source:'client-visible-world',kind:'voxels',format:'dense',dimension:'overworld',complete:false,retryable:false,
     coverage:{origin:[0,64,0],remainingCount:0,coverageComplete:true,unknownCount:39},cells:[...Array(11).fill(0),1,...Array(39).fill(-1)],next:null};
   const data={readout:spatialReadout(raw),...raw};
+  let host,now=Date.now();
   const world={id:'offline-spatial-fixture',tools:()=>withToolHelp([{name:'mc_observe',tags:['read'],description:'Offline read',
     parameters:{type:'object'},handler:async()=>({text:JSON.stringify(data),data,meta:{observation:data.readout}})}],'mc_tool_help'),
-    envPromptVars:()=>({}),async start(){},async stop(){}};
+    envPromptVars:()=>({}),async start(value){host=value;},async stop(){}};
   const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'offline.invalid',username:'SpatialQA'},dataDir:dir,log:nullLogger()},world);
   const server=createMinecraftMcpServer(runtime,'spatial-consumer'),client=new Client({name:'spatial-consumer',version:'1'});
-  const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
+  const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext({now:()=>now});
   try{
     await server.connect(left);await client.connect(right);await runtime.connect();await bridge.enter('original-session',2,0);
     const spec=(await client.listTools()).tools.find(x=>x.name==='mc_observe');
-    for(const id of ['original-read-1','original-read-2']){
+    const readOnce=async id=>{
       const result=await bridge.call('mc_observe',{}, {id});
       assert.deepEqual(result.structuredContent.meta.observation,data.readout);
       assert.equal(result.structuredContent.execution,null);assert.equal(result.isError,undefined);
-      view.observeSpatialRead({run:runtime.journal.run,requestId:id,spec,result});
+      const execution={...runtime.executionState(),observedAt:now};
+      assert.equal(execution.pendingCalls,0,'The completed MCP read must not remain its own pending work');
+      view.observeSpatialRead({run:runtime.journal.run,requestId:id,spec,result,goalId:'original-goal',execution});
       const visible=capBlocks(renderReceipt(result),1500)[0].text;
       assert.ok(visible.includes('"scanComplete":true'));assert.ok(visible.includes('"unknownCount":39'));
       assert.ok(visible.includes('"name":"chest"'));
-    }
+      return execution;
+    };
+    const firstState=await readOnce('original-read-1'),secondState=await readOnce('original-read-2');
+    assert.equal(firstState.revision,secondState.revision,'Read request identities cannot create a new execution scope');
     const base={provider:'unchanged',model:'unchanged',reasoningEffort:'none',maxTokens:6000};
-    const reflection=new EvidenceReflection({enabled:true,attempts:2});
+    const reflection=new EvidenceReflection({enabled:true,attempts:2,minIntervalMs:1000,minRequests:1},{now:()=>now});
     assert.deepEqual(reflection.select(base,view.snapshot(),{turn:2,step:1}),{...base,reasoningEffort:'low'});
     assert.equal(reflection.snapshot().lastReason,'repeated-unchanged-current-observation');
+    await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.task',text:'Fixture task finished',
+      execution:{kind:'task',id:'fixture-body:1',phase:'completed',terminal:true,goalCompleted:false}});
+    now+=2000;const afterWork=await readOnce('original-read-3');
+    assert.notEqual(afterWork.revision,firstState.revision);assert.equal(view.snapshot().evidence[0].attempts,1);
+    await readOnce('original-read-4');
+    assert.equal(reflection.select(base,view.snapshot(),{turn:3,step:0}).reasoningEffort,'low','New real execution permits recovery of the same terrain read');
     await bridge.ended('original-session',2);
   }finally{await bridge.stop();await server.close();await removeFixture(dir);}
 });

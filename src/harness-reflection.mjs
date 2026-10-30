@@ -13,7 +13,7 @@ export class EvidenceReflection {
     this.state.readbacksSeen=Array.isArray(saved?.readbacksSeen)?saved.readbacksSeen.filter(x=>typeof x==='string'
       &&/^[A-Za-z0-9._:-]{1,160}:readback:[a-f0-9]{64}:[a-f0-9]{64}$/.test(x)).slice(-8):[];
     this.state.observationsSeen=Array.isArray(saved?.observationsSeen)?saved.observationsSeen.filter(x=>typeof x==='string'
-      &&/^[A-Za-z0-9._:-]{1,160}:observation:[a-f0-9]{64}:[a-f0-9]{64}$/.test(x)).slice(-8):[];
+      &&/^[A-Za-z0-9._:-]{1,160}:observation:[a-f0-9]{64}:[a-f0-9]{64}(?::[a-f0-9]{64})?$/.test(x)).slice(-8):[];
     this.state.eventWaitsSeen=Array.isArray(saved?.eventWaitsSeen)?saved.eventWaitsSeen.filter(x=>typeof x==='string'
       &&/^[A-Za-z0-9._:-]{1,160}:event-wait:[a-f0-9]{64}$/.test(x)).slice(-8):[];
     this.state.readsSeen=Array.isArray(saved?.readsSeen)?saved.readsSeen.filter(x=>typeof x==='string'
@@ -84,7 +84,7 @@ export class EvidenceReflection {
       &&x.rejectionKind==='repeat'&&x.attempts>=this.attempts);
     const validation=[...evidence].reverse().find(x=>x.kind==='validation'&&x.dispatched===false&&x.attempts>=this.attempts);
     const signatureOf=item=>item.run+':'+(item.kind==='readback'?'readback:'+item.resourceHash+':'+item.revision
-      :item.kind==='observation'?'observation:'+item.selection+':'+item.revision:item.kind==='eventWait'?'event-wait:'+item.revision
+      :item.kind==='observation'?'observation:'+item.selection+':'+item.revision+(item.scopeHash?':'+item.scopeHash:''):item.kind==='eventWait'?'event-wait:'+item.revision
       :item.kind==='readOnly'?'read-only:'+item.selectorHash+':'+item.revision
       :item.kind==='validation'?'validation:'+item.tool+':'+item.schemaHash+':'+item.argsHash:item.taskId??item.sourceHash??item.requestId);
     const readback=[...evidence].reverse().find(x=>x.kind==='readback'&&x.historical===true&&x.attempts>=this.attempts
