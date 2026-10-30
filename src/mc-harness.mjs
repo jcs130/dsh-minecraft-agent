@@ -19,11 +19,11 @@ import { minecraftCompactionBackend } from './harness-compaction.mjs';
 import { AppendOnlyFactsContext,installTextReadRecovery } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
-import { activateConfiguredGoal, applyGoalControl, prepareOperatorGoal, settleHostGoal, GoalWrapUp } from './harness-goal.mjs';
+import { activateConfiguredGoal, applyGoalControl, prepareOperatorGoal, settleHostGoal, GoalWrapUp, gameGoalCompletesSession, installContinuousGoalAuthority } from './harness-goal.mjs';
 import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
 import {composeMinecraftAgent,constrainMinecraftTools,minecraftPlanningGuidance} from './harness-composition.mjs';
 import {conversationDirectory} from './profile-settings.mjs';
-import { configuredWake, compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, goalClosed, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
+import { configuredWake, compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
 
 prepareDshNativeStreams();
 const coreClient = await import('agent-mc-world/client');
@@ -316,7 +316,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     agentCtx.systemPrompt.context({ name: 'minecraft:autonomy', order: 9989,
       text: () => JSON.stringify({ ...continuation.snapshot(),
         guidance: continuation.policy.continuous
-          ? '持续自主目标没有累计轮数上限。阶段任务做完后继续观察、规划和执行；只有整个主人目标已达成才 complete。无进展时核对原任务结果并换方案，必要时用事件工具有界等待，不反复提交未知动作。休整和窗口轮换不是目标完成。'
+          ? '持续自主目标由主人结束，没有累计轮数上限。游戏内阶段完成只记录阶段成果，不结束宿主长期目标，不调用 update_goal complete；继续观察、规划和执行下一阶段。主人通过原生目标控制结束或明确暂停仍具有效力。无进展时核对原任务结果并换方案，必要时用事件工具有界等待，不反复提交未知动作。休整和窗口轮换不是目标完成。'
           : '按主人配置的有限预算运行，预算用尽不等于目标完成。' }) });
     // The complete section deliberately includes every stable game instruction, byte for byte.
     // Dynamic facts use DSH named snapshots at the request tail and remain in its durable log.
@@ -375,7 +375,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
             requestId:value.structuredContent?.control?.requestId??exec.callId});
           if (value?.isError) chat.refund();
           else noop.call(spec.name);
-          if (goalClosed(value)) closeSessionGoal('in-game goal closed', 'complete');
+          if (gameGoalCompletesSession(value, { continuous: continuation.owns(currentGoal()) }))
+            closeSessionGoal('in-game goal closed', 'complete');
           const looking = observationTool(spec.name);
           if (value?.isError) return value;
           const read=value?.structuredContent?.meta?.observation;
@@ -408,6 +409,8 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     constrainMinecraftTools(agentCtx,composition,config.hostTools);
     const goalPlugin = await import('@deepseek-ai/dsh-tool-goal');
     await agentCtx.plugin(goalPlugin.default ?? goalPlugin).await();
+    installContinuousGoalAuthority(agentCtx, { sessionId,
+      continuous: () => continuation.owns(currentGoal()), goal: currentGoal });
     agentCtx.tools.guard(() => pendingGoalClose ? '本轮需要收尾。请根据已有回执简短说明，等待下一轮核对现场并调整方案，不继续调用工具。' : goalWrapUp.denial(currentGoal()));
     agentCtx.on('agent/pre-step', async (payload, next) => {
       if (paused) throw Error('Minecraft is paused');
