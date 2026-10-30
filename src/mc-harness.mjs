@@ -12,8 +12,11 @@ import { connectionPreference, openHostConsole } from './harness-panel.mjs';
 import { HostLifecycle } from './harness-lifecycle.mjs';
 import { AutonomousContinuation } from './harness-autonomy.mjs';
 import { EvidenceReflection, installEvidenceReflection } from './harness-reflection.mjs';
+import { installImprovementContext } from './harness-improvement.mjs';
+import { MethodProgress, installMethodProgress } from './harness-method-progress.mjs';
+import { installPlanReview, planReviewEvidence } from './harness-plan-review.mjs';
 import { minecraftCompactionBackend } from './harness-compaction.mjs';
-import { AppendOnlyFactsContext } from './harness-context.mjs';
+import { AppendOnlyFactsContext,installTextReadRecovery } from './harness-context.mjs';
 import { evidenceCompactionBackend } from './harness-handoff.mjs';
 import { qiandengjiAccess, verifyQiandengjiConnection, publicAccessState } from './qiandengji-access.mjs';
 import { activateConfiguredGoal, applyGoalControl, prepareOperatorGoal, settleHostGoal, GoalWrapUp } from './harness-goal.mjs';
@@ -212,12 +215,17 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   for (const signal of signals) process.once(signal, onSignal);
   const inbox = new MinecraftEventInbox();
   const retryEvidence=new RetryEvidenceContext();
+  const planReview=typeof coreClient.PlanReviewBook==='function'?new coreClient.PlanReviewBook():null;
   const readProgress=coreClient.ReadProgressBook?new coreClient.ReadProgressBook():null;
   const selectedGameTools=selectTools(tools,config.tools);
   const textPaging=selectedGameTools.some(t=>t.name.endsWith('_read_text'))&&typeof coreClient.renderToolTextPage==='function';
   const reflectionFile=join(conversationDir,'reflection-selections.json');
   const reflection=new EvidenceReflection(config.reflection,{read:()=>{try{return JSON.parse(readFileSync(reflectionFile,'utf8'));}catch{return null;}},
     write:value=>{writeFileSync(reflectionFile+'.tmp',JSON.stringify(value)+'\n',{mode:0o600});renameSync(reflectionFile+'.tmp',reflectionFile);}});
+  const methodProgressFile=join(conversationDir,'method-progress.json');
+  const methodProgress=new MethodProgress({sessionId,currentRun:()=>runtime.journal.run,
+    read:()=>{try{return JSON.parse(readFileSync(methodProgressFile,'utf8'));}catch{return null;}},
+    write:value=>{writeFileSync(methodProgressFile+'.tmp',JSON.stringify(value)+'\n',{mode:0o600});renameSync(methodProgressFile+'.tmp',methodProgressFile);}});
   const statusFile = join(dataDir, 'status.json');
   // DSH may dispose the goal service before this plugin during shutdown; status must still be writable.
   const currentGoal = () => { try { return handle ? ctx.goals.get(handle.agent) : undefined; } catch { return undefined; } };
@@ -293,10 +301,18 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     query: async () => publicAccessState(await portalAccess.status(), (await runtime.operatorState()).connection?.connection?.ready),
   } : undefined);
   const setup = async agentCtx => {
-    const composition=await composeMinecraftAgent(agentCtx,{dshPreset:config.dshPreset,persona,environment:prefix});
+    const supplementalSections=[];
+    const composition=await composeMinecraftAgent(agentCtx,{dshPreset:config.dshPreset,persona,environment:prefix,supplementalSections});
     // Native request config is frozen and logged before dispatch. This does
     // not mutate the user's selected model or add a second generation loop.
-    installEvidenceReflection(agentCtx,{reflection,retryEvidence,sessionQuery:ctx.sessionQuery});
+    installEvidenceReflection(agentCtx,{reflection,retryEvidence:planReviewEvidence(retryEvidence,planReview,()=>runtime.journal.run),sessionQuery:ctx.sessionQuery,ownerSessionId:sessionId});
+    if(planReview)installPlanReview(agentCtx,{book:planReview,run:()=>runtime.journal.run,sessionId});
+    if(typeof coreClient.TextReadRecoveryBook==='function')
+      installTextReadRecovery(agentCtx,{book:new coreClient.TextReadRecoveryBook(),run:()=>runtime.journal.run,sessionId});
+    installImprovementContext(agentCtx,{tools:selectedGameTools,reflection,enabled:config.selfImprovement?.enabled!==false,completeSections:composition.composed?undefined:supplementalSections,
+      practice:config.harness2?.enabled===true&&!Array.isArray(config.harness2.jobs)?'mc_practice':undefined});
+    const scriptTool=tools.find(t=>t.name.endsWith('_script'))?.name;
+    if(config.selfImprovement?.enabled!==false&&scriptTool)installMethodProgress(agentCtx,methodProgress,scriptTool);
     agentCtx.systemPrompt.context({ name: 'minecraft:autonomy', order: 9989,
       text: () => JSON.stringify({ ...continuation.snapshot(),
         guidance: continuation.policy.continuous
@@ -385,11 +401,11 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     });
     if(config.harness2){
       const {configuredDshPractice}=await import('./harness2.mjs');
-      const practiceTool=await configuredDshPractice({ctx,config,dataDir,sessionId,metrics:runtime.metrics,
+      const practiceTool=await configuredDshPractice({ctx:agentCtx,config,dataDir,sessionId,metrics:runtime.metrics,runtime,
         bridge,memoryTool:tools.find(t=>t.name.endsWith('_memory'))?.name,lifetimeSignal:lifetime.signal,onMonitor:monitor=>{experimentMonitor=monitor;}});
       if(practiceTool)agentCtx.tools.register(practiceTool);
     }
-    constrainMinecraftTools(agentCtx,composition);
+    constrainMinecraftTools(agentCtx,composition,config.hostTools);
     const goalPlugin = await import('@deepseek-ai/dsh-tool-goal');
     await agentCtx.plugin(goalPlugin.default ?? goalPlugin).await();
     agentCtx.tools.guard(() => pendingGoalClose ? '本轮需要收尾。请根据已有回执简短说明，等待下一轮核对现场并调整方案，不继续调用工具。' : goalWrapUp.denial(currentGoal()));
@@ -517,7 +533,7 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
     try {
       const events = await runtime.events({ run: runtime.journal.run, after: eventCursor, limit: 64, waitMs: 2000 }, lifetime.signal);
       eventCursor = events.nextCursor;
-      if (events.events?.length) { retryEvidence.observe(events.events);recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
+      if (events.events?.length) { retryEvidence.observe(events.events);planReview?.recordEvents(events.events);methodProgress.observeEvents(events.events);recentEvents = [...recentEvents, ...events.events].slice(-24); condenser.push(events.events); }
       // Wake only for events a person would interrupt for; everything else rides the next snapshot.
       const goalNow = currentGoal();
       const wakeOn = configuredWake(goalNow?.phase === 'active' ? wakeSets.active : wakeSets.idle,config.wake);
