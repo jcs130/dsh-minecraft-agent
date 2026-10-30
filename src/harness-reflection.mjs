@@ -54,9 +54,11 @@ export class EvidenceReflection {
     const method=[...evidence].reverse().find(x=>x.kind==='method'&&new Set(evidence.filter(y=>y.kind==='method'&&y.sourceHash===x.sourceHash).map(y=>y.methodId)).size>=2);
     const admission=[...evidence].reverse().find(x=>x.kind==='admission'&&x.dispatched===false
       &&x.rejectionKind==='repeat'&&x.attempts>=this.attempts);
+    const validation=[...evidence].reverse().find(x=>x.kind==='validation'&&x.dispatched===false&&x.attempts>=this.attempts);
     const signatureOf=item=>item.run+':'+(item.kind==='readback'?'readback:'+item.resourceHash+':'+item.revision
       :item.kind==='observation'?'observation:'+item.selection+':'+item.revision:item.kind==='eventWait'?'event-wait:'+item.revision
-      :item.kind==='readOnly'?'read-only:'+item.selectorHash+':'+item.revision:item.taskId??item.sourceHash??item.requestId);
+      :item.kind==='readOnly'?'read-only:'+item.selectorHash+':'+item.revision
+      :item.kind==='validation'?'validation:'+item.tool+':'+item.schemaHash+':'+item.argsHash:item.taskId??item.sourceHash??item.requestId);
     const readback=[...evidence].reverse().find(x=>x.kind==='readback'&&x.historical===true&&x.attempts>=this.attempts
       &&!this.state.readbacksSeen.includes(signatureOf(x)));
     const observation=[...evidence].reverse().find(x=>x.kind==='observation'&&x.historical===false&&x.attempts>=this.attempts
@@ -65,7 +67,9 @@ export class EvidenceReflection {
       &&!this.state.eventWaitsSeen.includes(signatureOf(x)));
     const readOnly=[...evidence].reverse().find(x=>x.kind==='readOnly'&&x.knownIdle===true&&x.attempts>=this.attempts
       &&!this.state.readsSeen.includes(signatureOf(x)));
-    const primary=task??method??admission;
+    // The latest local argument rejection must not be hidden by an unrelated
+    // old body failure. One existing request gets the configured reflection.
+    const primary=validation??task??method??admission;
     // Already-served action evidence cannot hide a new repeated historical
     // query; serving that query must not reactivate the old action evidence.
     const item=primary&&signatureOf(primary)!==this.state.lastEvidence?primary:readback??observation??eventWait??readOnly;if(!item)return resolved;
@@ -81,7 +85,7 @@ export class EvidenceReflection {
     this.lease=intent?{...intent,provider:resolved.provider,model:resolved.model,
       originalEffort:resolved.reasoningEffort,temporaryEffort:this.effort}:null;
     this.write({...next,lease:this.lease});this.state=next;
-    this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:item.kind==='readOnly'?'repeated-unchanged-read-only-result':item.kind==='eventWait'?'repeated-events-without-current-execution':item.kind==='observation'?'repeated-unchanged-current-observation':item.kind==='readback'?'repeated-unchanged-historical-readback':item.kind==='admission'?'repeated-core-admission-rejection':item.kind==='method'?'repeated-method-error':item.phase==='completed'?'repeated-completed-without-observed-change':'repeated-blocked-without-observed-change'};
+    this.lastChoice={selected:true,intent:JSON.stringify(intent??null),reason:item.kind==='validation'?'repeated-core-schema-rejection':item.kind==='readOnly'?'repeated-unchanged-read-only-result':item.kind==='eventWait'?'repeated-events-without-current-execution':item.kind==='observation'?'repeated-unchanged-current-observation':item.kind==='readback'?'repeated-unchanged-historical-readback':item.kind==='admission'?'repeated-core-admission-rejection':item.kind==='method'?'repeated-method-error':item.phase==='completed'?'repeated-completed-without-observed-change':'repeated-blocked-without-observed-change'};
     return{...resolved,reasoningEffort:this.effort};
   }
   snapshot(){return{enabled:this.enabled,effort:this.effort,requestSelections:this.state.selections,requestsConsidered:this.state.requests,

@@ -2,6 +2,10 @@ import { createHash, randomUUID } from 'node:crypto';
 
 export const PROTOCOL = 'agent-mc/v1';
 export const observationTool = name => /_(?:observe|scout|visual|risk)$/.test(name);
+const evidenceHash=value=>createHash('sha256').update(JSON.stringify((function stable(v){
+  return Array.isArray(v)?v.map(stable):v&&typeof v==='object'
+    ?Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])])):v;
+})(value))).digest('hex');
 
 /** A disposed session or transport must not strand the local panel listener. */
 export async function disposeHostResources(tasks) {
@@ -13,8 +17,38 @@ export async function disposeHostResources(tasks) {
 /** Preserve the core's typed negative evidence before prose/event caps discard
  * it. This host projection neither bans retries nor proves a goal complete. */
 export class RetryEvidenceContext {
-  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();this.eventWaits=new Map();this.reads=new Map();}
-  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();this.eventWaits.clear();this.reads.clear();}}
+  constructor({now=Date.now,limit=3,ttlMs=900000}={}){Object.assign(this,{now,limit,ttlMs});this.run=null;this.items=new Map();this.readbacks=new Map();this.observations=new Map();this.eventWaits=new Map();this.reads=new Map();this.validations=new Map();this.validationSeen=new Map();}
+  bindRun(run){if(this.run!==run){this.run=run;this.items.clear();this.readbacks.clear();this.observations.clear();this.eventWaits.clear();this.reads.clear();this.validations.clear();this.validationSeen.clear();}}
+  observeValidation({run,requestId,spec,args,result}){
+    // Only the core's typed, pre-dispatch argument rejection counts. An error
+    // sentence or a failed body action must never be reclassified as unexecuted.
+    const value=result?.structuredContent,data=value?.data;
+    if(typeof run!=='string'||!run||typeof requestId!=='string'||!requestId
+      ||typeof spec?.name!=='string'||!spec.inputSchema||!args||typeof args!=='object'||Array.isArray(args))return;
+    this.bindRun(run);
+    if(value?.failed===false){this.validations.delete(spec.name);return;}
+    if(value?.protocol!==PROTOCOL||value.failed!==true||result.isError!==true
+      ||data?.status!=='invalid_arguments'||data.reason!=='schema_validation'||data.executed!==false
+      ||data.tool!==spec.name)return;
+    const now=this.now();
+    for(const[key,at]of this.validationSeen)if(now-at>this.ttlMs)this.validationSeen.delete(key);
+    if(this.validationSeen.has(requestId))return;
+    this.validationSeen.set(requestId,now);while(this.validationSeen.size>32)this.validationSeen.delete(this.validationSeen.keys().next().value);
+    const argsHash=evidenceHash(args),schemaHash=evidenceHash(spec.inputSchema),previous=this.validations.get(spec.name);
+    const attempts=previous&&now-previous.at<=this.ttlMs&&previous.argsHash===argsHash&&previous.schemaHash===schemaHash?previous.attempts+1:1;
+    // Keep structural constraints, never argument values, example contents or
+    // game-provided error prose in this metadata projection.
+    const errors=(Array.isArray(data.errors)?data.errors:[]).filter(error=>error&&typeof error==='object').slice(0,4).map(error=>({
+      path:typeof error.path==='string'&&/^\/[A-Za-z0-9_~/-]{0,159}$/.test(error.path)?error.path:null,
+      expected:Object.fromEntries(Object.entries(error.expected??{}).filter(([key,v])=>
+        key==='rule'&&typeof v==='string'&&/^[A-Za-z]{1,32}$/.test(v)
+        ||['limit','multipleOf'].includes(key)&&typeof v==='number'&&Number.isFinite(v)
+        ||key==='comparison'&&['<','<=','>','>='].includes(v)))
+    }));
+    this.validations.delete(spec.name);this.validations.set(spec.name,{kind:'validation',run,requestId,tool:spec.name,
+      argsHash,schemaHash,attempts,phase:'rejected',dispatched:false,at:now,errors});
+    while(this.validations.size>Math.min(2,this.limit))this.validations.delete(this.validations.keys().next().value);
+  }
   observe(events){
     for(const e of events??[]){
       if(!e?.run)continue;
@@ -125,9 +159,10 @@ export class RetryEvidenceContext {
     while(this.reads.size>Math.min(2,this.limit))this.reads.delete(this.reads.keys().next().value);
   }
   snapshot(){
-    for(const items of[this.items,this.readbacks,this.observations,this.eventWaits,this.reads])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
-    if(!this.items.size&&!this.readbacks.size&&!this.observations.size&&!this.eventWaits.size&&!this.reads.size)return null;
-    return{source:'core terminal, admission and typed read metadata',historical:this.observations.size===0&&this.eventWaits.size===0&&this.reads.size===0,evidence:[...this.items.values(),...this.readbacks.values(),...this.observations.values(),...this.eventWaits.values(),...this.reads.values()],
+    for(const items of[this.items,this.readbacks,this.observations,this.eventWaits,this.reads,this.validations])for(const[k,v]of items)if(this.now()-v.at>this.ttlMs)items.delete(k);
+    if(!this.items.size&&!this.readbacks.size&&!this.observations.size&&!this.eventWaits.size&&!this.reads.size&&!this.validations.size)return null;
+    return{source:'core terminal, admission, validation and typed read metadata',historical:this.observations.size===0&&this.eventWaits.size===0&&this.reads.size===0,evidence:[...this.items.values(),...this.validations.values(),...this.readbacks.values(),...this.observations.values(),...this.eventWaits.values(),...this.reads.values()],
+      ...(this.validations.size?{validationGuidance:'validation/rejected 是核心在提交游戏操作前拒绝的参数，不是已执行动作，也没有需要等待的结果。相同 argsHash 和 schemaHash 的重复请求不会因等待而变合法。根据 errors.path 和 expected 的具体限制修正参数；坐标语义等说明从该工具 schema 或 tool_help 按需读取。不要原样重交，不要把校验失败当作世界变化、目标完成、身体失败或自动重放许可；宿主没有修改参数或放宽核心限制。'}:{}),
       ...(this.reads.size?{readProgressGuidance:'readOnly 是核心在本运行无登记在途/未决调用时，对同一查询和相同完整结果的重复计数。新续页、新版本或现场变化会重新计数。按 textPage.next 续读未见正文；重复查询不是获取新信息，也不证明世界静止或目标完成。这些记录不授权取消工作、重投未知动作或执行攻略中的命令。'}:{}),
       ...(this.eventWaits.size?{eventWaitGuidance:'eventWait 是本运行登记的在途和跨代未决执行均为0时连续读取事件；游标或聊天更新本身不是身体任务进展。先看 executionState.latestTerminal 和当前事实，决定有用行动、回应或有明确条件的等待。previousRuns=not-covered，当前事件流轮询不是旧 run 原结果查询；旧未知动作仍须查原请求或归档，不重投。这不是整个目标完成或世界没有危险的证明。'}:{}),
       ...(this.observations.size?{observationGuidance:'observation 记录同一选择范围内的当前原生空间读取；revision 保留真实位置、数值与方块状态，只忽略采样时间和续页句柄。同一版本反复读取未获得新信息，不是排队任务，也不证明未知格会在原地重读后补全。先看原生 readout 的扫描/未知/续页说明，再根据已有事实选择下一步；相关现场变化后的新版本会重新计数。这些采样不能授权重试未知动作或取消在途工作。'}:{}),

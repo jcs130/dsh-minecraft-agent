@@ -17,6 +17,39 @@ import { EvidenceReflection } from '../src/harness-reflection.mjs';
 import { capBlocks } from '../src/harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
+test('packed MCP pre-dispatch validation reaches host reflection without executing or rewriting invalid arguments',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-core-'));let dispatched=0;
+  const schema={type:'object',required:['bounds'],additionalProperties:false,properties:{
+    bounds:{type:'array',minItems:6,maxItems:6,items:{type:'integer',minimum:-16,maximum:16}}}};
+  const world={id:'schema-recovery-fixture',tools:()=>withToolHelp([{name:'mc_observe',tags:['read'],
+    description:'Inert constrained read',parameters:schema,handler:async()=>{dispatched++;return{text:'fixture accepted'};}}],'mc_tool_help'),
+    envPromptVars:()=>({}),async start(){},async stop(){}};
+  const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'fixture.invalid',username:'SchemaQA'},dataDir:dir,log:nullLogger()},world);
+  const server=createMinecraftMcpServer(runtime,'schema-consumer'),client=new Client({name:'schema-consumer',version:'1'});
+  const [left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
+  const invalid={bounds:[0,-3,20,40,3,50]},original=structuredClone(invalid);
+  try{
+    await runtime.connect();await server.connect(left);await client.connect(right);await bridge.enter('same-session',1,0);
+    const spec=(await client.listTools()).tools.find(x=>x.name==='mc_observe');
+    for(const requestId of ['invalid-1','invalid-2']){
+      const result=await bridge.call(spec.name,invalid,{id:requestId});
+      assert.equal(result.isError,true);assert.equal(result.structuredContent.data.executed,false);
+      assert.equal(result.structuredContent.data.reason,'schema_validation');
+      view.observeValidation({run:runtime.journal.run,requestId,spec,args:invalid,result});
+      const visible=JSON.parse(capBlocks(renderReceipt(result),1500)[0].text);
+      assert.equal(visible.isError,true);assert.equal(visible.data.executed,false);
+      assert.equal(visible.data.errors[0].expected.limit,16);
+    }
+    assert.equal(dispatched,0);assert.deepEqual(invalid,original);
+    assert.equal(view.snapshot().evidence[0].attempts,2);
+    const reflection=new EvidenceReflection({enabled:true,attempts:2}),base={provider:'same',model:'same',reasoningEffort:'off',maxTokens:6000};
+    assert.deepEqual(reflection.select(base,view.snapshot(),{turn:1,step:3}),{...base,reasoningEffort:'low'});
+    const corrected={bounds:[0,-3,0,4,3,5]},result=await bridge.call(spec.name,corrected,{id:'corrected'});
+    view.observeValidation({run:runtime.journal.run,requestId:'corrected',spec,args:corrected,result});
+    assert.equal(result.isError,undefined);assert.equal(dispatched,1);assert.equal(view.snapshot(),null);
+  }finally{await bridge.ended('same-session',1);await bridge.stop();await client.close();await server.close();await removeFixture(dir);}
+});
+
 test('packed SDK/MCP event pages survive the real host cap and distinguish cursor updates from registered work',async t=>{
   const {runtimeExecutionState}=await import('agent-mc-world/client');
   if(typeof runtimeExecutionState!=='function')return t.skip('Installed core predates runtime execution state');

@@ -1,0 +1,11 @@
+# Recovering from repeated invalid tool arguments
+
+The DSH adapter now includes the core's typed `invalid_arguments / schema_validation / executed:false` results in its bounded retry evidence. Previously, repeated body admission failures and unchanged successful reads could request reflection, but repeated schema rejection could not. This allowed an Agent to keep submitting an unchanged invalid observation range even though every tool result contained the numerical limits.
+
+This is host request routing, not a change to game capabilities or the model gateway. The core still validates arguments before dispatch. The adapter neither clamps coordinates nor relaxes schemas, retries unknown actions, cancels body work, changes goals, or makes an extra inference call.
+
+Evidence contains tool name, run and request identity, stable argument/schema hashes, attempt count and up to four structural error paths and numerical constraints. Argument values, examples and server error prose are excluded from this projection. Duplicate deliveries do not add attempts. Changed arguments/schema, a new run, expiry, or a successful corrected call reset the relevant evidence; storage is bounded.
+
+When optional evidence reflection is enabled, repeated identical schema rejection can select the already configured reflection effort for one existing request. Human-selected thinking levels, model, output budget and the existing time/request limits remain authoritative. This is an opportunity to reconsider; it is not proof that the Agent corrected its plan or achieved its goal.
+
+Validation used the packaged core `0.5.7-rc.130`, optional neutral server pack `0.5.0-rc.38`, and native DSH `0.2.1-rc.4`. The complete isolated functional suite passed 233 tests, with one existing conditional skip. The registry publication metadata test was excluded because those dependencies were frozen local candidates. The real SDK/MCP consumer rejected the invalid six-coordinate range without executing the handler, preserved the error in the model-visible receipt, selected a single existing reflection request, and executed the corrected fixture exactly once. These tests used no game server, live model or TTS calls; live behavior is a separate acceptance step.
