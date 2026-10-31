@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.25-preview.65",
+  "version": "0.3.0-rc.25-preview.67",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -149,7 +149,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.149-preview.1",
+    "agent-mc-world": "0.5.7-rc.150-preview.3",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
@@ -173,7 +173,7 @@
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-rc.45-preview.1"
+    "agent-mc-qiandengji": "0.5.0-rc.47-preview.1"
   },
   "engines": {
     "node": ">=24",

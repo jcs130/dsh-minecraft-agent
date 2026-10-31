@@ -1,11 +1,11 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.25-preview.65",
+  "adapterVersion": "0.3.0-rc.25-preview.67",
   "publication": {
     "status": "local-candidate-not-published",
     "registryPublished": false,
     "githubPublished": false,
-    "updatedAt": "2026-10-31T05:48:17.768Z",
+    "updatedAt": "2026-10-31T13:39:48.013Z",
     "previousPublishedVersion": "0.3.0-rc.24"
   },
   "dsh": {
@@ -52,34 +52,36 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "b6ac47b27cd68a5abf0f6a3294d9c576eac89d98",
-      "sourceStatus": "committed-local-candidate-not-published",
-      "version": "0.5.7-rc.149-preview.1",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.149-preview.1.tgz",
-      "sha256": "668c3c662369ddd10a2e07bf2bc9ea5b96741ebe3ebd9d0df8e9fdbc256b86c0",
-      "integrity": "sha512-ZPUbjOXVe08CPec6agIM0CIfGPk0PvK6EIxPKNNGwM3M6zGT+GSc6PJtfVYBhQF1Vx2z1+zf8bqYfRrwh7bQnw==",
+      "commit": "3c0c2d24c8e9a7f796c86f9dbb7a8ec590d48012",
+      "sourceStatus": "committed-main-not-registry-published",
+      "version": "0.5.7-rc.150-preview.3",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.150-preview.3.tgz",
+      "sha256": "6d947a37592308810a558daaf71e8471638f1894124e1cd4250ab283fe170110",
+      "integrity": "sha512-sJRvUxeSZnEHfC86rZBMWR4sG4VN9SpHk3gTQEKkVnM9yAhuJJ2VcltsKKCESuHGSkVF0PohP1XmJkbkmGlMDg==",
       "published": false,
       "registryPublished": false,
       "githubPublished": false,
-      "artifactFile": "agent-mc-world-0.5.7-rc.149-preview.1.tgz",
-      "archiveBytesPreserved": true
+      "artifactFile": "agent-mc-world-0.5.7-rc.150-preview.3.tgz",
+      "archiveBytesPreserved": true,
+      "sourcePushed": true
     },
     {
       "role": "server-pack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "765e1f1a4ceb5b9204705d7e80802e63de08e3df",
-      "sourceStatus": "committed-local-candidate-not-published",
-      "version": "0.5.0-rc.45-preview.1",
-      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.45-preview.1.tgz",
-      "sha256": "acc77842544679a5e1bf37f99cfe039a07f8d64c2f99c0b814bff37af3085933",
-      "integrity": "sha512-l25ssVrL7R76yrQ65L+6+allV3O6JFDoW22fcPekqimRXiqCiBNc0KBx9vWSVd4Kt14jd4O6ryL9u7dLYY1QxA==",
+      "commit": "cee3460dd92ef15cbfee8a76e6255312a561064e",
+      "sourceStatus": "committed-main-not-registry-published",
+      "version": "0.5.0-rc.47-preview.1",
+      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.47-preview.1.tgz",
+      "sha256": "b88753399c909cc013cfe67d4b6d132c2020fa19f971acc14cf6d0e476ac4576",
+      "integrity": "sha512-dSQhjwtpCG6KFWSutr6kD/Op+c/BGZYdygusNyxryMdRn8+cRrfCm6fWx99OTy8OKaRpezjQUhiKIrMM1Y6JMQ==",
       "published": false,
       "registryPublished": false,
-      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.45-preview.1.tgz",
-      "peerCore": "^0.5.7-rc.149-preview.1",
+      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.47-preview.1.tgz",
+      "peerCore": "^0.5.7-rc.150-preview.3",
       "githubPublished": false,
-      "archiveBytesPreserved": true
+      "archiveBytesPreserved": true,
+      "sourcePushed": true
     }
   ],
   "viewer": {
