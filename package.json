@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.25-preview.61",
+  "version": "0.3.0-rc.25-preview.62",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -66,6 +66,7 @@
     "lib/plugins/mc-harness.mjs",
     "lib/plugins/harness-bridge.mjs",
     "lib/plugins/native-mcp-outcome.mjs",
+    "lib/plugins/harness-permission-recovery.mjs",
     "lib/plugins/harness-panel.mjs",
     "lib/plugins/harness-lifecycle.mjs",
     "lib/plugins/harness-goal.mjs",
@@ -95,6 +96,7 @@
     "docs/quick-start.md",
     "docs/goal-session-reset.md",
     "docs/continuous-autonomy.md",
+    "docs/continuous-goal-authority.md",
     "docs/host-evidence-20261028.md",
     "docs/autonomy-viewer-20261028.md",
     "docs/runtime-recovery-20261029.md",
@@ -151,6 +153,7 @@
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-scope": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2 || ^0.2.1-rc.2",

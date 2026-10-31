@@ -66,13 +66,14 @@ test('real DSH tool pipeline preserves a failed action conclusion and projects o
     await bridge.enter('fixture-session', 1, 1);
     const result = await root.tools.execute({ name: 'mc_fixture', arguments: { conclude: true }, callId: 'cast-failure', signal: new AbortController().signal });
     assert.equal(result.concludesTurn, true);
-    assert.equal(JSON.parse(result.content[0].text).failed, true);
-    assert.equal(JSON.parse(result.content[0].text).isError, true);
+    assert.match(result.content[0].text,/action FAILED/);
+    assert.equal(JSON.parse(result.content[1].text).failed, true);
+    assert.equal(JSON.parse(result.content[1].text).isError, true);
     await bridge.ended('fixture-session', 1); await bridge.enter('fixture-session', 2, 1);
     assert.deepEqual(boundaries, ['fixture-session:1']);
     const ordinary = await root.tools.execute({ name: 'mc_fixture', arguments: {}, callId: 'invalid-cursor', signal: new AbortController().signal });
     assert.equal(ordinary.isError, true); assert.equal(ordinary.concludesTurn, undefined);
-    assert.equal(JSON.parse(ordinary.content[0].text).failed, true);
+    assert.equal(JSON.parse(ordinary.content[1].text).failed, true);
   } finally { await tools.dispose(); await prompts.dispose(); }
 });
 
@@ -91,7 +92,8 @@ test('a forbidden model lifecycle call concludes one real DSH decision without c
     root.on('tools/post-execute',mcpResultDecision);await bridge.enter('same-session',7,1);
     const rejected=await root.tools.execute({name:'mymc_protocol',arguments:{protocol:'agent-mc/v1',action:'begin_turn',id:'invented'},callId:'wrong-turn',signal:new AbortController().signal});
     assert.equal(rejected.concludesTurn,true);assert.equal(sent,0);assert.equal(bridge.turnId,'same-session:7');
-    assert.equal(JSON.parse(rejected.content[0].text).data.code,'HOST_MANAGED_TURN');
+    assert.match(rejected.content[0].text,/action FAILED/);
+    assert.equal(JSON.parse(rejected.content[1].text).data.code,'HOST_MANAGED_TURN');
     await bridge.ended('same-session',7);await bridge.enter('same-session',8,1);
     const read=await root.tools.execute({name:'mymc_protocol',arguments:{protocol:'agent-mc/v1',action:'facts'},callId:'next-read',signal:new AbortController().signal});
     assert.equal(read.isError,false);assert.equal(sent,1);
