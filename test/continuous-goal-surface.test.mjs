@@ -16,7 +16,7 @@ async function fixture({preset=false}={}){
 test('official autonomous pause reproduces the permission denial; continuous scope advertises and executes only goal reads',async()=>{
  const f=await fixture();try{
   const before=await f.run('update_goal',{goal_id:'goal-1',revision:1,action:'pause'});assert.equal(before.isError,true);assert.equal(before.error.info.code,'GOAL_TOOL_AUTHORITY_REQUIRED');
-  const ready=[];const plugin=nativeGoalPluginForMode(f.native,{continuous:true,resolveScope:f.scopeApi.scopeOf,onReady:value=>ready.push(value)}),fiber=f.owner.ctx.plugin(plugin,{});await fiber.await();
+  const ready=[];const plugin=nativeGoalPluginForMode(f.native,{continuous:true,resolveScope:f.scopeApi.scopeOf,onReady:value=>ready.push(value)}),fiber=f.owner.ctx.plugin(plugin);await fiber.await();
   assert.deepEqual(ready,[{mode:'owner-read-only',modelGoalTools:['get_goal'],ownerControl:'native-ui-and-api'}]);
   const own=f.ctx.tools.schemas(f.owner).map(x=>x.name);assert(own.includes('get_goal'));assert(!own.includes('create_goal'));assert(!own.includes('update_goal'));
   const assembly=await f.ctx.systemPrompt.assemble({scope:f.owner});assert(assembly.tools.some(t=>t.name==='get_goal'));assert(!assembly.tools.some(t=>['create_goal','update_goal'].includes(t.name)));assert.match(JSON.stringify(assembly),/read-only/);

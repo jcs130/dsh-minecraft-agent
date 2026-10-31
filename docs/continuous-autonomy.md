@@ -25,7 +25,7 @@
 
 ## 持续目标的结束权限
 
-`preview.62` 起，continuous 模式的模型只声明宿主目标读取，阶段操作仍走游戏能力；主人保留原生 UI/API 控制。重复权限拒绝的恢复和加载边界见[持续目标权限](continuous-goal-authority.md)。
+`preview.63` 起，continuous 模式的模型只声明宿主目标读取，阶段操作仍走游戏能力；主人保留原生 UI/API 控制。重复权限拒绝的恢复和加载边界见[持续目标权限](continuous-goal-authority.md)。
 
 continuous 模式下，游戏内一个阶段的完成不会结束宿主的长期目标，原始游戏回执保持不变。模型工具 `update_goal complete` 不能自行结束长期目标；主人仍可使用 DSH 原生目标面板结束目标，或明确要求暂停。bounded 模式保留普通完成行为。
 

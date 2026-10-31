@@ -5,8 +5,8 @@ import { nativeGoalRounds } from './harness-autonomy.mjs';
  * are untouched; bounded mode mounts the unmodified official plugin. */
 export function nativeGoalPluginForMode(native,{continuous,resolveScope,onReady=()=>{}}={}){
   if(!continuous)return native;
-  return{name:'minecraft-continuous-native-goal-view',inject:native.inject,
-    async apply(ctx,config){
+  return{name:'minecraft-continuous-native-goal-view',Config:native.Config,inject:native.inject,
+    async apply(ctx,config={}){
       const scopeOf=resolveScope??(await import('@deepseek-ai/dsh-scope')).scopeOf;
       const scope=scopeOf(ctx);if(scope===undefined)throw Error('Continuous goal view requires its agent scope');
       const originalTools=ctx.tools,originalPrompt=ctx.systemPrompt;
