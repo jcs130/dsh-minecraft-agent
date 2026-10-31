@@ -15,6 +15,17 @@ export async function disposeHostResources(tasks) {
   if(errors.length)throw new AggregateError(errors,'Minecraft host cleanup failed');
 }
 
+/** Keep native offsets, complete records and the durability barrier; cancel
+ * the potentially cold open as well as the eventual range read. */
+export async function nativeSessionHistory(ctx, session, {offset, limit}, signal) {
+  signal?.throwIfAborted();
+  await ctx.sessions.flush(session);
+  signal?.throwIfAborted();
+  const log = await ctx.sessionPersistence.open(session.id, 'read', {signal});
+  try { return await log.read(offset, Math.min(20, limit ?? 5), {signal}); }
+  finally { await log.close(); }
+}
+
 /** Preserve the core's typed negative evidence before prose/event caps discard
  * it. This host projection neither bans retries nor proves a goal complete. */
 export class RetryEvidenceContext {
