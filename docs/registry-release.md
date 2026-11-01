@@ -1,5 +1,9 @@
 # Registry 分发记录
 
+## rc.26：本批发行
+
+精确消费已公开的核心 rc.153 和可选服务器包 rc.49；来源、改动与构建时验收边界见[本版说明](release-rc26.md)。最终 npm 与官方 profile 分发结果单独记录，现役角色不随发行重载。下方 rc.24 及旧候选为历史检查点。
+
 ## rc.24：核心 rc.99（npm / GitHub 已公开）
 
 [插件 rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 与[核心 rc.99](https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.99) 已公开；npm 分别使用 latest 与 next。精确依赖核心 rc.99、可选千灯纪 rc.24，自有 format-1 索引同步；各社区市场仍独立审核和刷新。

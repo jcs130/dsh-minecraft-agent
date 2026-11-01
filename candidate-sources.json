@@ -1,12 +1,13 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.25-preview.69",
+  "adapterVersion": "0.3.0-rc.26",
   "publication": {
-    "status": "local-candidate-not-published",
+    "status": "verified-release-candidate-awaiting-npm-publication",
     "registryPublished": false,
     "githubPublished": false,
-    "updatedAt": "2026-11-01",
-    "previousPublishedVersion": "0.3.0-rc.24"
+    "updatedAt": "2026-11-01T20:39:18.520886+00:00",
+    "previousPublishedVersion": "0.3.0-rc.24",
+    "note": "Build-time snapshot; immutable registry receipts are recorded separately."
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -52,42 +53,37 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "b1851de9ada4cda89d12d0f18b6d5db2950a5c57",
-      "sourceStatus": "validated-candidate-source-committed",
-      "version": "0.5.7-rc.151-preview.2",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.151-preview.2.tgz",
-      "sha256": "c26942af73b958b3d0dea2cc0f6ee70c233e45c8a5943070a621602b8c92b311",
-      "integrity": "sha512-EdBFJon+xkPFoHc6phnlCZpwQHBkMxKxjy5983AKpqr4uQZN5lCsUjIl+/BgmY2QVQS/dbaTdgCcLmwBqyhqoQ==",
-      "published": false,
-      "registryPublished": false,
-      "githubPublished": false,
-      "artifactFile": "agent-mc-world-0.5.7-rc.151-preview.2.tgz",
-      "archiveBytesPreserved": true,
-      "sourcePushed": false,
-      "artifactVerification": "Final local candidate archive; no registry publication performed."
+      "commit": "8c79d72dccb84b9318557826b2b823800174130e",
+      "sourceStatus": "release-source-pushed",
+      "version": "0.5.7-rc.153",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.153.tgz",
+      "sha256": "6e6d9d66b33c0e684b5966e0e99093fa35c515fb6e22fdcc068efffc2645d0e5",
+      "integrity": "sha512-AXFCt70BiomWdNICBQGjTay2mqU2EfpMqNCct+tQih1wG4q2WxPsu97XVFkFdCU0G28c+c6lM1LU6+ryWJ4Qkg==",
+      "published": true,
+      "registryPublished": true,
+      "artifactFile": "agent-mc-world-0.5.7-rc.153.tgz",
+      "sourcePushed": true,
+      "archiveBytesPreserved": true
     },
     {
       "role": "server-pack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "cee3460dd92ef15cbfee8a76e6255312a561064e",
-      "sourceStatus": "committed-main-not-registry-published",
-      "version": "0.5.0-rc.47-preview.1",
-      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.47-preview.1.tgz",
-      "sha256": "b88753399c909cc013cfe67d4b6d132c2020fa19f971acc14cf6d0e476ac4576",
-      "integrity": "sha512-dSQhjwtpCG6KFWSutr6kD/Op+c/BGZYdygusNyxryMdRn8+cRrfCm6fWx99OTy8OKaRpezjQUhiKIrMM1Y6JMQ==",
-      "published": false,
-      "registryPublished": false,
-      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.47-preview.1.tgz",
-      "peerCore": "^0.5.7-rc.150-preview.3",
-      "githubPublished": false,
-      "archiveBytesPreserved": true,
-      "sourcePushed": true
+      "version": "0.5.0-rc.49",
+      "peerCore": "^0.5.7-rc.153",
+      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.49.tgz",
+      "sha256": "8ebc59360f661f509f7c58bb35c315153b50ea61a53478eb6ff840f9e6e96412",
+      "integrity": "sha512-aulO95m9eRnAECTl3WtpcyziEqktg8LLUv0MRxcncsVifyAw3G3ASoGPOIFX0V6sXxU2mE09SWKQHHCa1riAkw==",
+      "commit": "6f028a0a97d43620e4da2d12006c0aea5263e825",
+      "published": true,
+      "registryPublished": true,
+      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.49-8ebc5936.tgz",
+      "archiveBytesPreserved": true
     }
   ],
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
-    "commit": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+    "commit": "5e9405067bd1eda4a23abc06f6b70383154c9408",
     "assetPack": "java-1.21.1",
     "additionalPacks": [
       "java-1.20.6",
@@ -95,8 +91,8 @@
       "java-1.21.5"
     ],
     "preset": null,
-    "artifact": "vendor/mc-visual-console-java-1.21.1-c0b9a7a6-compatible.tgz",
-    "sha256": "3e2d3d9e79e496569eaa03675ba5f173be6871a4122700718e9af4adc9092916",
+    "artifact": "vendor/mc-visual-console-java-1.21.1-5e940506-compatible.tgz",
+    "sha256": "163b056c3e61f9197a8fa9453d5bf550fe533a607e9bea4874a5bbe651de23cf",
     "soundPacks": [
       "java-1.21.1-sounds",
       "java-1.20.6-sounds",
@@ -116,8 +112,8 @@
       "filesCheckedAgainstCurrentSharedAssetPacks": 28
     },
     "previousFrozenInput": {
-      "commit": "646fd1be67565ddee85fb43a89ef778cc2f1392f",
-      "sha256": "5a16e81feb85de92e6813e1746a06409d846d54161aaabbd301d855141425634"
+      "commit": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+      "sha256": "3e2d3d9e79e496569eaa03675ba5f173be6871a4122700718e9af4adc9092916"
     },
     "originalAssetInput": {
       "commit": "4da993d1d96e79c7ba195ef38d49976250a621aa",
@@ -132,11 +128,11 @@
       {
         "version": "1.21.1",
         "clientJarSha256": "499f6897d1837516680f3114072d8106e11c9adcd933fe5cf051b551089b0c99",
-        "browserBundleSha256": "5f2eb149e4549efe59ec0645b0e623abe9759ed7e9645b1a2050b6c70dc924a9",
+        "browserBundleSha256": "2ed8dbaf6c3d7c7af8142295e1045be4589ac89f2fe744397316413b6b99b4e4",
         "mesherSha256": "2d3c925683f77dc18bad734e85d192c756b0431136216fcc02d475742bef2f21",
         "buildSource": {
-          "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
-          "sourceFiles": 400,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
         "preset": null,
@@ -145,11 +141,11 @@
       {
         "version": "1.20.6",
         "clientJarSha256": "02dfd345ac1ad55692d5dbc8486ac7e4fea72cd54ac494a79cd48963048e56b2",
-        "browserBundleSha256": "5784ba15e4195054b6458fb8f5a5cbcbf5252429cf840e7bd7dc5fde132313b4",
+        "browserBundleSha256": "e2876f225f8f0b7e87130f6861a16c92ed29c7484008ea9bc308722d5e8e23d8",
         "mesherSha256": "60348a1993e46c943aba13a127ecdbab1210ad60441f76ca60c0b2cb40d1f263",
         "buildSource": {
-          "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
-          "sourceFiles": 400,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
         "preset": null,
@@ -158,11 +154,11 @@
       {
         "version": "1.21.11",
         "clientJarSha256": "1473c9489ac50fda3c435049a76a70d61a10b8610db27f5ba9d8756b686cd3bd",
-        "browserBundleSha256": "b63c84aa529b9dce68a3a1bce66c3bee7f28139cd035bf23e36702cadb00a45e",
+        "browserBundleSha256": "3cf9b7f72dcf1baf316cd85a79c5599ddd03c19fded19defce584fdbec6a6551",
         "mesherSha256": "4380630138ce835f228cc0bd2b52aecf4e62d2d7e8d32ff46c9079285ba5c926",
         "buildSource": {
-          "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
-          "sourceFiles": 400,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
         "preset": null,
@@ -171,11 +167,11 @@
       {
         "version": "1.21.5",
         "clientJarSha256": "522672ad20b460c02c2e39b6c5035ef6a849af28eb11ab2ac7eb293d395a8c11",
-        "browserBundleSha256": "4c70d2bfd00f79f51c93712db1a4a0e4253aacc1f6ab32fbe8f4b1e84a9cd41c",
+        "browserBundleSha256": "ed862185cacd8d510afa0c413a91e63aafcc76e47b33adff072c11466c19f09a",
         "mesherSha256": "c4951379058f0b99d7851ef3f57c67070c683ad4dd678051e39a048783c47534",
         "buildSource": {
-          "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
-          "sourceFiles": 400,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
         "preset": null,
@@ -198,20 +194,19 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-public-registry-and-official-dsh-installation",
-    "verification": "docs/npm-publish-rc24.json",
-    "publicRegistryInstallVerified": true,
-    "sourceTestsPerHost": 154,
-    "skippedPerHost": 1,
-    "stockDshVersions": [
-      "0.2.1-rc.2",
-      "0.2.1-rc.3"
-    ],
-    "sharedPhysicalCore": true,
-    "productionChanged": false,
-    "defaultRegistryInstallVerified": true,
-    "runtimeFilesCompared": 18,
-    "mcpTools": 38
+    "sourceTestsPassed": 295,
+    "sourceTestsSkipped": 1,
+    "build": true,
+    "officialStockHost": "0.2.1-rc.2",
+    "officialLoaderAndWorker": true,
+    "mcpTools": 41,
+    "compiledEngineIpc": true,
+    "offlineGameMemory": true,
+    "frameworkUnchanged": true,
+    "packedOfficialProfileInstall": "pending-separate-distribution-receipt",
+    "modelCalls": 0,
+    "gameConnections": 0,
+    "productionReloaded": false
   },
   "previousPublication": {
     "status": "published-npm-and-github",
@@ -536,15 +531,11 @@
     "defaultRegistryInstallVerified": false
   },
   "developmentPreview": {
-    "status": "passed-isolated-packed-core-and-native-dsh-tests-publication-held",
-    "version": "0.3.0-rc.25-preview.61",
-    "coreVersion": "0.5.7-rc.143",
-    "registryPublished": false,
-    "githubReleasePublished": false,
-    "productionChanged": false,
-    "sourceTests": 271,
-    "skipped": 1,
-    "originalUserSceneVerified": false
+    "adapter": "0.3.0-rc.26",
+    "publicationHeldByUser": false,
+    "formalDependencyRetained": "0.5.7-rc.153",
+    "privateWorkspaceOverrideShipped": false,
+    "currentSourceIncludesUnpublishedChanges": true
   },
   "previousDevelopmentPreview": {
     "status": "prepared-for-isolated-validation",
@@ -590,5 +581,186 @@
     "coreTestsSkipped": 2,
     "coreBuildAndPublicDeclarations": true,
     "isolatedPackedCoreMcpTools": 41
+  },
+  "rc25PreviewInputs": {
+    "adapterVersion": "0.3.0-rc.25-preview.69",
+    "publication": {
+      "status": "local-candidate-not-published",
+      "registryPublished": false,
+      "githubPublished": false,
+      "updatedAt": "2026-11-01",
+      "previousPublishedVersion": "0.3.0-rc.24"
+    },
+    "candidates": [
+      {
+        "role": "core",
+        "repository": "https://github.com/jcs130/minecraft-ai-friend",
+        "sourceDirectory": "packages/agent-mc-world",
+        "commit": null,
+        "sourceStatus": "final-source-commit-pending",
+        "version": "0.5.7-rc.153",
+        "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.153.tgz",
+        "sha256": "6e6d9d66b33c0e684b5966e0e99093fa35c515fb6e22fdcc068efffc2645d0e5",
+        "integrity": "sha512-AXFCt70BiomWdNICBQGjTay2mqU2EfpMqNCct+tQih1wG4q2WxPsu97XVFkFdCU0G28c+c6lM1LU6+ryWJ4Qkg==",
+        "published": false,
+        "registryPublished": false,
+        "artifactFile": "agent-mc-world-0.5.7-rc.153.tgz",
+        "sourcePushed": false,
+        "archiveBytesPreserved": true
+      },
+      {
+        "role": "server-pack",
+        "repository": "https://github.com/jcs130/cortico-world-qiandengji",
+        "sourceDirectory": "packages/qiandengji",
+        "version": "0.5.0-rc.49",
+        "peerCore": "^0.5.7-rc.153",
+        "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.49.tgz",
+        "sha256": null,
+        "integrity": null,
+        "commit": null,
+        "published": false,
+        "registryPublished": false,
+        "artifactFile": null,
+        "archiveBytesPreserved": true
+      }
+    ],
+    "viewer": {
+      "repository": "https://github.com/jcs130/mc-visual-console",
+      "commit": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+      "assetPack": "java-1.21.1",
+      "additionalPacks": [
+        "java-1.20.6",
+        "java-1.21.11",
+        "java-1.21.5"
+      ],
+      "preset": null,
+      "artifact": "vendor/mc-visual-console-java-1.21.1-c0b9a7a6-compatible.tgz",
+      "sha256": "3e2d3d9e79e496569eaa03675ba5f173be6871a4122700718e9af4adc9092916",
+      "soundPacks": [
+        "java-1.21.1-sounds",
+        "java-1.20.6-sounds",
+        "original-bgm"
+      ],
+      "completeAudio": false,
+      "publicOriginalBgmTracks": 8,
+      "audioCoverage": {
+        "1.21.1": "exact-version-separate-download",
+        "1.20.6": "exact-version-separate-download",
+        "1.21.11": "disabled-no-original-audio-pack",
+        "1.21.5": "disabled-no-original-audio-pack"
+      },
+      "deferredAudioInput": {
+        "package": "agent-mc-world@0.5.7-rc.85",
+        "sha256": "8bb01430f2f8e9a8259df5f3105449bfdcc3b0c77a7fd8a46c33a72fa52b3936",
+        "filesCheckedAgainstCurrentSharedAssetPacks": 28
+      },
+      "previousFrozenInput": {
+        "commit": "646fd1be67565ddee85fb43a89ef778cc2f1392f",
+        "sha256": "5a16e81feb85de92e6813e1746a06409d846d54161aaabbd301d855141425634"
+      },
+      "originalAssetInput": {
+        "commit": "4da993d1d96e79c7ba195ef38d49976250a621aa",
+        "sha256": "a53a6cb443096ee113c964d44b4427e4a629acdf08584956004a147b0dc59b69",
+        "versions": [
+          "1.21.1",
+          "1.20.6",
+          "1.21.11"
+        ]
+      },
+      "generatedVanillaVersions": [
+        {
+          "version": "1.21.1",
+          "clientJarSha256": "499f6897d1837516680f3114072d8106e11c9adcd933fe5cf051b551089b0c99",
+          "browserBundleSha256": "5f2eb149e4549efe59ec0645b0e623abe9759ed7e9645b1a2050b6c70dc924a9",
+          "mesherSha256": "2d3c925683f77dc18bad734e85d192c756b0431136216fcc02d475742bef2f21",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 15
+        },
+        {
+          "version": "1.20.6",
+          "clientJarSha256": "02dfd345ac1ad55692d5dbc8486ac7e4fea72cd54ac494a79cd48963048e56b2",
+          "browserBundleSha256": "5784ba15e4195054b6458fb8f5a5cbcbf5252429cf840e7bd7dc5fde132313b4",
+          "mesherSha256": "60348a1993e46c943aba13a127ecdbab1210ad60441f76ca60c0b2cb40d1f263",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 15
+        },
+        {
+          "version": "1.21.11",
+          "clientJarSha256": "1473c9489ac50fda3c435049a76a70d61a10b8610db27f5ba9d8756b686cd3bd",
+          "browserBundleSha256": "b63c84aa529b9dce68a3a1bce66c3bee7f28139cd035bf23e36702cadb00a45e",
+          "mesherSha256": "4380630138ce835f228cc0bd2b52aecf4e62d2d7e8d32ff46c9079285ba5c926",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 17
+        },
+        {
+          "version": "1.21.5",
+          "clientJarSha256": "522672ad20b460c02c2e39b6c5035ef6a849af28eb11ab2ac7eb293d395a8c11",
+          "browserBundleSha256": "4c70d2bfd00f79f51c93712db1a4a0e4253aacc1f6ab32fbe8f4b1e84a9cd41c",
+          "mesherSha256": "c4951379058f0b99d7851ef3f57c67070c683ad4dd678051e39a048783c47534",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 15
+        }
+      ],
+      "runtimeRegistryVersion": 1,
+      "missingExactMaterials": "automatic-compatible-materials-with-actual-connection-registry"
+    },
+    "validation": {
+      "status": "passed-public-registry-and-official-dsh-installation",
+      "verification": "docs/npm-publish-rc24.json",
+      "publicRegistryInstallVerified": true,
+      "sourceTestsPerHost": 154,
+      "skippedPerHost": 1,
+      "stockDshVersions": [
+        "0.2.1-rc.2",
+        "0.2.1-rc.3"
+      ],
+      "sharedPhysicalCore": true,
+      "productionChanged": false,
+      "defaultRegistryInstallVerified": true,
+      "runtimeFilesCompared": 18,
+      "mcpTools": 38
+    },
+    "developmentPreview": {
+      "status": "passed-isolated-packed-core-and-native-dsh-tests-publication-held",
+      "version": "0.3.0-rc.25-preview.61",
+      "coreVersion": "0.5.7-rc.143",
+      "registryPublished": false,
+      "githubReleasePublished": false,
+      "productionChanged": false,
+      "sourceTests": 271,
+      "skipped": 1,
+      "originalUserSceneVerified": false
+    }
+  },
+  "rc26BuildInputs": {
+    "genericCapabilitiesFromPublicCore": true,
+    "hostOwnsModelsMemoryGoals": true,
+    "productionReloadAuthorized": false,
+    "stoppedActorsRemainStopped": true,
+    "zod": "4.6.6",
+    "sourceTestsPassed": 295,
+    "sourceTestsSkipped": 1,
+    "publishedCoreVerified": true,
+    "publishedServerPackVerified": true
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.25-preview.69",
+  "version": "0.3.0-rc.26",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -145,11 +145,12 @@
     "docs/release-rc24-verification.json",
     "docs/core-viewer-sync-20261027.md",
     "docs/core-viewer-sync-20261027.json",
-    "docs/autonomy-viewer-20261028.json"
+    "docs/autonomy-viewer-20261028.json",
+    "docs/release-rc26.md"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.151-preview.2",
+    "agent-mc-world": "0.5.7-rc.153",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
@@ -168,12 +169,18 @@
   },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-compaction-basic": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-goal": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-skill": "0.2.1-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.2",
     "@deepseek-ai/dsh-session": "0.2.1-rc.2",
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-rc.47-preview.1"
+    "agent-mc-qiandengji": "0.5.0-rc.49"
   },
   "engines": {
     "node": ">=24",
