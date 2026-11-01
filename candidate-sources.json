@@ -1,6 +1,6 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.25-preview.68",
+  "adapterVersion": "0.3.0-rc.25-preview.69",
   "publication": {
     "status": "local-candidate-not-published",
     "registryPublished": false,
@@ -52,19 +52,19 @@
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "abf0aa28d47a2d17ee64545e8a1544a3163e34b2",
-      "sourceStatus": "validated-candidate-source-pushed",
-      "version": "0.5.7-rc.151-preview.1",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.151-preview.1.tgz",
-      "sha256": "d8a6aac8bbe71ff3aff2b17f46e7e7c8d806eac967fb286468a5feb9f07e4595",
-      "integrity": "sha512-7bmCfyRqq4IjP1zwWryC8nwDuRIk7RuY06MzuyckweuCnmQq9wHS+/XC+vQZCLrPoCTl2sPXedcJwpSdAB1Byg==",
+      "commit": "b1851de9ada4cda89d12d0f18b6d5db2950a5c57",
+      "sourceStatus": "validated-candidate-source-committed",
+      "version": "0.5.7-rc.151-preview.2",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.151-preview.2.tgz",
+      "sha256": "c26942af73b958b3d0dea2cc0f6ee70c233e45c8a5943070a621602b8c92b311",
+      "integrity": "sha512-EdBFJon+xkPFoHc6phnlCZpwQHBkMxKxjy5983AKpqr4uQZN5lCsUjIl+/BgmY2QVQS/dbaTdgCcLmwBqyhqoQ==",
       "published": false,
       "registryPublished": false,
       "githubPublished": false,
-      "artifactFile": "agent-mc-world-0.5.7-rc.151-preview.1.tgz",
+      "artifactFile": "agent-mc-world-0.5.7-rc.151-preview.2.tgz",
       "archiveBytesPreserved": true,
-      "sourcePushed": true,
-      "artifactVerification": "Canonical local archive verified independently; registry publication not performed."
+      "sourcePushed": false,
+      "artifactVerification": "Final local candidate archive; no registry publication performed."
     },
     {
       "role": "server-pack",
@@ -561,5 +561,34 @@
     "formalDependencyRetained": "0.5.7-rc.99",
     "privateWorkspaceOverrideShipped": false,
     "currentSourceIncludesUnpublishedChanges": true
+  },
+  "previousCoreCandidate": {
+    "role": "core",
+    "repository": "https://github.com/jcs130/minecraft-ai-friend",
+    "sourceDirectory": "packages/agent-mc-world",
+    "commit": "abf0aa28d47a2d17ee64545e8a1544a3163e34b2",
+    "sourceStatus": "validated-candidate-source-pushed",
+    "version": "0.5.7-rc.151-preview.1",
+    "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.151-preview.1.tgz",
+    "sha256": "d8a6aac8bbe71ff3aff2b17f46e7e7c8d806eac967fb286468a5feb9f07e4595",
+    "integrity": "sha512-7bmCfyRqq4IjP1zwWryC8nwDuRIk7RuY06MzuyckweuCnmQq9wHS+/XC+vQZCLrPoCTl2sPXedcJwpSdAB1Byg==",
+    "published": false,
+    "registryPublished": false,
+    "githubPublished": false,
+    "artifactFile": "agent-mc-world-0.5.7-rc.151-preview.1.tgz",
+    "archiveBytesPreserved": true,
+    "sourcePushed": true,
+    "artifactVerification": "Canonical local archive verified independently; registry publication not performed."
+  },
+  "travelNutritionPreview": {
+    "adapter": "0.3.0-rc.25-preview.69",
+    "core": "0.5.7-rc.151-preview.2",
+    "modelCallsDuringOfflineValidation": 0,
+    "gameConnectionsDuringOfflineValidation": 0,
+    "productionLoaded": false,
+    "coreTestsPassed": 2739,
+    "coreTestsSkipped": 2,
+    "coreBuildAndPublicDeclarations": true,
+    "isolatedPackedCoreMcpTools": 41
   }
 }
