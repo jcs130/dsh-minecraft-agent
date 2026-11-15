@@ -25,7 +25,7 @@ import {PermissionRecovery,installPermissionRecovery} from './harness-permission
 import {createQuickSetup,attachQuickSetup} from './quick-setup.mjs';
 import {composeMinecraftAgent,constrainMinecraftTools,minecraftPlanningGuidance} from './harness-composition.mjs';
 import {conversationDirectory} from './profile-settings.mjs';
-import { configuredWake, compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
+import { configuredWake, compactionForBudget, overflowFinish, selectTools, slimDescription, compactEvents, capBlocks, ChatGuard, NoopRounds, redactUrl, DEFAULT_CONTEXT_TOKENS, classifyWakeFallback, slimToolSchema, WAKE_DEFAULT, WAKE_ACTIVE_GOAL, MovementProgressFallback, GoalProgressGuard, survivalHint, DEFAULT_MAX_GOAL_CALLS, withNotice, compactFactsFallback, observationDigestFallback } from './harness-budget.mjs';
 
 prepareDshNativeStreams();
 const coreClient = await import('agent-mc-world/client');
@@ -156,9 +156,9 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
   const wakeStats = { seen: 0, woken: 0, droppedAfterGoal: 0 };
   const progressConfig = config.progress ?? {};
   const Progress = coreClient.MovementProgress ?? MovementProgressFallback;
-  const guard = new GoalProgressGuard({ progress: new Progress(progressConfig), maxCalls: continuation.policy.continuous ? 0 : config.maxGoalCalls ?? 30, closeAfter: progressConfig.closeAfter ?? 12,
+  const guard = new GoalProgressGuard({ progress: new Progress(progressConfig), maxCalls: continuation.policy.continuous ? 0 : config.maxGoalCalls ?? DEFAULT_MAX_GOAL_CALLS, closeAfter: progressConfig.closeAfter ?? 12,
     digest: coreClient.observationDigest ?? observationDigestFallback });
-  const progressStats = { nudges: 0, closedBy: null };
+  const progressStats = { nudges: 0, closedBy: null, hungerHints: 0 };
   // Model-facing event list: server noise condensed (raw journal untouched); each step shows mostly new events.
   const eventsConfig = config.events ?? {};
   const condenser = new (coreClient.EventCondenser ?? EventCondenserFallback)({ window: eventsConfig.window ?? 24,
@@ -393,14 +393,20 @@ async function startConfiguredAgent(ctx,config,onRuntime) {
           if (gameGoalCompletesSession(value, { continuous: continuation.owns(currentGoal()) }))
             closeSessionGoal('in-game goal closed', 'complete');
           const looking = observationTool(spec.name);
-          if (value?.isError) return value;
+          // The core owns craft sequencing and inventory confirmation. In
+          // particular an accepted mc_do is not completed crafting; do not
+          // impose a second host lock based on an unchanged bag snapshot.
+          const hunger = survivalHint((coreClient.compactFacts ?? compactFactsFallback)(runtime.currentFacts()), config.survival ?? {});
+          if (hunger) progressStats.hungerHints++;
+          if (value?.isError) return withNotice(value, hunger);
           const read=value?.structuredContent?.meta?.observation;
           const revision=read?.protocol==='agent-mc-spatial-read/v1'&&read.historical===false?read.revision:undefined;
           const verdict = looking ? guard.observe(currentGoal(), JSON.stringify(value?.structuredContent?.text ?? value?.content ?? ''),revision)
             : spec.name.endsWith('_do')?guard.action(currentGoal(), args?.steps):guard.read(currentGoal(),readVerdict);
           if (verdict.close) { readProgress?.reset();retryEvidence.observeReadProgress(null);progressStats.closedBy = verdict.close; closeSessionGoal(verdict.close); }
           if (verdict.notice) progressStats.nudges++;
-          return withNotice(value, verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因长时间没有进展将在本轮结束时暂停并保留进度，未证实完成。请简短收尾，不要再移动。` : undefined));
+          const notice = verdict.notice ?? (verdict.close ? `[宿主提示] 本目标因长时间没有进展将在本轮结束时暂停并保留进度，未证实完成。请简短收尾，不要再移动。` : undefined);
+          return withNotice(value, [notice, hunger].filter(Boolean).join('\n') || undefined);
         },
       });
     }

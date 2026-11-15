@@ -62,7 +62,8 @@
 - minecraft.hostDecisions.combat 显式设置 enabled、endpoint、model、mode、timeoutMs、minIntervalMs、maxAgeMs。快决策状态、候选与驱动来自共享核心，可选服务器包仅转出同一契约；默认关闭，不探测地址。模型不可用时保留核心的规则控制。
 - 上下文预算：首次配置读取 DSH 所选模型的上下文元数据；不可用时回退 131072。高级配置可显式设 contextTokens。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算请求先压缩再重试，仍超出则道别并下线。
 - 省上下文：`*_script` 默认保留，用于按需发现共享工作/移动脚本和自己的方法库；可用 `tools.exclude` 显式关闭。默认 `tools.profile: "lean"` 隐藏少用工具（蓝图、铁路、摄影、战术等，可用 `tools.include` 单独加回或 `profile: "full"` 全开），工具说明压缩到 `tools.descriptionChars`（默认 300 字），参数细节用 `*_tool_help` 按需查；每步事件快照只保留最近 `context.events`（默认 10）条，回执给模型时截到 `context.receiptChars`（默认 1500 字），完整内容仍在会话日志。`node scripts/measure-context.mjs qiandengji 人设.md` 可测固定提示大小。
-- 防打转：连续 6 次只走动/张望且停在约 24 格范围内时提示模型改进；持续模式到 12 次先休整，随后重新观察并调整，不把卡住当成功。单个回合默认 30 步后在安全边界让出控制并继续同一目标；明确选择有限模式时才应用累计 `maxGoalCalls`。已完成目标的旧回执不再唤醒，退出道别结果写在 status.json 的 `goodbye`。
+- 防打转：连续 6 次只走动/张望且停在约 24 格范围内时提示模型改进；纯蹲下/跳跃等控制请求不会自动重置无进展计数。持续模式到 12 次先休整，随后重新观察并调整，不把卡住当成功。单个回合默认 30 步后在安全边界让出控制并继续同一目标；明确选择有限模式时才应用累计 `maxGoalCalls`（默认80，设0关闭）。已完成目标的旧回执不再唤醒，退出道别结果写在 status.json 的 `goodbye`。
+- 补给提示：饥饿低于 `survival.foodThreshold`（默认15，设0关闭）时提醒结合现场危险安排进食，不禁止战斗或移动。合成顺序与库存确认继续由核心处理；`mc_do` 入队不是合成完成，宿主不会依据同一份旧背包再设一层合成锁。完成与失败依据原任务身份和原生终态核对。
 - 唤醒：默认把普通公屏、私聊、点名、危险和连接变化交给 Agent 判断是否回应；不要求每条聊天都回复。目标进行中另加本身任务回执。自发聊天、系统提示和状态倒计时不因此唤醒。配置面板或 `wake.publicChat:false` 可关闭普通公屏；`wake.on` 可覆盖类别。
 - 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标，只应在整个目标达成时使用。持续模式下连续 `noopRoundLimit`（默认 3）轮无动作会短暂休整后自主恢复；40 轮是可延长的原生窗口，累计轮数不清零。关闭持续模式后使用有限预算。目标留空只连接，不启动推理。
 - 聊天：默认公屏，可写 `@玩家名`；`chat.maxPublicLines` 默认 0（不限制累计总句数），`chat.minIntervalMs` 默认 5000。用户仍可显式设置上限。私聊优先原版 `/tell`，结果未知不自动转公屏。配置 `chat.goodbye` 时保留下线道别及 `status.json` 回执。
