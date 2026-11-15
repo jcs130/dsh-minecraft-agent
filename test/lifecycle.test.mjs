@@ -64,3 +64,19 @@ test('metadata storage failure cannot stop the agent; restored metadata is proje
   assert.equal(restored.includes('PRIVATE'), false);
   assert.equal(failureMetadata(undefined).code, null);
 }));
+
+test('a running host waiting for game authentication is not reported as continuing play', () => fixture(options => {
+  const lifecycle = new HostLifecycle(options);
+  const goal = { id: 'g', phase: 'active', activation: 'armed', revision: 7 };
+  const before = structuredClone(goal);
+  const view = connection => lifecycle.snapshot({ state: 'running', goal, connection });
+  assert.equal(view({ ready: false, phase: 'retrying' }).continuation, 'waiting-connection');
+  assert.deepEqual(view({ ready: false, phase: 'authenticating' }).connection, { ready: false, phase: 'authenticating' });
+  assert.equal(view({ ready: true, phase: 'ready' }).continuation, 'running');
+  assert.deepEqual(view(undefined).connection, { ready: null, phase: null });
+  assert.equal(view(undefined).continuation, 'running');
+  assert.deepEqual(view({ ready: 'true', phase: 'PRIVATE credential' }).connection, { ready: null, phase: null });
+  assert.equal(lifecycle.snapshot({ state: 'running', goal, paused: true, connection: { ready: false } }).continuation, 'paused');
+  assert.equal(lifecycle.snapshot({ state: 'running', goal, stopped: true, connection: { ready: false } }).continuation, 'stopped');
+  assert.deepEqual(goal, before);
+}));

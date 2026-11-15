@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {NotebookView} from './notebook-view';
-const defaults={address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',personaPreset:'custom',personality:'',backstory:'',initialMemory:'',mineralVision:false,viewerEnabled:true,listenPublicChat:true,toolProfile:'lean',skinModel:'classic',useLocalSkin:false,notebookMode:'local-vector',minedojoIndexFile:'',minedojoRetrieval:'hybrid',embeddingEndpoint:'',embeddingModel:'',embeddingKeyEnv:'',dshPreset:'',newSession:false};
+const defaults={address:'',username:'',auth:'offline',version:'auto',name:'',goal:'',personaPreset:'custom',personality:'',backstory:'',initialMemory:'',continuousAutonomy:true,mineralVision:false,viewerEnabled:true,listenPublicChat:true,toolProfile:'lean',skinModel:'classic',useLocalSkin:false,notebookMode:'local-vector',minedojoIndexFile:'',minedojoRetrieval:'hybrid',embeddingEndpoint:'',embeddingModel:'',embeddingKeyEnv:'',dshPreset:'',newSession:false};
 const tabs=[['connection','连接'],['perception','感知与工具'],['persona','角色与皮肤'],['notebook','服务器笔记'],['plugins','DSH 插件']];
 export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(action:string,config?:any)=>Promise<any>;onBack?:()=>void}) {
   const [fields,setFields]=useState<any>(()=>({...defaults,...state.fields}));
@@ -34,6 +34,7 @@ export function QuickSetupView({state,onAction,onBack}: {state:any;onAction:(act
     {tab==='notebook'?state.fields?<NotebookView onAction={onAction} identity={`${state.fields.address} · ${state.fields.username}`} />:<p role="status">先填写服务器与角色并保存，就可以使用离线笔记，不必先连接游戏。</p>:
     <form onSubmit={e=>{e.preventDefault();void action('configure');}}><fieldset disabled={busy||opening}>
       {tab==='connection'&&<>
+        <label className="mc-toggle"><input type="checkbox" checked={fields.continuousAutonomy} onChange={field('continuousAutonomy')}/><span><strong>持续自主运行</strong><small>有目标时持续规划与行动；无进展时短暂等待后调整。手动暂停或完成整个目标后停止，关闭后使用有限预算。</small></span></label>
         <label>服务器地址<input required value={fields.address} onChange={field('address')} placeholder="mc.example.com:25565" maxLength={300}/></label>
         <div className="mc-setup-row"><label>登录方式<select value={fields.auth} onChange={field('auth')}><option value="offline">离线身份</option><option value="microsoft">微软正版</option></select></label><label>{fields.auth==='microsoft'?'正版账号标识':'游戏角色名'}<input required value={fields.username} onChange={field('username')} maxLength={fields.auth==='microsoft'?254:16} autoComplete="off" placeholder="游戏账号，与角色显示名分开"/></label></div>
         <label>配置目标 <small>留空则先进入游戏；连接时，已结束、受阻或暂停的旧目标可由不同的新目标替换，进行中的目标保留。</small><textarea value={fields.goal} onChange={field('goal')} rows={2} maxLength={3000}/></label>

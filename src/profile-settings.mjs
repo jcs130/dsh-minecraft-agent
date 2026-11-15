@@ -38,7 +38,7 @@ export function profileSettings(input={},previous={}) {
   const toolProfile=value.toolProfile??'lean',skinModel=value.skinModel??'classic';
   if(!['lean','full'].includes(toolProfile)||!['classic','slim'].includes(skinModel))throw Error('INVALID_PROFILE');
   return {personaPreset,personality,backstory,initialMemory,dshPreset,notebookMode,minedojoIndexFile,minedojoRetrieval,embeddingEndpoint,embeddingModel,embeddingKeyEnv,
-    toolProfile,skinModel,mineralVision:boolean(value.mineralVision,false),viewerEnabled:boolean(value.viewerEnabled,true),listenPublicChat:boolean(value.listenPublicChat,true),
+    toolProfile,skinModel,continuousAutonomy:boolean(value.continuousAutonomy,true),mineralVision:boolean(value.mineralVision,false),viewerEnabled:boolean(value.viewerEnabled,true),listenPublicChat:boolean(value.listenPublicChat,true),
     useLocalSkin:boolean(value.useLocalSkin,false),serverSkins:boolean(value.serverSkins,true)};
 }
 export function renderPersona(name,p) {

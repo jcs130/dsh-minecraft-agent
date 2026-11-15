@@ -5,7 +5,7 @@ export const DEFAULT_CONTEXT_TOKENS = 131072;
 
 /** Rarely needed tools hidden by default; `tools.profile: "full"` or `tools.include` restores them. */
 export const LEAN_EXCLUDED_SUFFIXES = ['_combat_tactic', '_blueprint', '_railway', '_flight_plan', '_photo',
-  '_policy', '_map', '_view_map', '_artifact', '_metrics', '_events', '_check', '_cast', '_trace'];
+  '_policy', '_map', '_view_map', '_artifact', '_metrics', '_check', '_cast', '_trace'];
 
 /**
  * Compaction must trigger from the plugin's own contextTokens budget, not the model's (much larger)
@@ -103,12 +103,50 @@ export function capBlocks(blocks, max = 1500) {
   return blocks.map(block => {
     if (block.type !== 'text') return block;
     if (block.text.length <= left) { left -= block.text.length; return block; }
-    const text = block.text.slice(0, Math.max(0, left)) + `…[回执已截断 ${block.text.length - left} 字；完整内容用 dsh_history 查看]`;
+    let json;try{json=JSON.parse(block.text);}catch{}
+    if(json&&typeof json==='object'&&!Array.isArray(json)){
+      const text=boundedJsonReceipt(json,Math.max(0,left),block.text.length);
+      left=Math.max(0,left-text.length);return{...block,text};
+    }
+    const text = block.text.slice(0, Math.max(0, left)) + `…[回执已截断 ${block.text.length - left} 字；原件见核心请求/事件归档，dsh_history 保留本投影]`;
     left = 0; return { ...block, text };
   });
 }
 
-const WHISPER = /^\/(?:minecraft:)?(msg|tell|w|whisper|r|reply)\s/i;
+/** Keep the model boundary parseable. Durable values stay complete; typed root
+ * metadata/control and execution identities are never cut into JSON fragments.
+ * The budget is soft only if those irreducible identities exceed it. */
+function boundedJsonReceipt(value,max,originalChars){
+  const partial=new Set(),note={truncated:true,originalChars,original:'core request/event archive',history:'dsh_history contains this projection',partialFields:[]};
+  value.projection=note;
+  const mark=path=>{partial.add(path[0]);note.partialFields=[...partial];};
+  const candidates=(object,path=[],out=[])=>{
+    if(!object||typeof object!=='object')return out;
+    for(const[key,v]of Object.entries(object)){
+      const p=[...path,key];
+      if(p[0]==='projection'||p[0]==='control'||p[0]==='meta')continue;
+      if(p[0]==='execution'&&p[1]!=='evidence')continue;
+      if(typeof v==='string'&&v.length>81&&!['id','requestId','run','protocol','kind','phase','revision','sourceHash'].includes(key))
+        out.push({object,key,path:p,size:v.length,reduce:()=>v.slice(0,Math.max(80,Math.floor(v.length/2)))+'…'});
+      else if(Array.isArray(v)&&v.length)
+        out.push({object,key,path:p,size:JSON.stringify(v).length,reduce:()=>v.slice(0,Math.floor(v.length/2))});
+      if(v&&typeof v==='object')candidates(v,p,out);
+    }
+    return out;
+  };
+  let text=JSON.stringify(value);
+  for(let i=0;i<64&&text.length>max;i++){
+    const item=candidates(value).sort((a,b)=>b.size-a.size)[0];if(!item)break;
+    item.object[item.key]=item.reduce();mark(item.path);text=JSON.stringify(value);
+  }
+  for(const key of ['blobs','events','text','data'])if(text.length>max&&key in value){delete value[key];mark([key]);text=JSON.stringify(value);}
+  if(text.length>max&&value.execution?.evidence){delete value.execution.evidence;mark(['execution']);text=JSON.stringify(value);}
+  return text;
+}
+
+// Core action permissions still apply. Meter ordinary public speech and the
+// vanilla broadcast commands; do not confuse server commands with speech.
+const SERVER_COMMAND = /^\/(?!((?:minecraft:)?(?:say|me))(?:\s|$))\S+/i;
 /** Enforce the public chat budget in code, not only in the persona. */
 export class ChatGuard {
   constructor({ maxPublicLines = 0, minIntervalMs = 5000, goodbye } = {}, now = Date.now) {
@@ -117,7 +155,7 @@ export class ChatGuard {
   }
   static publicLines(name, args) {
     if (!name.endsWith('_do') || !Array.isArray(args?.steps)) return [];
-    return args.steps.filter(s => s?.skill === 'chat' && typeof s.text === 'string' && !WHISPER.test(s.text.trim()));
+    return args.steps.filter(s => s?.skill === 'chat' && typeof s.text === 'string' && !SERVER_COMMAND.test(s.text.trim()));
   }
   /** Returns a refusal string, or null after recording the lines as sent. */
   check(name, args) {
@@ -147,6 +185,7 @@ export class NoopRounds {
   call(name) { if (this.isGameTool(name)) this.acted = true; }
   /** Call at each turn end; returns true when the streak reaches the limit. */
   end() { this.streak = this.acted ? 0 : this.streak + 1; this.acted = false; return this.limit > 0 && this.streak >= this.limit; }
+  reset() { this.streak = 0; this.acted = false; }
 }
 
 export function goalClosed(value) {
@@ -280,15 +319,8 @@ export function compactFactsFallback(facts) {
   return out;
 }
 
-/** Includes `control`: sneak/jump bursts must not reset the wandering streak (live8 autonomy). */
-const MOVEMENT_SKILLS = ['goto', 'look', 'observe', 'walk', 'wander', 'face', 'control'];
-const IDLE_CONTROL_KEYS = new Set(['sneak', 'jump', 'sprint']);
-export function isIdleControlStep(step) {
-  if (!step || step.skill !== 'control') return false;
-  const keys = Array.isArray(step.keys) ? step.keys.filter(k => typeof k === 'string') : [];
-  return keys.length === 0 || keys.every(k => IDLE_CONTROL_KEYS.has(k));
-}
-/** Fallback copy of core MovementProgress (agent-mc-world >= control-aware release). */
+const MOVEMENT_SKILLS = ['goto', 'look', 'observe', 'walk', 'wander', 'face'];
+/** Fallback copy of core MovementProgress (agent-mc-world > 0.5.7-rc.47). */
 export class MovementProgressFallback {
   constructor({ window = 6, radius = 24, cellSize = 16, movementSkills = MOVEMENT_SKILLS } = {}) {
     Object.assign(this, { window, radius, cellSize }); this.movement = new Set(movementSkills);
@@ -297,7 +329,7 @@ export class MovementProgressFallback {
   reset() { this.streak = 0; this.recent = []; this.cells.clear(); this.seen = new Set(); }
   recordObservation(digest) {
     this.seen ??= new Set();
-    if (this.seen.has(digest)) { this.streak++; this.recent = [...this.recent, { points: [], newCells: 0, idleControl: false }].slice(-this.window); }
+    if (this.seen.has(digest)) { this.streak++; this.recent = [...this.recent, { points: [], newCells: 0 }].slice(-this.window); }
     else this.seen.add(digest);
     return this.verdict();
   }
@@ -313,9 +345,7 @@ export class MovementProgressFallback {
       const key = `${Math.floor(x / this.cellSize)},${Math.floor(z / this.cellSize)}`;
       if (!this.cells.has(key)) { this.cells.add(key); newCells++; }
     }
-    const idleControl = work.length > 0 && work.every(k => k === 'control')
-      && steps.filter(s => s?.skill === 'control').every(isIdleControlStep);
-    this.streak++; this.recent = [...this.recent, { points, newCells, idleControl }].slice(-this.window);
+    this.streak++; this.recent = [...this.recent, { points, newCells }].slice(-this.window);
     return this.verdict();
   }
   verdict() {
@@ -325,27 +355,19 @@ export class MovementProgressFallback {
       const cx = points.reduce((s, p) => s + p[0], 0) / points.length, cz = points.reduce((s, p) => s + p[2], 0) / points.length;
       spread = Math.round(Math.max(...points.map(p => Math.hypot(p[0] - cx, p[2] - cz))));
     }
-    const full = this.streak >= this.window;
-    const idleControlStreak = this.recent.length > 0 && this.recent.every(e => e.idleControl);
-    return { streak: this.streak, spread, newCells,
-      repetitive: full && (spread <= this.radius || newCells === 0 || idleControlStreak),
-      ...(idleControlStreak && full ? { kind: 'control' } : {}) };
+    return { streak: this.streak, spread, newCells, repetitive: this.streak >= this.window && (spread <= this.radius || newCells === 0) };
   }
 }
 
-/** Default per-goal model-call budget. Short tourist goals still end via update_goal / wandering / noop; long autonomy should set maxGoalCalls >= 120. */
+/** Per-goal guard: nudge on wandering, close the goal on continued wandering or an exhausted call budget. */
 export const DEFAULT_MAX_GOAL_CALLS = 80;
 export const DEFAULT_FOOD_THRESHOLD = 15;
-
-/** Per-goal guard: nudge on wandering/control spam, close on continued stall or an exhausted call budget. */
 export class GoalProgressGuard {
-  constructor({ progress, maxCalls = DEFAULT_MAX_GOAL_CALLS, closeAfter = 12, digest = observationDigestFallback, onReset } = {}) {
-    Object.assign(this, { progress, maxCalls, closeAfter, digest, onReset }); this.goalId = null; this.calls = 0;
-  }
+  constructor({ progress, maxCalls = DEFAULT_MAX_GOAL_CALLS, closeAfter = 12, digest = observationDigestFallback } = {}) { Object.assign(this, { progress, maxCalls, closeAfter, digest }); this.goalId = null; this.calls = 0; }
   /** Call once per model step; returns a close reason or null. */
   step(goal) {
     if (goal?.phase !== 'active') return null;
-    if (goal.id !== this.goalId) { this.goalId = goal.id; this.calls = 0; this.progress.reset(); this.onReset?.(); }
+    if (goal.id !== this.goalId) { this.goalId = goal.id; this.calls = 0; this.progress.reset(); }
     this.calls++;
     return this.maxCalls > 0 && this.calls > this.maxCalls ? `per-goal call budget (${this.maxCalls}) used up` : null;
   }
@@ -355,78 +377,46 @@ export class GoalProgressGuard {
     return this.judge(this.progress.record(steps), 'move');
   }
   /** Call for each look-around tool with its result text. */
-  observe(goal, text) {
+  observe(goal, text, revision) {
     if (goal?.phase !== 'active' || typeof this.progress.recordObservation !== 'function') return {};
-    return this.judge(this.progress.recordObservation(this.digest(text)), 'look');
+    const digest=typeof revision==='string'&&/^[a-f0-9]{64}$/.test(revision)?revision:this.digest(text);
+    return this.judge(this.progress.recordObservation(digest), 'look');
+  }
+  read(goal, evidence) {
+    if(goal?.phase!=='active'||evidence?.kind!=='readOnly'||evidence.knownIdle!==true)return {};
+    return this.judge(evidence,'read');
   }
   judge(v, kind) {
     if (!v.repetitive) return {};
+    if(kind==='read'){
+      if(this.closeAfter>0&&v.streak>=this.closeAfter)return{close:`${v.streak} repeated read-only queries without new information or registered work`};
+      return{notice:`[宿主提示] 最近 ${v.streak} 次只读查询没有新增信息，也没有登记在途执行。按 textPage.next 续读未见正文，或根据已有事实选择有用行动、不同的缺失信息或有明确条件的等待。重复读同一开头不会推进游戏；继续重复会临时休整并保留目标，不表示目标完成。`};
+    }
     const control = v.kind === 'control' || kind === 'control';
     const what = kind === 'look' ? `张望/侦察没有新发现`
-      : control ? `只在反复 sneak/jump 等直接控制，没有采集、合成或真正换地方`
+      : control ? `反复蹲下、跳跃等控制请求尚无新的进展依据`
       : `只在约 ${v.spread} 格范围内走动/张望，没有到达新地方`;
-    if (this.closeAfter > 0 && v.streak >= this.closeAfter) {
-      if (kind === 'look') return { close: `${v.streak} actions without progress, ending in repeated look-arounds with nothing new` };
-      if (control) return { close: `${v.streak} control-only actions (sneak/jump) without gather/craft/travel progress` };
-      return { close: `${v.streak} movement-only actions in one ~${v.spread}-block area without new ground` };
-    }
-    return { notice: `[宿主提示] 最近 ${v.streak} 次${what}。目标若已达成请调用 update_goal 标记完成并停下；否则换一件实际的事（采集/合成/吃东西/去新区域），不要继续原地 sneak/jump。继续空转会自动结束本目标。` };
+    if (this.closeAfter > 0 && v.streak >= this.closeAfter) return { close: kind === 'look' ? `${v.streak} actions without progress, ending in repeated look-arounds with nothing new`
+      : control ? `${v.streak} control-only actions without observed task progress`
+      : `${v.streak} movement-only actions in one ~${v.spread}-block area without new ground` };
+    return { notice: `[宿主提示] 最近 ${v.streak} 次${what}。目标若已达成请调用 update_goal 标记完成并停下；否则换一件实际的事或去新的区域。继续原地打转会暂停本目标并保留进度，不算完成。` };
   }
 }
 
-/**
- * Gate craft chains on inventory sync lag: only refuse the next craft when the previous
- * craft returned success but the bag digest did not change (facts still stale). If the bag
- * already updated before after(), the next craft is allowed immediately.
- */
-export class CraftSyncGuard {
-  constructor({ digest = observationDigestFallback } = {}) { this.digest = digest; this.awaiting = null; this.beforeBag = null; }
-  reset() { this.awaiting = null; this.beforeBag = null; }
-  bagDigest(facts) {
-    const inv = facts?.inventory ?? facts?.observation?.inventory ?? null;
-    return this.digest(JSON.stringify(inv));
-  }
-  /** Returns a refusal string, or null if the craft may proceed. Always snapshots bag for after(). */
-  before(steps, facts) {
-    const bag = this.bagDigest(facts);
-    this.beforeBag = bag;
-    const crafts = (steps ?? []).filter(s => s?.skill === 'craft');
-    if (!crafts.length) return null;
-    if (!this.awaiting) return null;
-    if (bag !== this.awaiting.bagDigest) { this.awaiting = null; return null; }
-    return `上一笔合成「${this.awaiting.label}」后背包清单尚未变化。先查询 bag/背包确认产物已入账，再开下一环合成；库存同步滞后时硬搓下一环常会误报缺材料。`;
-  }
-  /** After a successful craft: await only when bag digest is still equal to the pre-craft snapshot. */
-  after(steps, facts, isError) {
-    const crafts = (steps ?? []).filter(s => s?.skill === 'craft');
-    if (!crafts.length || isError) { this.beforeBag = null; return; }
-    const bag = this.bagDigest(facts);
-    const label = crafts.map(c => c.item || (c.grid ? 'grid' : 'craft')).join(',');
-    if (this.beforeBag != null && bag === this.beforeBag)
-      this.awaiting = { bagDigest: bag, label };
-    else this.awaiting = null;
-    this.beforeBag = null;
-  }
-  /** Clear the wait once facts show a different bag (e.g. after bag tool or natural sync). */
-  noteFacts(facts) {
-    if (this.awaiting && this.bagDigest(facts) !== this.awaiting.bagDigest) this.awaiting = null;
-  }
-}
-
-/** High-priority host hint when hunger is below the threshold (default 15). */
+/** Advisory host scheduling hint, never a permission or inventory gate. */
 export function survivalHint(facts, { foodThreshold = DEFAULT_FOOD_THRESHOLD } = {}) {
   const food = typeof facts?.food === 'number' ? facts.food
     : typeof facts?.observation?.food === 'number' ? facts.observation.food : undefined;
-  if (food === undefined || !(foodThreshold > 0) || food >= foodThreshold) return undefined;
-  return `[宿主提示] 当前饥饿 ${food}/20（阈值 ${foodThreshold}）。优先寻找可食用食物并 eat；暂缓长途 goto、反复建造或空转控制。没有食物就近采集/猎取后再继续原目标。`;
+  if (!Number.isFinite(food) || !Number.isFinite(foodThreshold) || !(foodThreshold > 0) || food >= foodThreshold) return undefined;
+  return `[宿主提示] 当前饥饿 ${food}/20（提示阈值 ${foodThreshold}）。结合当前危险与可用食物决定何时进食或补给；这是现场提示，不阻止正在执行的动作，也不代表已有食物或完成进食。`;
 }
 
 export function withNotice(value, notice) {
   if (!notice) return value;
   if (value?.structuredContent) {
-    const prev = value.structuredContent.hostNotice;
-    const hostNotice = prev && notice && prev !== notice ? `${prev}\n${notice}` : (notice || prev);
-    return { ...value, structuredContent: { ...value.structuredContent, hostNotice } };
+    const previous = value.structuredContent.hostNotice;
+    return { ...value, structuredContent: { ...value.structuredContent,
+      hostNotice: previous && previous !== notice ? `${previous}\n${notice}` : notice } };
   }
   return { ...value, content: [...(value?.content ?? []), { type: 'text', text: notice }] };
 }

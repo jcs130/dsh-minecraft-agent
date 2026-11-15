@@ -1,6 +1,6 @@
 {
   "name": "@jcs130/dsh-minecraft-agent",
-  "version": "0.3.0-rc.21",
+  "version": "0.3.0-rc.26",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jcs130/dsh-minecraft-agent.git"
@@ -32,6 +32,7 @@
     ".": "./lib/plugins/mc-harness.mjs",
     "./client": "./lib/client.js",
     "./harness2": "./lib/plugins/harness2.mjs",
+    "./self-improvement": "./lib/plugins/self-improvement-plugin.mjs",
     "./locale/*.json": "./locales/*.json",
     "./lib/*": "./lib/*",
     "./package.json": "./package.json",
@@ -64,19 +65,41 @@
   "files": [
     "lib/plugins/mc-harness.mjs",
     "lib/plugins/harness-bridge.mjs",
+    "lib/plugins/native-mcp-outcome.mjs",
+    "lib/plugins/harness-permission-recovery.mjs",
     "lib/plugins/harness-panel.mjs",
     "lib/plugins/harness-lifecycle.mjs",
     "lib/plugins/harness-goal.mjs",
+    "lib/plugins/harness-autonomy.mjs",
+    "lib/plugins/harness-reflection.mjs",
+    "lib/plugins/harness-improvement.mjs",
+    "lib/plugins/harness-method-progress.mjs",
+    "lib/plugins/harness-plan-review.mjs",
+    "lib/plugins/harness-decision-review.mjs",
+    "lib/plugins/harness-practice.mjs",
+    "lib/plugins/self-improvement-plugin.mjs",
+    "skills/minecraft-self-improvement",
+    "docs/self-improvement.md",
+    "lib/plugins/harness-compaction.mjs",
+    "lib/plugins/harness-context.mjs",
+    "lib/plugins/harness-handoff.mjs",
     "lib/plugins/harness2.mjs",
     "lib/plugins/harness-budget.mjs",
     "lib/plugins/event-condenser-fallback.mjs",
     "lib/client.js",
     "bin/prepare-assets.mjs",
     "docs/harness-migration.md",
+    "docs/host-turn-ownership.md",
+    "docs/native-tool-outcomes.md",
     "docs/harness2.md",
     "docs/desktop.md",
     "docs/quick-start.md",
     "docs/goal-session-reset.md",
+    "docs/continuous-autonomy.md",
+    "docs/continuous-goal-authority.md",
+    "docs/host-evidence-20261028.md",
+    "docs/autonomy-viewer-20261028.md",
+    "docs/runtime-recovery-20261029.md",
     "docs/survival-decision.md",
     "docs/minedojo-knowledge.md",
     "docs/authme-login.md",
@@ -113,29 +136,51 @@
     "profile-verification-20261025.json",
     "viewer-resources-verification-20261025.json",
     "goal-session-verification-20261025.json",
-    "minedojo-verification-20261025.json"
+    "minedojo-verification-20261025.json",
+    "docs/viewer-compatible-20261025.md",
+    "docs/viewer-compatible-20261025.json",
+    "docs/core-sync-verification-20261026.json",
+    "docs/core-sync-rc99-verification-20261026.json",
+    "docs/release-rc24.md",
+    "docs/release-rc24-verification.json",
+    "docs/core-viewer-sync-20261027.md",
+    "docs/core-viewer-sync-20261027.json",
+    "docs/autonomy-viewer-20261028.json",
+    "docs/release-rc26.md"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "agent-mc-world": "0.5.7-rc.88",
+    "agent-mc-world": "0.5.7-rc.153",
     "readable-stream": "4.8.0"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-scope": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-compaction-basic": "^0.2.0-rc.2 || ^0.2.1-rc.2",
     "@deepseek-ai/dsh-llm": "^0.2.0-rc.2 || ^0.2.1-rc.2",
-    "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2 || ^0.2.1-rc.2"
+    "@deepseek-ai/dsh-tool-goal": "^0.2.0-rc.2 || ^0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-skill": "^0.2.0-rc.2 || ^0.2.1-rc.2"
   },
-  "peerDependenciesMeta": {},
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-tool-skill": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-compaction-basic": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-goal": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tool-skill": "0.2.1-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.2",
     "@deepseek-ai/dsh-session": "0.2.1-rc.2",
     "esbuild": "^0.25.0"
   },
   "optionalDependencies": {
-    "agent-mc-qiandengji": "0.5.0-rc.22"
+    "agent-mc-qiandengji": "0.5.0-rc.49"
   },
   "engines": {
     "node": ">=24",

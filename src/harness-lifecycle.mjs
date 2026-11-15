@@ -49,7 +49,7 @@ export class HostLifecycle {
   }
   turn(value) {
     return { at: typeof value.at === 'string' && Number.isFinite(Date.parse(value.at)) ? value.at : null,
-      turn: integer(value.turn), reason: ['stop', 'tool-use', 'max-tokens', 'error', 'aborted', 'completed', 'concluded', 'cancelled']
+      turn: integer(value.turn), reason: ['stop', 'tool-use', 'max-tokens', 'error', 'aborted', 'completed', 'concluded', 'cancelled', 'blocked']
         .includes(value.reason) ? value.reason : 'unknown' };
   }
   save(event) {
@@ -72,15 +72,26 @@ export class HostLifecycle {
     this.save({ kind: 'activation', goalId: typeof goal?.id === 'string' && /^[\w-]{1,100}$/.test(goal.id) ? goal.id : null,
       revision: integer(goal?.revision), activation: ['armed', 'disarmed'].includes(goal?.activation) ? goal.activation : null });
   }
-  snapshot({ paused, stopped, state, goal }) {
+  snapshot({ paused, stopped, state, goal, autonomy, connection }) {
+    // Runtime phase=started means the client environment exists, not that the
+    // game is authenticated. Preserve unknown readiness for older SDKs.
+    const gameConnection = {
+      ready: typeof connection?.ready === 'boolean' ? connection.ready : null,
+      phase: typeof connection?.phase === 'string' && /^[a-z][a-z0-9-]{0,79}$/.test(connection.phase)
+        ? connection.phase : null,
+    };
     const continuation = stopped ? 'stopped' : paused ? 'paused' : goal?.phase === 'blocked' ? 'blocked'
       : goal?.phase === 'paused' ? 'paused' : goal?.phase === 'active' && goal.activation === 'disarmed' ? 'disarmed'
+      : goal?.phase === 'active' && goal.activation === 'armed' && gameConnection.ready === false ? 'waiting-connection'
       : state === 'running' ? 'running' : goal?.phase === 'active' && goal.activation === 'armed' ? 'waiting'
       : goal?.phase === 'complete' ? 'complete' : 'idle';
-    return { continuation, goalActivation: goal?.activation ?? null, goalPhase: goal?.phase ?? null,
-      goalRounds: goal ? { started: integer(goal.roundsStarted), limit: integer(goal.maxGoalRounds),
-        remaining: Number.isSafeInteger(goal.maxGoalRounds) && Number.isSafeInteger(goal.roundsStarted)
+    const ownedRest = autonomy?.waiting && autonomy.goalId === goal?.id && goal?.phase === 'active' && goal.activation === 'disarmed';
+    return { continuation: !paused && !stopped && ownedRest ? 'waiting' : continuation, autonomy,
+      connection: gameConnection, goalActivation: goal?.activation ?? null, goalPhase: goal?.phase ?? null,
+      goalRounds: goal ? { started: integer(goal.roundsStarted), limit: autonomy?.mode === 'continuous' ? null : integer(goal.maxGoalRounds),
+        remaining: autonomy?.mode === 'continuous' ? null : Number.isSafeInteger(goal.maxGoalRounds) && Number.isSafeInteger(goal.roundsStarted)
           ? Math.max(0, goal.maxGoalRounds - goal.roundsStarted) : null,
+        ...(autonomy?.mode === 'continuous' ? { windowLimit: integer(goal.maxGoalRounds) } : {}),
         blockedCode: typeof goal.blockedReason?.code === 'string' && /^[a-z][a-z0-9-]{0,79}$/.test(goal.blockedReason.code)
           ? goal.blockedReason.code : null } : null,
       lastFailure: this.lastFailure, lastTurn: this.lastTurn };

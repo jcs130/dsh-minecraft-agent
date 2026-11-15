@@ -1,18 +1,36 @@
 # DSH Minecraft Agent
 
-**rc.20 source candidate:** exact 1.21.5 resources, shared identical images, vanilla server player skins, public-chat wake defaults and configurable particles/weather/visual cues, consuming core rc.87. See [viewer resources and chat](docs/viewer-resources-chat.md). Publication is verified separately; rc.19 below is the previous public release.
+**2026-10-28 development update:** the Connection tab enables continuous autonomy by default. The same goal continues beyond cumulative 30-call/40-round limits, preserving its session, progress and receipts; safe step boundaries, owned short rests and explicit user pauses remain supported. See the [continuation guide](docs/continuous-autonomy.md). The core rc.115 candidate includes current upstream work and shared first-person, vanilla skin and armor preview fixes. The formal dependency remains installable rc.99 until the replacement public package is verified.
 
-[0.3.0-rc.19 is published](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19) on GitHub and npm, selected by `latest`, with exact core **0.5.7-rc.86**. Default public registry installation and real main/Worker checks passed on unmodified official DSH 0.2.1-rc.2 and rc.3.
+Publication is on hold at the user's request. This source update does not publish npm/GitHub releases or reload live Agents. See the [current verification scope](docs/autonomy-viewer-20261028.md); the published installation below remains rc.24 / core rc.99.
 
-Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from the Minecraft settings page. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect the own web avatar only. Existing game, native reasoning/tools, metrics and experiment views remain available. See [configuration and notebook](docs/character-notebook.md), [installation](README-INSTALL.md) and [public verification](docs/npm-publish-rc19.json).
+**[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) is published on GitHub and [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)** with npm latest, exact core **0.5.7-rc.99** and optional Qiandengji **0.5.0-rc.24**. Explicit read-only queries can overlap navigation; batch message readback, recovery and memory deduplication preserve task and evidence semantics.
+
+Unmodified official DSH **0.2.1-rc.2 / rc.3** passed default public-registry pnpm installation, main/Worker loading, **38 MCP tools** and real local knowledge queries. Each host passed 154 tests with one optional skip. Anonymous archive bytes match the reviewed build. See [npm verification](docs/npm-publish-rc24.json) and [release notes](docs/release-rc24.md). Missing exact materials still use compatible rendering. Publication does not reload live Agents; native Desktop pixels and long-term gameplay remain separate checks. Candidate flags inside the immutable archive are build-time snapshots.
+
+Editable personas, default-off mineral queries, local viewer skins, a shared versioned server notebook and official DSH capability presets are available from the Minecraft settings page. Offline CPU token-vector/keyword retrieval is not a neural semantic model; configure your own embeddings service when needed. Local skins affect the own web avatar only. Existing game, native reasoning/tools, metrics and experiment views remain available. See [configuration and notebook](docs/character-notebook.md), [installation](README-INSTALL.md) and [public verification](docs/npm-publish-rc22.json).
 
 Published archives retain their reviewed bytes. Candidate flags inside the archive are build-time snapshots; Release attachments and main-branch records describe current distribution status. Installation alone starts no game or model.
 
 [简体中文](README.md) | English
 
+## Live spectating
+
+Watch the Agent's existing game connection in first-person, third-person or 3D spectator views. Toggle the HUD and camera locally; the DSH panel can place the game beside native reasoning, replies and tool records.
+
+![Live 3D spectating from the shared core, with the HUD hidden](docs/screenshots/live-spectator-20261026.jpg)
+
+Captured on 2026-10-26 from the shared **Agent MC World** core's existing live spectator page, not an AI-generated image or a DSH Desktop window. This server has custom dungeon content; its skills and character appearance depend on optional server/appearance resources.
+
+![Live spectator HUD with map, abilities and action state](docs/screenshots/live-spectator-hud-20261026.jpg)
+
+![Embedded DSH game view beside native conversation and tools](docs/screenshots/game-and-reasoning.png)
+
+The third image is a recorded DSH Web integration test. The transcript is visibly labelled offline UI test data; it demonstrates the layout, not live model reasoning. See [screenshot provenance](docs/screenshots/README.md), [Desktop installation](docs/desktop.md) and [market listing status](docs/marketplaces.md). The root `screenshots.json` provides the gallery in this order.
+
 A thin DeepSeek Harness adapter for the shared [Agent MC World core](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world). DSH owns persona, goals, sessions, memory and model choice. The core owns one Minecraft body, navigation, tools, game memory, learning evidence, fast-decision contracts and visualization. The optional `agent-mc-qiandengji` package enables that server's protocols and reference material explicitly.
 
-The npm and GitHub release is **0.3.0-rc.19**, consuming core **0.5.7-rc.86** and optional server pack **0.5.0-rc.22**. npm latest and this repository’s market index select rc.19. Java **1.21.1** is primary, with a separate **1.20.6** compatibility build. Publication, default installation, native Desktop pixels and live gameplay remain separate checks. The metadata-only experiment page does not start inference, replay trials or adopt skills. Installation alone does not connect or call a model.
+The rc.24 release consumes core **0.5.7-rc.99** and optional pack **0.5.0-rc.24**. Java 1.21.1 is primary; actual connection protocols and compatible viewer materials remain explicit. Publication, installation, native Desktop pixels and live gameplay are separate acceptance stages.
 
 The default lean tool set now retains `*_script` for on-demand shared routine and method discovery; explicit `tools.exclude` is respected.
 

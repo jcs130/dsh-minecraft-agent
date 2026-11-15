@@ -1,26 +1,13 @@
 {
   "schema": "dsh-minecraft-candidates/v1",
-  "adapterVersion": "0.3.0-rc.21",
+  "adapterVersion": "0.3.0-rc.26",
   "publication": {
-    "status": "published-npm-and-github",
-    "githubPublished": true,
-    "registryPublished": true,
-    "previousPublishedVersion": "0.3.0-rc.19",
-    "previousGithubVersion": "0.3.0-rc.20",
-    "latestNpmVersion": "0.3.0-rc.21",
-    "marketVersion": "0.3.0-rc.21",
-    "updatedAt": "2026-10-25T08:12:10.170Z",
-    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21",
-    "mergedCommit": "5e51924d9fb8642ce6d8cd345a691f4961431934",
-    "verification": "docs/npm-publish-rc21.json",
-    "archive": {
-      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.21.tgz",
-      "sha256": "23eceb75189cb19f7144600f0d20edddde27051888d0db72f78145e8ad96c45c",
-      "integrity": "sha512-kcryOOZAdmefrkW0C/qAN7JvYuYhO8b9FxnJDTxqt58v3wxF8xgHKsHPrdoFYEv0glmYGIBKWJzsjmh+zlbBow==",
-      "bytes": 676952,
-      "publishedAt": "2026-10-25T08:09:29.151Z"
-    },
-    "communityMarketplaceStatus": "not-verified-by-this-publication"
+    "status": "verified-release-candidate-awaiting-npm-publication",
+    "registryPublished": false,
+    "githubPublished": false,
+    "updatedAt": "2026-11-01T20:39:18.520886+00:00",
+    "previousPublishedVersion": "0.3.0-rc.24",
+    "note": "Build-time snapshot; immutable registry receipts are recorded separately."
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -49,49 +36,54 @@
       "manualDoctorRequired": false
     },
     "additionallyVerifiedVersions": [
-      "0.2.1-rc.3"
-    ]
+      "0.2.1-rc.3",
+      "0.2.1-rc.4"
+    ],
+    "nativeHistoryProvider": {
+      "sdkVersion": "0.2.1-rc.4",
+      "sourceCommit": "1d9ab9a8",
+      "runtimeFileSha256": "334dfa4381ef8ee567bfe52a9a5c1661b4e69778cd0f4cd30d5b12a282417da9",
+      "requiredSessionRuntimeFileSha256": "55854ee93e455ebf303fbaf9cc6efebbba2429e788cbc30bf2496ac258c1f383",
+      "published": false,
+      "loaded": false
+    }
   },
   "candidates": [
     {
       "role": "core",
       "repository": "https://github.com/jcs130/minecraft-ai-friend",
       "sourceDirectory": "packages/agent-mc-world",
-      "commit": "f2b6714bf633434aef7d67b5bf6b74a07423e5a7",
-      "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.7-rc.88",
-      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.88.tgz",
-      "sha256": "56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573",
-      "integrity": "sha512-IIU1R/xAcXVPpwyiM/q5V3kCl6O9P7DmWyr4P+6IfcYSV19hBEvNoGlWec6bDXkCYfz2YZJAS5NlJDEpolzIBA==",
+      "commit": "8c79d72dccb84b9318557826b2b823800174130e",
+      "sourceStatus": "release-source-pushed",
+      "version": "0.5.7-rc.153",
+      "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.153.tgz",
+      "sha256": "6e6d9d66b33c0e684b5966e0e99093fa35c515fb6e22fdcc068efffc2645d0e5",
+      "integrity": "sha512-AXFCt70BiomWdNICBQGjTay2mqU2EfpMqNCct+tQih1wG4q2WxPsu97XVFkFdCU0G28c+c6lM1LU6+ryWJ4Qkg==",
       "published": true,
       "registryPublished": true,
-      "artifactFile": "agent-mc-world-0.5.7-rc.88.tgz",
-      "githubPublished": true,
-      "npmUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.88.tgz",
-      "mergedCommit": "fe7732611f9fcb7cdf6218bc63cdcc7e72362d2b",
-      "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.88",
-      "publishedAt": "2026-10-25T07:43:43.592Z"
+      "artifactFile": "agent-mc-world-0.5.7-rc.153.tgz",
+      "sourcePushed": true,
+      "archiveBytesPreserved": true
     },
     {
       "role": "server-pack",
       "repository": "https://github.com/jcs130/cortico-world-qiandengji",
       "sourceDirectory": "packages/qiandengji",
-      "commit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a",
-      "sourceStatus": "committed-on-remote-main",
-      "version": "0.5.0-rc.22",
-      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.22.tgz",
-      "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
-      "integrity": "sha512-/3+nF8q+FTDRrgq+QS+lc4/2bocHNN3M1YOQzjtpx2QI+xsbjM0I/CYH6MRW29mZh88W2Rqbc1FDuYGaSvfJsQ==",
+      "version": "0.5.0-rc.49",
+      "peerCore": "^0.5.7-rc.153",
+      "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.49.tgz",
+      "sha256": "8ebc59360f661f509f7c58bb35c315153b50ea61a53478eb6ff840f9e6e96412",
+      "integrity": "sha512-aulO95m9eRnAECTl3WtpcyziEqktg8LLUv0MRxcncsVifyAw3G3ASoGPOIFX0V6sXxU2mE09SWKQHHCa1riAkw==",
+      "commit": "6f028a0a97d43620e4da2d12006c0aea5263e825",
       "published": true,
       "registryPublished": true,
-      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.22.tgz",
-      "peerCore": "^0.5.7-rc.84",
-      "publishedAt": "2026-10-24T11:19:31.832Z"
+      "artifactFile": "agent-mc-qiandengji-0.5.0-rc.49-8ebc5936.tgz",
+      "archiveBytesPreserved": true
     }
   ],
   "viewer": {
     "repository": "https://github.com/jcs130/mc-visual-console",
-    "commit": "14aeb081fab1f2ed4d65cc8558a2b9d6eb066759",
+    "commit": "5e9405067bd1eda4a23abc06f6b70383154c9408",
     "assetPack": "java-1.21.1",
     "additionalPacks": [
       "java-1.20.6",
@@ -99,8 +91,8 @@
       "java-1.21.5"
     ],
     "preset": null,
-    "artifact": "vendor/mc-visual-console-java-1.21.1-14aeb081-audio.tgz",
-    "sha256": "a3558929cb9cb3401c71c2676d128721f7be47cb3c26a78d7e159b6aece4333d",
+    "artifact": "vendor/mc-visual-console-java-1.21.1-5e940506-compatible.tgz",
+    "sha256": "163b056c3e61f9197a8fa9453d5bf550fe533a607e9bea4874a5bbe651de23cf",
     "soundPacks": [
       "java-1.21.1-sounds",
       "java-1.20.6-sounds",
@@ -120,8 +112,8 @@
       "filesCheckedAgainstCurrentSharedAssetPacks": 28
     },
     "previousFrozenInput": {
-      "commit": "94a12db5ae1f96ab8ea274395ece9eb38335c69a",
-      "sha256": "64e0d4ef79ae4c77af6044408990d519a28358e62ee84f9cc9bec43e7fc5626d"
+      "commit": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+      "sha256": "3e2d3d9e79e496569eaa03675ba5f173be6871a4122700718e9af4adc9092916"
     },
     "originalAssetInput": {
       "commit": "4da993d1d96e79c7ba195ef38d49976250a621aa",
@@ -136,52 +128,58 @@
       {
         "version": "1.21.1",
         "clientJarSha256": "499f6897d1837516680f3114072d8106e11c9adcd933fe5cf051b551089b0c99",
-        "browserBundleSha256": "77c396bc20e068a49b7dba45d3bea4e42df5d62ad8b0b8eb3669f401247179d2",
-        "mesherSha256": "537970d0ef79018017a4371290c42e70d73c4d267bbaf843e8146e1b62d7e336",
+        "browserBundleSha256": "2ed8dbaf6c3d7c7af8142295e1045be4589ac89f2fe744397316413b6b99b4e4",
+        "mesherSha256": "2d3c925683f77dc18bad734e85d192c756b0431136216fcc02d475742bef2f21",
         "buildSource": {
-          "sourceSha256": "4cbd4dcef4954fb10a4820725dc384ac2e1eb69ab1b4e9fcfa890199bdb745a6",
-          "sourceFiles": 375,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
-        "preset": null
+        "preset": null,
+        "armorTextureCount": 15
       },
       {
         "version": "1.20.6",
         "clientJarSha256": "02dfd345ac1ad55692d5dbc8486ac7e4fea72cd54ac494a79cd48963048e56b2",
-        "browserBundleSha256": "d94e9dbb8f845c689c62d0a8d2a9039e34514d10a0b2609b6ce632f7234727d8",
-        "mesherSha256": "a1ff058d8ecab9019ca5a8b5b684d96d92b816fe48cd4ee396b9fd79a0fb654c",
+        "browserBundleSha256": "e2876f225f8f0b7e87130f6861a16c92ed29c7484008ea9bc308722d5e8e23d8",
+        "mesherSha256": "60348a1993e46c943aba13a127ecdbab1210ad60441f76ca60c0b2cb40d1f263",
         "buildSource": {
-          "sourceSha256": "4cbd4dcef4954fb10a4820725dc384ac2e1eb69ab1b4e9fcfa890199bdb745a6",
-          "sourceFiles": 375,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
-        "preset": null
+        "preset": null,
+        "armorTextureCount": 15
       },
       {
         "version": "1.21.11",
         "clientJarSha256": "1473c9489ac50fda3c435049a76a70d61a10b8610db27f5ba9d8756b686cd3bd",
-        "browserBundleSha256": "87b4f0f4ccdd01ecd3dae209410d77492d22854b0bb85c00052eda6ea111aa89",
-        "mesherSha256": "7829de731fcff8d0911a677249efe742d57a21b7b90713fa23894debef82d63b",
+        "browserBundleSha256": "3cf9b7f72dcf1baf316cd85a79c5599ddd03c19fded19defce584fdbec6a6551",
+        "mesherSha256": "4380630138ce835f228cc0bd2b52aecf4e62d2d7e8d32ff46c9079285ba5c926",
         "buildSource": {
-          "sourceSha256": "4cbd4dcef4954fb10a4820725dc384ac2e1eb69ab1b4e9fcfa890199bdb745a6",
-          "sourceFiles": 375,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
-        "preset": null
+        "preset": null,
+        "armorTextureCount": 17
       },
       {
         "version": "1.21.5",
         "clientJarSha256": "522672ad20b460c02c2e39b6c5035ef6a849af28eb11ab2ac7eb293d395a8c11",
-        "browserBundleSha256": "84d14b6e6aa5519f7d0541ba0fe224b34cae008a78f866df46f6adfc20bab821",
-        "mesherSha256": "e0e383da60dd7c94795c16c65f2dfe5fcec7a4389bf15dd1f00d21e64fe66ca5",
+        "browserBundleSha256": "ed862185cacd8d510afa0c413a91e63aafcc76e47b33adff072c11466c19f09a",
+        "mesherSha256": "c4951379058f0b99d7851ef3f57c67070c683ad4dd678051e39a048783c47534",
         "buildSource": {
-          "sourceSha256": "4cbd4dcef4954fb10a4820725dc384ac2e1eb69ab1b4e9fcfa890199bdb745a6",
-          "sourceFiles": 375,
+          "sourceSha256": "61dd653deed86152d8ae7a110f96c253cf0150f9dec690f76cffd83eb44d1d60",
+          "sourceFiles": 423,
           "scope": "renderer_source_host_adapters_and_asset_preparation"
         },
-        "preset": null
+        "preset": null,
+        "armorTextureCount": 15
       }
-    ]
+    ],
+    "runtimeRegistryVersion": 1,
+    "missingExactMaterials": "automatic-compatible-materials-with-actual-connection-registry"
   },
   "onboarding": {
     "docs": [
@@ -196,41 +194,41 @@
     "gameConnections": 0
   },
   "validation": {
-    "status": "passed-public-registry-and-official-dsh-installation",
-    "verification": "docs/npm-publish-rc21.json",
-    "publicRegistryInstallVerified": true,
-    "sourceTestsPerHost": 150,
-    "skippedPerHost": 1,
-    "stockDshVersions": [
-      "0.2.1-rc.2",
-      "0.2.1-rc.3"
-    ],
-    "sharedPhysicalCore": true,
-    "mainWorkerAndEngineReferenceQueries": true,
-    "productionChanged": false,
-    "githubVerification": "docs/github-publish-rc21.json",
-    "defaultRegistryInstallVerified": true
+    "sourceTestsPassed": 295,
+    "sourceTestsSkipped": 1,
+    "build": true,
+    "officialStockHost": "0.2.1-rc.2",
+    "officialLoaderAndWorker": true,
+    "mcpTools": 41,
+    "compiledEngineIpc": true,
+    "offlineGameMemory": true,
+    "frameworkUnchanged": true,
+    "packedOfficialProfileInstall": "pending-separate-distribution-receipt",
+    "modelCalls": 0,
+    "gameConnections": 0,
+    "productionReloaded": false
   },
   "previousPublication": {
     "status": "published-npm-and-github",
-    "registryPublished": true,
     "githubPublished": true,
-    "previousPublishedVersion": "0.3.0-rc.17",
-    "marketVersion": "0.3.0-rc.19",
-    "latestNpmVersion": "0.3.0-rc.19",
-    "updatedAt": "2026-10-25T03:06:02.075Z",
-    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.19",
-    "mergedCommit": "6e283ee2b5abf0974196094e2e1c71f05b738ce2",
-    "verification": "https://github.com/jcs130/dsh-minecraft-agent/releases/download/v0.3.0-rc.19/npm-registry-verification.json",
+    "registryPublished": true,
+    "previousPublishedVersion": "0.3.0-rc.22",
+    "latestNpmVersion": "0.3.0-rc.24",
+    "marketVersion": "0.3.0-rc.24",
+    "updatedAt": "2026-10-26T12:19:07.282Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24",
+    "verification": "docs/npm-publish-rc24.json",
+    "mergedCommit": "1c287a94595e7520b5f043a3f18f349158256f01",
     "archive": {
-      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.19.tgz",
-      "sha256": "4929569a578b78a3e4a797a99ff7ddb28381010c1945098336c831a710f5cc1e",
-      "integrity": "sha512-8h6pQul1T8UVAd/Eb/1yDVKHcZV3093eW6D6NZ1rvQvazm6gT1IQBAQA+GS7zyASfAaX7Ct2ULP+Mrbiu/Nf/A==",
-      "bytes": 659019,
-      "publishedAt": "2026-10-25T03:02:21.290Z"
-    }
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.24.tgz",
+      "sha256": "209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03",
+      "integrity": "sha512-dcHfYZR+a23h0OooTNzw1XoLyT3X5IdDGJLoi/lsmMrFrqzfVSH6X9DlU+Aex++DgNnwzDnwQhvGkp9/Nf8scg==",
+      "bytes": 1067944,
+      "publishedAt": "2026-10-26T12:16:04.151Z"
+    },
+    "communityMarketplaceStatus": "independent-review-and-index-refresh"
   },
-  "viewerVerification": "viewer-resources-verification-20261025.json",
+  "viewerVerification": "docs/viewer-compatible-20261025.json",
   "previousValidation": {
     "status": "passed-public-registry-and-official-dsh-installation",
     "verification": "docs/npm-publish-rc19.json",
@@ -254,18 +252,20 @@
     "role": "core",
     "repository": "https://github.com/jcs130/minecraft-ai-friend",
     "sourceDirectory": "packages/agent-mc-world",
-    "commit": "8159c205f511fa2e9f5a982368a1aef84ab5faec",
+    "commit": "f2b6714bf633434aef7d67b5bf6b74a07423e5a7",
     "sourceStatus": "committed-on-remote-main",
-    "version": "0.5.7-rc.86",
-    "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.86.tgz",
-    "sha256": "350684246704cac0eed997bd1f801b924bb18fb462e51f52eaf0926cef3fa9f0",
-    "integrity": "sha512-+bWa0OZExY3o+zRQT+xRVdNYBp/Qfi+tAO1lBiLmvTwK/ymFU9D91PQBmcuFC9unuMfAAm6cWvpG3k6aDYnxDw==",
+    "version": "0.5.7-rc.88",
+    "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.88.tgz",
+    "sha256": "56834b4a13ec6bd3f41790ae410843bc14febf5bbb227eac65882a51a13fd573",
+    "integrity": "sha512-IIU1R/xAcXVPpwyiM/q5V3kCl6O9P7DmWyr4P+6IfcYSV19hBEvNoGlWec6bDXkCYfz2YZJAS5NlJDEpolzIBA==",
     "published": true,
     "registryPublished": true,
-    "artifactFile": "agent-mc-world-0.5.7-rc.86.tgz",
-    "mergedCommit": "dd7915b88213d239a295f60cb680e4a6d5c89d39",
-    "mergedPullRequest": "https://github.com/jcs130/minecraft-ai-friend/pull/4",
-    "publishedAt": "2026-10-24T19:07:38.959Z"
+    "artifactFile": "agent-mc-world-0.5.7-rc.88.tgz",
+    "githubPublished": true,
+    "npmUrl": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.88.tgz",
+    "mergedCommit": "fe7732611f9fcb7cdf6218bc63cdcc7e72362d2b",
+    "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.88",
+    "publishedAt": "2026-10-25T07:43:43.592Z"
   },
   "previousViewerVerification": "viewer-verification-20261025.json",
   "previousProfileValidation": {
@@ -275,29 +275,41 @@
     "productionChanged": false
   },
   "previousCandidatePublication": {
-    "status": "unpublished-candidate",
-    "githubPublished": false,
-    "registryPublished": false,
+    "status": "published-npm-and-github",
+    "githubPublished": true,
+    "registryPublished": true,
     "previousPublishedVersion": "0.3.0-rc.19",
     "previousGithubVersion": "0.3.0-rc.20",
-    "latestNpmVersion": "0.3.0-rc.19",
-    "marketVersion": "0.3.0-rc.19",
-    "updatedAt": "2026-10-25T06:53:34.442Z"
+    "latestNpmVersion": "0.3.0-rc.21",
+    "marketVersion": "0.3.0-rc.21",
+    "updatedAt": "2026-10-25T08:12:10.170Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21",
+    "mergedCommit": "5e51924d9fb8642ce6d8cd345a691f4961431934",
+    "verification": "docs/npm-publish-rc21.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.21.tgz",
+      "sha256": "23eceb75189cb19f7144600f0d20edddde27051888d0db72f78145e8ad96c45c",
+      "integrity": "sha512-kcryOOZAdmefrkW0C/qAN7JvYuYhO8b9FxnJDTxqt58v3wxF8xgHKsHPrdoFYEv0glmYGIBKWJzsjmh+zlbBow==",
+      "bytes": 676952,
+      "publishedAt": "2026-10-25T08:09:29.151Z"
+    },
+    "communityMarketplaceStatus": "not-verified-by-this-publication"
   },
   "previousCandidateValidation": {
-    "status": "passed-archive-consumers-and-public-github-download; npm-default-install-pending",
-    "verification": "docs/github-publish-rc20.json",
-    "goalSessionVerification": "goal-session-verification-20261025.json",
-    "publicRegistryInstallVerified": false,
-    "sourceTestsPerHost": 148,
+    "status": "passed-public-registry-and-official-dsh-installation",
+    "verification": "docs/npm-publish-rc21.json",
+    "publicRegistryInstallVerified": true,
+    "sourceTestsPerHost": 150,
     "skippedPerHost": 1,
     "stockDshVersions": [
       "0.2.1-rc.2",
       "0.2.1-rc.3"
     ],
     "sharedPhysicalCore": true,
-    "packedNativeGoalJournal": true,
-    "productionChanged": false
+    "mainWorkerAndEngineReferenceQueries": true,
+    "productionChanged": false,
+    "githubVerification": "docs/github-publish-rc21.json",
+    "defaultRegistryInstallVerified": true
   },
   "previousGithubCoreRelease": {
     "role": "core",
@@ -358,5 +370,397 @@
     "mainWorkerAndEngineReferenceQueries": true,
     "productionChanged": false,
     "githubVerification": "docs/github-publish-rc21.json"
+  },
+  "rc22BuildPublication": {
+    "status": "unpublished-candidate",
+    "githubPublished": false,
+    "registryPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.21",
+    "latestNpmVersion": "0.3.0-rc.21",
+    "marketVersion": "0.3.0-rc.21",
+    "updatedAt": "2026-10-25T14:21:39.809Z"
+  },
+  "rc22BuildValidation": {
+    "status": "passed-source-hosts-and-packed-core; final-adapter-archive-verified-separately",
+    "verification": "docs/viewer-compatible-20261025.json",
+    "publicRegistryInstallVerified": false,
+    "sourceTestsPerHost": 150,
+    "skippedPerHost": 1,
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "sharedPhysicalCore": true,
+    "productionChanged": false
+  },
+  "rc22PublishedSnapshot": {
+    "publication": {
+      "status": "published-npm-and-github",
+      "githubPublished": true,
+      "registryPublished": true,
+      "previousPublishedVersion": "0.3.0-rc.21",
+      "latestNpmVersion": "0.3.0-rc.22",
+      "marketVersion": "0.3.0-rc.22",
+      "updatedAt": "2026-10-25T15:47:27.990Z",
+      "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.22",
+      "mergedCommit": "1c65895a8e8cc6e6c67491b3f634824d1c074952",
+      "verification": "docs/npm-publish-rc22.json",
+      "archive": {
+        "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.22.tgz",
+        "sha256": "026a8c4eb86bb7d09ff91b6faac46eee67b447885ad0ebac1539dde450f7b68b",
+        "integrity": "sha512-7jhBf1SGR35DGb3rimplY5V+OcJffY9XcFd50gvb9HwbpBs3uiuLlKcB8iY1Kj8xNdif6TmGvoUsmim8Red0SQ==",
+        "bytes": 679333,
+        "publishedAt": "2026-10-25T15:43:02.978Z"
+      },
+      "communityMarketplaceStatus": "pull-request-pending-independent-review"
+    },
+    "validation": {
+      "status": "passed-public-registry-and-official-dsh-installation",
+      "verification": "docs/npm-publish-rc22.json",
+      "publicRegistryInstallVerified": true,
+      "sourceTestsPerHost": 150,
+      "skippedPerHost": 1,
+      "stockDshVersions": [
+        "0.2.1-rc.2",
+        "0.2.1-rc.3"
+      ],
+      "sharedPhysicalCore": true,
+      "productionChanged": false,
+      "defaultRegistryInstallVerified": true,
+      "runtimeFilesCompared": 18
+    },
+    "candidates": [
+      {
+        "role": "core",
+        "repository": "https://github.com/jcs130/minecraft-ai-friend",
+        "sourceDirectory": "packages/agent-mc-world",
+        "commit": "340d2afad4cebf62194cd8efcc7755ebe2894900",
+        "sourceStatus": "committed-on-remote-main",
+        "version": "0.5.7-rc.89",
+        "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.89.tgz",
+        "sha256": "9fa8f2eb7fff6dcc50b0b7498757a7ab1372071f351bed755341575f3d41a99b",
+        "integrity": "sha512-bsA3+jpbm+tXcEJaQXn/coXqj2q1kxfdLnI0mxHlSWLzMty+hpduGiYPMZHySWNHlIrWyAJC/ZEIkciX1bCmJA==",
+        "published": true,
+        "registryPublished": true,
+        "artifactFile": "agent-mc-world-0.5.7-rc.89.tgz",
+        "githubPublished": true,
+        "publishedAt": "2026-10-25T15:35:49.086Z",
+        "mergedCommit": "8b5e92931fdf9f9068bd4a0a2d6da4e0574d1941",
+        "githubRelease": "https://github.com/jcs130/minecraft-ai-friend/releases/tag/agent-mc-world-v0.5.7-rc.89",
+        "finalVerifiedSourceCommit": "8b7c800ca5734b5bdbce4691be8c97570a1960db",
+        "archiveBytesPreserved": true
+      },
+      {
+        "role": "server-pack",
+        "repository": "https://github.com/jcs130/cortico-world-qiandengji",
+        "sourceDirectory": "packages/qiandengji",
+        "commit": "ac97953f2216bdbe35f196f7ad6e41ca2fbda04a",
+        "sourceStatus": "committed-on-remote-main",
+        "version": "0.5.0-rc.22",
+        "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.22.tgz",
+        "sha256": "9d6a2bd24c1cd0c4f96527264feca6ea33cdf46776411db8630419fa1849e84e",
+        "integrity": "sha512-/3+nF8q+FTDRrgq+QS+lc4/2bocHNN3M1YOQzjtpx2QI+xsbjM0I/CYH6MRW29mZh88W2Rqbc1FDuYGaSvfJsQ==",
+        "published": true,
+        "registryPublished": true,
+        "artifactFile": "agent-mc-qiandengji-0.5.0-rc.22.tgz",
+        "peerCore": "^0.5.7-rc.84",
+        "publishedAt": "2026-10-24T11:19:31.832Z"
+      }
+    ]
+  },
+  "rc24BuildPublication": {
+    "status": "release-candidate-pending-adapter-publication",
+    "githubPublished": false,
+    "registryPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.22",
+    "latestNpmVersion": "0.3.0-rc.22",
+    "marketVersion": "0.3.0-rc.22",
+    "updatedAt": "2026-10-26T11:48:20.061Z",
+    "verification": "docs/release-rc24-verification.json",
+    "communityMarketplaceStatus": "independent-review-and-index-refresh"
+  },
+  "rc24BuildValidation": {
+    "status": "passed-packed-core99-and-official-dsh-regression",
+    "verification": "docs/release-rc24-verification.json",
+    "publicRegistryInstallVerified": false,
+    "sourceTestsPerHost": 154,
+    "skippedPerHost": 1,
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "sharedPhysicalCore": true,
+    "productionChanged": false,
+    "runtimeFilesCompared": 18,
+    "mcpTools": 38
+  },
+  "rc24GithubPublication": {
+    "status": "published-github-awaiting-npm-authentication",
+    "githubPublished": true,
+    "registryPublished": false,
+    "previousPublishedVersion": "0.3.0-rc.22",
+    "latestNpmVersion": "0.3.0-rc.22",
+    "marketVersion": "0.3.0-rc.22",
+    "updatedAt": "2026-10-26T12:06:10.803Z",
+    "githubRelease": "https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24",
+    "mergedCommit": "1c287a94595e7520b5f043a3f18f349158256f01",
+    "verification": "docs/github-publish-rc24.json",
+    "archive": {
+      "file": "jcs130-dsh-minecraft-agent-0.3.0-rc.24.tgz",
+      "bytes": 1067944,
+      "sha256": "209618e2693d9707dbfb0ca6f23f370d7e2250a9eca1a4c786c7ed8880219c03",
+      "integrity": "sha512-dcHfYZR+a23h0OooTNzw1XoLyT3X5IdDGJLoi/lsmMrFrqzfVSH6X9DlU+Aex++DgNnwzDnwQhvGkp9/Nf8scg=="
+    },
+    "communityMarketplaceStatus": "independent-review-and-index-refresh"
+  },
+  "rc24GithubValidation": {
+    "status": "passed-public-github-default-official-dsh-installation",
+    "verification": "docs/github-publish-rc24.json",
+    "publicRegistryInstallVerified": false,
+    "sourceTestsPerHost": 154,
+    "skippedPerHost": 1,
+    "stockDshVersions": [
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "sharedPhysicalCore": true,
+    "productionChanged": false,
+    "runtimeFilesCompared": 18,
+    "mcpTools": 38,
+    "defaultGithubInstallVerified": true,
+    "defaultRegistryInstallVerified": false
+  },
+  "developmentPreview": {
+    "adapter": "0.3.0-rc.26",
+    "publicationHeldByUser": false,
+    "formalDependencyRetained": "0.5.7-rc.153",
+    "privateWorkspaceOverrideShipped": false,
+    "currentSourceIncludesUnpublishedChanges": true
+  },
+  "previousDevelopmentPreview": {
+    "status": "prepared-for-isolated-validation",
+    "version": "0.3.0-rc.25-preview.5",
+    "coreVersion": "0.5.7-rc.115",
+    "coreSource": "1e728bcad626f011a6374d3d148607f9101c7bbd",
+    "coreBuildSource": "1ac376df3d99c7d6fe579815033a88cf2d025a41",
+    "coreArchiveSha256": "b97818b38f6a1268e7669e8db6c9b48fa2b5bc8120d887d9c6110f63c0d31202",
+    "viewerSource": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+    "verification": "docs/autonomy-viewer-20261028.json",
+    "registryPublished": false,
+    "githubReleasePublished": false,
+    "publicationHeldByUser": true,
+    "formalDependencyRetained": "0.5.7-rc.99",
+    "privateWorkspaceOverrideShipped": false,
+    "currentSourceIncludesUnpublishedChanges": true
+  },
+  "previousCoreCandidate": {
+    "role": "core",
+    "repository": "https://github.com/jcs130/minecraft-ai-friend",
+    "sourceDirectory": "packages/agent-mc-world",
+    "commit": "abf0aa28d47a2d17ee64545e8a1544a3163e34b2",
+    "sourceStatus": "validated-candidate-source-pushed",
+    "version": "0.5.7-rc.151-preview.1",
+    "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.151-preview.1.tgz",
+    "sha256": "d8a6aac8bbe71ff3aff2b17f46e7e7c8d806eac967fb286468a5feb9f07e4595",
+    "integrity": "sha512-7bmCfyRqq4IjP1zwWryC8nwDuRIk7RuY06MzuyckweuCnmQq9wHS+/XC+vQZCLrPoCTl2sPXedcJwpSdAB1Byg==",
+    "published": false,
+    "registryPublished": false,
+    "githubPublished": false,
+    "artifactFile": "agent-mc-world-0.5.7-rc.151-preview.1.tgz",
+    "archiveBytesPreserved": true,
+    "sourcePushed": true,
+    "artifactVerification": "Canonical local archive verified independently; registry publication not performed."
+  },
+  "travelNutritionPreview": {
+    "adapter": "0.3.0-rc.25-preview.69",
+    "core": "0.5.7-rc.151-preview.2",
+    "modelCallsDuringOfflineValidation": 0,
+    "gameConnectionsDuringOfflineValidation": 0,
+    "productionLoaded": false,
+    "coreTestsPassed": 2739,
+    "coreTestsSkipped": 2,
+    "coreBuildAndPublicDeclarations": true,
+    "isolatedPackedCoreMcpTools": 41
+  },
+  "rc25PreviewInputs": {
+    "adapterVersion": "0.3.0-rc.25-preview.69",
+    "publication": {
+      "status": "local-candidate-not-published",
+      "registryPublished": false,
+      "githubPublished": false,
+      "updatedAt": "2026-11-01",
+      "previousPublishedVersion": "0.3.0-rc.24"
+    },
+    "candidates": [
+      {
+        "role": "core",
+        "repository": "https://github.com/jcs130/minecraft-ai-friend",
+        "sourceDirectory": "packages/agent-mc-world",
+        "commit": null,
+        "sourceStatus": "final-source-commit-pending",
+        "version": "0.5.7-rc.153",
+        "url": "https://registry.npmjs.org/agent-mc-world/-/agent-mc-world-0.5.7-rc.153.tgz",
+        "sha256": "6e6d9d66b33c0e684b5966e0e99093fa35c515fb6e22fdcc068efffc2645d0e5",
+        "integrity": "sha512-AXFCt70BiomWdNICBQGjTay2mqU2EfpMqNCct+tQih1wG4q2WxPsu97XVFkFdCU0G28c+c6lM1LU6+ryWJ4Qkg==",
+        "published": false,
+        "registryPublished": false,
+        "artifactFile": "agent-mc-world-0.5.7-rc.153.tgz",
+        "sourcePushed": false,
+        "archiveBytesPreserved": true
+      },
+      {
+        "role": "server-pack",
+        "repository": "https://github.com/jcs130/cortico-world-qiandengji",
+        "sourceDirectory": "packages/qiandengji",
+        "version": "0.5.0-rc.49",
+        "peerCore": "^0.5.7-rc.153",
+        "url": "https://registry.npmjs.org/agent-mc-qiandengji/-/agent-mc-qiandengji-0.5.0-rc.49.tgz",
+        "sha256": null,
+        "integrity": null,
+        "commit": null,
+        "published": false,
+        "registryPublished": false,
+        "artifactFile": null,
+        "archiveBytesPreserved": true
+      }
+    ],
+    "viewer": {
+      "repository": "https://github.com/jcs130/mc-visual-console",
+      "commit": "c0b9a7a6772c2f4de8c502a091af10f363bc427a",
+      "assetPack": "java-1.21.1",
+      "additionalPacks": [
+        "java-1.20.6",
+        "java-1.21.11",
+        "java-1.21.5"
+      ],
+      "preset": null,
+      "artifact": "vendor/mc-visual-console-java-1.21.1-c0b9a7a6-compatible.tgz",
+      "sha256": "3e2d3d9e79e496569eaa03675ba5f173be6871a4122700718e9af4adc9092916",
+      "soundPacks": [
+        "java-1.21.1-sounds",
+        "java-1.20.6-sounds",
+        "original-bgm"
+      ],
+      "completeAudio": false,
+      "publicOriginalBgmTracks": 8,
+      "audioCoverage": {
+        "1.21.1": "exact-version-separate-download",
+        "1.20.6": "exact-version-separate-download",
+        "1.21.11": "disabled-no-original-audio-pack",
+        "1.21.5": "disabled-no-original-audio-pack"
+      },
+      "deferredAudioInput": {
+        "package": "agent-mc-world@0.5.7-rc.85",
+        "sha256": "8bb01430f2f8e9a8259df5f3105449bfdcc3b0c77a7fd8a46c33a72fa52b3936",
+        "filesCheckedAgainstCurrentSharedAssetPacks": 28
+      },
+      "previousFrozenInput": {
+        "commit": "646fd1be67565ddee85fb43a89ef778cc2f1392f",
+        "sha256": "5a16e81feb85de92e6813e1746a06409d846d54161aaabbd301d855141425634"
+      },
+      "originalAssetInput": {
+        "commit": "4da993d1d96e79c7ba195ef38d49976250a621aa",
+        "sha256": "a53a6cb443096ee113c964d44b4427e4a629acdf08584956004a147b0dc59b69",
+        "versions": [
+          "1.21.1",
+          "1.20.6",
+          "1.21.11"
+        ]
+      },
+      "generatedVanillaVersions": [
+        {
+          "version": "1.21.1",
+          "clientJarSha256": "499f6897d1837516680f3114072d8106e11c9adcd933fe5cf051b551089b0c99",
+          "browserBundleSha256": "5f2eb149e4549efe59ec0645b0e623abe9759ed7e9645b1a2050b6c70dc924a9",
+          "mesherSha256": "2d3c925683f77dc18bad734e85d192c756b0431136216fcc02d475742bef2f21",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 15
+        },
+        {
+          "version": "1.20.6",
+          "clientJarSha256": "02dfd345ac1ad55692d5dbc8486ac7e4fea72cd54ac494a79cd48963048e56b2",
+          "browserBundleSha256": "5784ba15e4195054b6458fb8f5a5cbcbf5252429cf840e7bd7dc5fde132313b4",
+          "mesherSha256": "60348a1993e46c943aba13a127ecdbab1210ad60441f76ca60c0b2cb40d1f263",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 15
+        },
+        {
+          "version": "1.21.11",
+          "clientJarSha256": "1473c9489ac50fda3c435049a76a70d61a10b8610db27f5ba9d8756b686cd3bd",
+          "browserBundleSha256": "b63c84aa529b9dce68a3a1bce66c3bee7f28139cd035bf23e36702cadb00a45e",
+          "mesherSha256": "4380630138ce835f228cc0bd2b52aecf4e62d2d7e8d32ff46c9079285ba5c926",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 17
+        },
+        {
+          "version": "1.21.5",
+          "clientJarSha256": "522672ad20b460c02c2e39b6c5035ef6a849af28eb11ab2ac7eb293d395a8c11",
+          "browserBundleSha256": "4c70d2bfd00f79f51c93712db1a4a0e4253aacc1f6ab32fbe8f4b1e84a9cd41c",
+          "mesherSha256": "c4951379058f0b99d7851ef3f57c67070c683ad4dd678051e39a048783c47534",
+          "buildSource": {
+            "sourceSha256": "165bed625cdc54dae550ae932f585baee6e7c8a536ea2c5bd42592bf72e299f4",
+            "sourceFiles": 400,
+            "scope": "renderer_source_host_adapters_and_asset_preparation"
+          },
+          "preset": null,
+          "armorTextureCount": 15
+        }
+      ],
+      "runtimeRegistryVersion": 1,
+      "missingExactMaterials": "automatic-compatible-materials-with-actual-connection-registry"
+    },
+    "validation": {
+      "status": "passed-public-registry-and-official-dsh-installation",
+      "verification": "docs/npm-publish-rc24.json",
+      "publicRegistryInstallVerified": true,
+      "sourceTestsPerHost": 154,
+      "skippedPerHost": 1,
+      "stockDshVersions": [
+        "0.2.1-rc.2",
+        "0.2.1-rc.3"
+      ],
+      "sharedPhysicalCore": true,
+      "productionChanged": false,
+      "defaultRegistryInstallVerified": true,
+      "runtimeFilesCompared": 18,
+      "mcpTools": 38
+    },
+    "developmentPreview": {
+      "status": "passed-isolated-packed-core-and-native-dsh-tests-publication-held",
+      "version": "0.3.0-rc.25-preview.61",
+      "coreVersion": "0.5.7-rc.143",
+      "registryPublished": false,
+      "githubReleasePublished": false,
+      "productionChanged": false,
+      "sourceTests": 271,
+      "skipped": 1,
+      "originalUserSceneVerified": false
+    }
+  },
+  "rc26BuildInputs": {
+    "genericCapabilitiesFromPublicCore": true,
+    "hostOwnsModelsMemoryGoals": true,
+    "productionReloadAuthorized": false,
+    "stoppedActorsRemainStopped": true,
+    "zod": "4.6.6",
+    "sourceTestsPassed": 295,
+    "sourceTestsSkipped": 1,
+    "publishedCoreVerified": true,
+    "publishedServerPackVerified": true
   }
 }

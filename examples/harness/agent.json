@@ -25,7 +25,11 @@
     "maxTokens": 6000,
     "triggerRatio": 0.55
   },
-  "maxGoalRounds": 40,
+  "autonomy": {
+    "mode": "continuous",
+    "roundWindow": 40,
+    "stepWindow": 30
+  },
   "chat": {
     "maxPublicLines": 4,
     "minIntervalMs": 20000,

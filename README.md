@@ -1,6 +1,18 @@
 # DSH Minecraft Agent
 
-**[0.3.0-rc.21](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.21) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，`latest` 指向 rc.21，精确依赖核心 **0.5.7-rc.88**。两版未修改官方 DSH 0.2.1-rc.2 / rc.3 的默认 pnpm 安装、主进程／Worker 和知识库查询通过，见[npm 分发验收](docs/npm-publish-rc21.json)。
+**本批发行 rc.26**：统一消费核心 `0.5.7-rc.153` 与可选千灯纪包 `0.5.0-rc.49`，打包已合入主干的原生回执、任务恢复、历史读取取消，以及旅途中的缺粮观察和决策信号。人格、模型、个人记忆和持续目标继续由 DSH 持有；发行不启动或重载现役角色。下方旧候选及 rc.24 验收是历史记录；本次分发状态见[发布记录](docs/registry-release.md)。
+
+**2026-11-01 本地候选更新**：共享核心补齐长途移动中的缺粮观察与有实际位移的旅途决策机会；单独的普通聊天可以在赶路时发出。食物仍通过原执行器安全插入并续程，宿主不复制另一套自动进食或运动循环。候选未发布到 npm。
+
+**2026-10-28 开发更新**：连接页增加默认开启的「持续自主运行」，同一目标不再因累计 30 次调用或 40 轮停住；安全分段、无进展休整和恢复均保留原会话、目标与回执，手动暂停仍有效。见[持续运行说明](docs/continuous-autonomy.md)。共享核心 rc.115 候选同步上游并修复第一人称空洞、原版皮肤及护甲预览；正式依赖在公开包验收后切换，之前仍保持可安装的 rc.99。
+
+本轮按要求暂不发布 npm 或 GitHub Release，也不重载现役角色。源码和本地候选的验证记录见[本轮说明](docs/autonomy-viewer-20261028.md)；公开安装版本及正式依赖仍沿用下面的 rc.24 / rc.99。
+
+**[0.3.0-rc.24](https://github.com/jcs130/dsh-minecraft-agent/releases/tag/v0.3.0-rc.24) 已发布到 [npm](https://www.npmjs.com/package/@jcs130/dsh-minecraft-agent)**，latest 指向 rc.24，精确依赖核心 **0.5.7-rc.99** 和可选千灯纪 **0.5.0-rc.24**。核心只读查询可与导航并行，批量消息读回、纠错和记忆去重保留原任务及证据语义。
+
+两版未修改官方 DSH **0.2.1-rc.2 / rc.3** 均通过默认 pnpm 公开 registry 安装、主进程／Worker、**38 个 MCP 工具**和真实本地知识库查询；两版各 154 项通过、1 项可选跳过。匿名下载与已验收归档字节一致，见[npm 分发验收](docs/npm-publish-rc24.json)及[本版说明](docs/release-rc24.md)。
+
+没有精确预制材质时仍自动显示兼容画面；普通用户无需手工准备资源。现役角色不因发布重载，原生 Desktop 窗口与真实长期玩法分别验收。旧版 rc.22 及各阶段证据保留，包内候选状态为构建时快照。
 
 新增 [MineDojo 本地知识库配置与检查](docs/minedojo-knowledge.md)：Agent 通过核心 `mc_knowledge` 发现资料源、检索摘要并分页读取，结合当前状态和实际回执决策。先显式准备索引；CPU 词元向量属于词面检索，不冒充神经语义模型。语料、SQLite 和派生向量不随包分发。
 
@@ -10,13 +22,27 @@
 
 见[安装](README-INSTALL.md)和[发布记录](docs/registry-release.md)。npm 与 GitHub 保持原验收归档字节，包内 publication 是构建时快照；当前分发以主干文档及 Release 新增验收附件为准。
 
+## 实时观战
+
+同一个 Agent 的游戏连接可以展示第一人称、第三人称和 3D 观战画面，实时查看移动、战斗和环境变化。画面内可开关信息层、调整观察镜头；DSH 面板还可把游戏与原生推理、回答和工具记录并排展示。
+
+![共享核心实际线上 3D 观战：地下城战斗，简洁模式](docs/screenshots/live-spectator-20261026.jpg)
+
+上图和下图拍摄于 2026-10-26，来自本插件复用的 **Agent MC World 共享核心线上观战**，不是生成图片或 DSH 桌面窗口。这里展示了服务器自定义地下城；技能和角色外观取决于服务器包及外观资源，不代表所有原版服务器都有这些能力。
+
+![实时观战信息层：角色、地图、技能与动作来源](docs/screenshots/live-spectator-hud-20261026.jpg)
+
+![DSH 内嵌游戏画面与原生决策会话](docs/screenshots/game-and-reasoning.png)
+
+第三张是已留证的 DSH Web 集成测试截图：游戏与决策并排，右侧明确标注离线 UI 测试数据，用于展示布局，不冒充真实模型思考或桌面端实测。完整来源见[截图说明](docs/screenshots/README.md)。市场通过根目录 `screenshots.json` 按上述观战优先的顺序读取图片；[市场入口与审核状态](docs/marketplaces.md)单独记录。
+
 ## 核心归属
 
 `agent-mc-world` 的唯一源码在 [minecraft-ai-friend/packages/agent-mc-world](https://github.com/jcs130/minecraft-ai-friend/tree/main/packages/agent-mc-world)。本插件直接依赖其版本化安装包；构建无需 Cortico World 源码。核心升级先用候选包通过宿主测试，再独立切换部署。
 
 ## 当前版本
 
-**0.3.0-rc.21 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.88**；可选千灯纪包保持 0.5.0-rc.22。npm latest 与本仓库市场入口均为 rc.21。主维护 Minecraft Java 1.21.1，网页资源按实际协议匹配。使用原始官方 DSH，不修改宿主文件或解析器。包发布、默认安装、Desktop 原生画面与实服游玩分别留证。
+**0.3.0-rc.24 npm / GitHub 发行版** 精确消费核心 **0.5.7-rc.99** 与可选千灯纪 **0.5.0-rc.24**。npm latest 与自有市场入口均为 rc.24。主维护 Java 1.21.1，协议默认 auto；网页材质自动兼容，使用原始官方 DSH。发布、默认安装、原生 Desktop 画面与实服游玩分别留证。
 
 新增可选的 [Harness² 练习接入](docs/harness2.md)，复用 DSH 内置模型路由；默认关闭。显式配置后通过 mc_practice 比较原版、候选及留出场景，结果进入核心的方法库和现有游戏记忆，不自动采用或恢复线上 Agent。
 
@@ -24,20 +50,22 @@
 
 ## 配置
 
-- Node.js 24，在 DSH 中配置并选择默认模型。安装 rc.19 后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
+- Node.js 24，在 DSH 中配置并选择默认模型。安装插件后，点击侧栏 **Minecraft**，填写服务器地址、角色名与登录方式，再点击 **保存并连接游戏**。首次任务可留空，先连接；之后在右侧原生会话里下达任务。无需另填模型密钥或手写 JSON。
 - 协议默认 `auto`，交给 Mineflayer 识别服务器，也可显式指定 1.21.11 等受支持版本；正版首次连接需微软授权。已有登录服账号可在可选设置填 `/login` 密码，插件不自动注册账号。千灯纪邀请身份请沿用[专用接入流程](docs/qiandengji-invitation.md)，不能绕过激活直接建号。
 - 首次配置保存在当前 DSH profile 的私有目录；同一服务器与身份续用自己的数据和会话，不同身份隔离。**停止并配置**先正常停止本插件的身体，保留目标、会话与记忆，然后允许修改。停止意图会持久化，重启不会擅自恢复。
 - 高级部署仍可将 mc-harness 的 configFile 指向私有 JSON，显式设置 enabled、name、dataDir、personaFile、DSH provider/model、contextTokens/maxTokens、minecraft.host/port/username。该路径不受首次配置覆盖。
 - `reasoningEffort` 显式传给 DSH 的创建与恢复入口；`off` 表示本轮关闭思考，其他等级以 provider 声明为准。未配置时沿用 DSH 的选择，不暗中降低模型质量。
+- [攻略续读与短反思](docs/read-progress.md)：支持新核心时完整正文可分页续读；重复只读证据可触发现有请求的一次短思考，保留日常无思考与原输出预算。
 - serverPack 默认 none；千灯纪选择 qiandengji。以当前服务端回执作为事实来源。
 - 首次接入自动分配本机端口；高级配置使用 consolePort 和 minecraft.viewerPort。DSH 的 Minecraft 页面组合共享游戏面板和 **DSH 原生会话组件**，可切换游戏 + 决策、只看游戏、只看决策。实际推理默认折叠；模型未返回时不补写。侧栏输入直接进入该身体的原会话，不创建另一个 Agent；会话标签复用宿主已有输入框。/#experiments 可直达共享实验页，/metrics 仍可独立打开。
 - 可用 startPaused 设置首次启动暂不连接；之后操作员的连接/断开选择保存在 dataDir/connection-state.json，重启沿用。暂停期间保留会话、目标和记忆，连接后才恢复目标及待投递的操作员指令。
 - minecraft.hostDecisions.combat 显式设置 enabled、endpoint、model、mode、timeoutMs、minIntervalMs、maxAgeMs。快决策状态、候选与驱动来自共享核心，可选服务器包仅转出同一契约；默认关闭，不探测地址。模型不可用时保留核心的规则控制。
 - 上下文预算：首次配置读取 DSH 所选模型的上下文元数据；不可用时回退 131072。高级配置可显式设 contextTokens。压缩在 `contextTokens × compaction.triggerRatio`（默认 0.55）时触发；旧的 `compaction.thresholdRatio` 若越过预算会在启动时报错。超预算请求先压缩再重试，仍超出则道别并下线。
 - 省上下文：`*_script` 默认保留，用于按需发现共享工作/移动脚本和自己的方法库；可用 `tools.exclude` 显式关闭。默认 `tools.profile: "lean"` 隐藏少用工具（蓝图、铁路、摄影、战术等，可用 `tools.include` 单独加回或 `profile: "full"` 全开），工具说明压缩到 `tools.descriptionChars`（默认 300 字），参数细节用 `*_tool_help` 按需查；每步事件快照只保留最近 `context.events`（默认 10）条，回执给模型时截到 `context.receiptChars`（默认 1500 字），完整内容仍在会话日志。`node scripts/measure-context.mjs qiandengji 人设.md` 可测固定提示大小。
-- 防打转：连续 6 次只走动/张望且停在约 24 格范围内（或没到新地方）时，给模型提示；到 12 次时当前目标自动完成（`progress.window/radius/closeAfter`）。每个目标最多 `maxGoalCalls`（默认 80；长生存/建造建议 ≥120，设 0 关闭）次模型调用。背包未同步时会拒掉下一环合成；饥饿值偏低时会提示优先找吃的；纯 sneak/jump 空转会计入游荡进度。目标完成后，排队中的该目标回执直接丢弃，不再唤醒。退出道别结果写在 status.json 的 `goodbye`。
+- 防打转：连续 6 次只走动/张望且停在约 24 格范围内时提示模型改进；纯蹲下/跳跃等控制请求不会自动重置无进展计数。持续模式到 12 次先休整，随后重新观察并调整，不把卡住当成功。单个回合默认 30 步后在安全边界让出控制并继续同一目标；明确选择有限模式时才应用累计 `maxGoalCalls`（默认80，设0关闭）。已完成目标的旧回执不再唤醒，退出道别结果写在 status.json 的 `goodbye`。
+- 补给提示：饥饿低于 `survival.foodThreshold`（默认15，设0关闭）时提醒结合现场危险安排进食，不禁止战斗或移动。合成顺序与库存确认继续由核心处理；`mc_do` 入队不是合成完成，宿主不会依据同一份旧背包再设一层合成锁。完成与失败依据原任务身份和原生终态核对。
 - 唤醒：默认把普通公屏、私聊、点名、危险和连接变化交给 Agent 判断是否回应；不要求每条聊天都回复。目标进行中另加本身任务回执。自发聊天、系统提示和状态倒计时不因此唤醒。配置面板或 `wake.publicChat:false` 可关闭普通公屏；`wake.on` 可覆盖类别。
-- 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标；连续 `noopRoundLimit`（默认 3）轮没有游戏动作也会结束目标；`maxGoalRounds` 默认 40。
+- 目标：游戏内目标（`*_goal done`）结案会同时结束 DSH 会话目标，只应在整个目标达成时使用。持续模式下连续 `noopRoundLimit`（默认 3）轮无动作会短暂休整后自主恢复；40 轮是可延长的原生窗口，累计轮数不清零。关闭持续模式后使用有限预算。目标留空只连接，不启动推理。
 - 聊天：默认公屏，可写 `@玩家名`；`chat.maxPublicLines` 默认 0（不限制累计总句数），`chat.minIntervalMs` 默认 5000。用户仍可显式设置上限。私聊优先原版 `/tell`，结果未知不自动转公屏。配置 `chat.goodbye` 时保留下线道别及 `status.json` 回执。
 - API key 由 DSH provider 环境变量提供，游戏密码按服务器及用户名独立配置；不要写入人格、聊天或仓库。
 

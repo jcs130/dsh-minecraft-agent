@@ -1,0 +1,241 @@
+{
+  "schema": "dsh-core-sync-verification/v1",
+  "verifiedAt": "2026-10-26T10:59:30.373Z",
+  "source": {
+    "core": {
+      "repository": "https://github.com/jcs130/minecraft-ai-friend",
+      "commit": "9b93af4523ddb0556c89a2a5edc9a0e8e2c0f05e",
+      "version": "0.5.7-rc.99",
+      "testRepairPullRequest": "https://github.com/jcs130/minecraft-ai-friend/pull/13",
+      "testRepairChangesRuntime": false
+    },
+    "adapter": {
+      "repository": "https://github.com/jcs130/dsh-minecraft-agent",
+      "candidateVersion": "0.3.0-rc.24",
+      "installableCorePin": "0.5.7-rc.89",
+      "optionalServerPack": "0.5.0-rc.24"
+    }
+  },
+  "coreCandidateArchive": {
+    "version": "0.5.7-rc.99",
+    "sha256": "16e510696b79e1843e837ffb2558e90ada80f1dd41ef2b15bd3c8613f6de9d9d",
+    "integrity": "sha512-kMM/u12g5/hkiRDAze1668Spb/s1518Dtn1DjYoT1mcgjGLBDczGpmcNtwOG3cX8SFud3lV9+Yi8uYrtiRjCXQ==",
+    "containsViewer": true,
+    "registryPublished": false,
+    "privateCandidateOverrideOnly": true
+  },
+  "sharedViewer": {
+    "commit": "d60328fe7c6e54652779b81e447587b908399ba6",
+    "archiveSha256": "19d000c0a65568d330d2a6b5a3ac35a34adfbaef2842320c2e6a3c59aa07eb71",
+    "changedByThisSync": false
+  },
+  "coreValidation": {
+    "tests": {
+      "passed": 2258,
+      "failed": 0,
+      "skipped": 1
+    },
+    "targetedRouteTestsPassed": 64,
+    "advancingClockNegativeFixtureReproduced": true,
+    "futureDatedCueStillRejected": true,
+    "runtimeBuildVerified": true,
+    "buildFiles": 32150,
+    "publicDeclarations": 353,
+    "typecheck": true
+  },
+  "adapterValidation": {
+    "officialHostSuites": [
+      {
+        "dsh": "0.2.1-rc.2",
+        "passed": 154,
+        "failed": 0,
+        "skipped": 1
+      },
+      {
+        "dsh": "0.2.1-rc.3",
+        "passed": 154,
+        "failed": 0,
+        "skipped": 1
+      }
+    ],
+    "skipped": "Optional external Harness2 worker environment not supplied",
+    "concurrencyRequires": [
+      "query tool suffix",
+      "readOnlyHint=true",
+      "agent-mc/v1 barrierAfter=false",
+      "agent-mc/v1 endsTurn=false"
+    ],
+    "queryGuidanceConditionalOnCurrentToolCatalogue": true
+  },
+  "packedConsumers": [
+    {
+      "core": "0.5.7-rc.89",
+      "adapter": "0.3.0-rc.24",
+      "serverPack": "0.5.0-rc.24",
+      "sharedPhysicalCore": true,
+      "runtimeFilesCompared": 18,
+      "packedBuildVerified": true,
+      "defaultRegistryCoreInstall": true,
+      "candidateOnlyOverride": false,
+      "adapterDistribution": "reviewed local archive; not an npm publication",
+      "hosts": [
+        {
+          "dsh": "0.2.1-rc.2",
+          "loadOrder": "normal",
+          "mcpTools": 37,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.2",
+          "loadOrder": "harness2-first",
+          "mcpTools": 37,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "loadOrder": "normal",
+          "mcpTools": 37,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "loadOrder": "harness2-first",
+          "mcpTools": 37,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        }
+      ]
+    },
+    {
+      "core": "0.5.7-rc.99",
+      "adapter": "0.3.0-rc.24",
+      "serverPack": "0.5.0-rc.24",
+      "sharedPhysicalCore": true,
+      "runtimeFilesCompared": 18,
+      "packedBuildVerified": true,
+      "defaultRegistryCoreInstall": false,
+      "candidateOnlyOverride": true,
+      "adapterDistribution": "reviewed local archive; not an npm publication",
+      "hosts": [
+        {
+          "dsh": "0.2.1-rc.2",
+          "loadOrder": "normal",
+          "mcpTools": 38,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.2",
+          "loadOrder": "harness2-first",
+          "mcpTools": 38,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "loadOrder": "normal",
+          "mcpTools": 38,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "loadOrder": "harness2-first",
+          "mcpTools": 38,
+          "mainLoaded": true,
+          "workerLoaded": true,
+          "offlineEngineIpc": true,
+          "gameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        }
+      ]
+    }
+  ],
+  "compiledPublicContracts": {
+    "at": "2026-10-26T10:52:50.218Z",
+    "core": "0.5.7-rc.99",
+    "adapter": "0.3.0-rc.24",
+    "environment": "synthetic injected engine using compiled public SDK/MCP and packed DSH bridge",
+    "declaredQueryConcurrency": true,
+    "orderedBodyActionsPreserved": true,
+    "originalBodyTaskUnchanged": true,
+    "queryDispatches": 1,
+    "duplicateQueryReused": true,
+    "queryReplyNotGoalCompletion": true,
+    "messageBatchExpanded": true,
+    "readbackRevisionPreserved": true,
+    "malformedSelectorRecoveryPreserved": true,
+    "identicalMemoryNoteDeduplicated": true,
+    "realGameConnections": 0,
+    "gameRegistrations": 0,
+    "modelCalls": 0,
+    "physicalNavigationVerified": false
+  },
+  "distribution": {
+    "npmLatestAdapter": "0.3.0-rc.22",
+    "npmNextCore": "0.5.7-rc.89",
+    "npmNextServerPack": "0.5.0-rc.24",
+    "adapterRc24Published": false,
+    "marketChanged": false
+  },
+  "boundaries": {
+    "realGameServerConnections": 0,
+    "modelCalls": 0,
+    "productionReloads": 0,
+    "newAccountRegistrations": 0,
+    "privateCandidateOverrideShipped": false,
+    "originalFrameworkFilesModified": false,
+    "newRoleOrLiveSpellAcceptance": false,
+    "physicalNavigationVerified": false,
+    "longTermAutonomyVerified": false
+  },
+  "rollback": "Revert the adapter sync merge and restore the previous source version. Keep account, session, goal, memory and receipt data. Public rc22 archives are unchanged."
+}

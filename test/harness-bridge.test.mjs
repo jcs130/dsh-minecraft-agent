@@ -35,6 +35,24 @@ test('cancellation is forwarded and stop cannot reopen a turn', async () => {
   await bridge.stop(); await assert.rejects(bridge.enter('s', 1), /stopped/);
 });
 
+test('host-owned lifecycle calls never reach MCP, yield once and preserve the actual host turn',async()=>{
+  let forwarded=0,conclusions=0;const boundaries=[];
+  const runtime={journal:{run:'same-run'},beginTurn:id=>boundaries.push(['begin',id]),endTurn:async id=>boundaries.push(['end',id])};
+  const bridge=new HarnessBridge(runtime,{callTool:async()=>{forwarded++;return{content:[{type:'text',text:'real facts'}]};}});
+  await bridge.enter('same-session',7);
+  for(const action of ['begin_turn','end_turn','ack_barrier']){
+    const result=await bridge.call('mymc_protocol',{protocol:'agent-mc/v1',action,id:'invented-id'},
+      {id:action,concludeTurn:()=>conclusions++});
+    assert.equal(result.isError,true);assert.equal(result.structuredContent.data.code,'HOST_MANAGED_TURN');
+    assert.equal(result.structuredContent.control.endTurnRequested,true);assert.equal(result.structuredContent.control.turnEnded,false);
+    assert.equal(bridge.turnId,'same-session:7');
+  }
+  assert.equal(forwarded,0);assert.equal(conclusions,3);
+  await bridge.call('mymc_protocol',{protocol:'agent-mc/v1',action:'facts'}, {id:'facts',concludeTurn:()=>{throw Error('read must not yield');}});
+  assert.equal(forwarded,1);await bridge.ended('same-session',7);await bridge.enter('same-session',8);
+  assert.deepEqual(boundaries,[['begin','same-session:7'],['end','same-session:7'],['begin','same-session:8']]);
+});
+
 test('failed action control still concludes the native turn before another planner request', async () => {
   let concludes = 0, ends = 0, acknowledgements = 0;
   const value = { isError: true, structuredContent: { failed: true, text: 'cooldown',
@@ -55,9 +73,10 @@ test('native error projection preserves original MCP receipts without stripping 
   const next = async () => { accepted++; return { kind: 'accept' }; };
   const decision = await mcpResultDecision({}, { isError: false, value }, next);
   assert.equal(decision.kind, 'block'); assert.equal(accepted, 0);
-  assert.equal(JSON.parse(decision.feedback[0].text).meta.code, 'EVENT_RUN_REQUIRED');
+  assert.equal(JSON.parse(decision.feedback[1].text).meta.code, 'EVENT_RUN_REQUIRED');
   value.structuredContent.control = { endTurnRequested: true };
-  assert.deepEqual(await mcpResultDecision({}, { isError: false, value }, next), { kind: 'accept' });
+  const concluding=await mcpResultDecision({}, { isError: false, value }, next);
+  assert.equal(concluding.kind,'accept');assert.match(concluding.content[0].text,/action FAILED/);
   assert.equal(accepted, 1); assert.equal(value.isError, true);
 });
 

@@ -102,20 +102,15 @@ test('access tokens are masked in logged URLs', () => {
   assert.equal(redactUrl('http://127.0.0.1:17851/'), 'http://127.0.0.1:17851/');
 });
 
-test('host wires the guards: lean tools, overflow retry, signals, stopped status and default rounds', () => {
+test('host wires the guards: lean tools, overflow retry, signals and stopped status', () => {
   const src = readFileSync(new URL('../src/mc-harness.mjs', import.meta.url), 'utf8');
   assert.match(src, /yield overflowFinish\(/);
   assert.doesNotMatch(src, /throw Error\('Minecraft request exceeds/);
   assert.match(src, /process\.once\(signal, onSignal\)/);
   assert.match(src, /status\(\{ state: 'stopped', stopped: true/);
-  assert.match(src, /maxGoalRounds: config\.maxGoalRounds \?\? 40 \}/);
   assert.doesNotMatch(src, /\?\? 2000/);
   assert.match(src, /chat\.check\(spec\.name, args\)/);
-  assert.match(src, /goalClosed\(value\)/);
-  assert.match(src, /maxCalls: config\.maxGoalCalls \?\? DEFAULT_MAX_GOAL_CALLS/);
-  assert.match(src, /new CraftSyncGuard/);
-  assert.match(src, /survivalHint\(facts, survival\)/);
-  assert.doesNotMatch(src, /maxCalls: config\.maxGoalCalls \?\? 30/);
+  assert.match(src, /gameGoalCompletesSession\(value, \{ continuous: continuation\.owns\(currentGoal\(\)\) \}\)/);
 });
 
 test('wake filter offers public conversation and suppresses countdowns, self and system chat', async () => {
@@ -200,6 +195,17 @@ test('chat guard refunds a line whose call was rejected', async () => {
   g.refund(); g.refund(); assert.equal(g.sent, 0);
 });
 
+test('server help/status commands remain usable after the public cap and do not consume speech spacing',()=>{
+ const g=new ChatGuard({maxPublicLines:1,minIntervalMs:20000},()=>0);
+ const say=text=>g.check('mymc_do',{steps:[{skill:'chat',text}]});
+ assert.equal(say('大家好'),null);
+ for(const command of ['/appearance help','/appearance status','/mycli help','/login synthetic-fixture'])assert.equal(say(command),null);
+ assert.equal(g.sent,1);assert.match(say('另一句话'),/上限/);
+ const b=new ChatGuard({maxPublicLines:1,minIntervalMs:0},()=>0);
+ assert.equal(b.check('mc_do',{steps:[{skill:'chat',text:'/minecraft:say public'}]}),null);
+ assert.match(b.check('mc_do',{steps:[{skill:'chat',text:'/me public action'}]}),/上限/);
+});
+
 test('guard counts repeated look-arounds; compactFacts fallback matches core when available', async () => {
   const { GoalProgressGuard, MovementProgressFallback, compactFactsFallback } = await import('../src/harness-budget.mjs');
   const guard = new GoalProgressGuard({ progress: new MovementProgressFallback(), closeAfter: 8 });
@@ -243,53 +249,4 @@ test('event clock uses the configured zone; no-notes player history merges into 
   const c = new EventCondenser(); let cursor = 0;
   for (const n of ['Goddess', 'ag_NEKO']) c.push([{ cursor: ++cursor, ts: 'T', type: 'mymc.memory', text: `[游戏玩家历史] 账号 ${n}；本地未找到该账号已绑定且未过期的关系笔记；这不证明初次见面。` }]);
   assert.deepEqual(c.view().map(e => e.text), ['[玩家历史] 无本地关系笔记：Goddess、ag_NEKO（不代表初次见面，可查 mymc_memory）']);
-});
-
-
-test('default maxGoalCalls is 80 for long autonomy headroom', async () => {
-  const { DEFAULT_MAX_GOAL_CALLS, GoalProgressGuard, MovementProgressFallback } = await import('../src/harness-budget.mjs');
-  assert.equal(DEFAULT_MAX_GOAL_CALLS, 80);
-  const guard = new GoalProgressGuard({ progress: new MovementProgressFallback() });
-  const goal = { id: 'g', phase: 'active' };
-  for (let i = 0; i < 80; i++) assert.equal(guard.step(goal), null);
-  assert.match(guard.step(goal), /call budget \(80\)/);
-});
-
-test('idle sneak/jump control spam nudges then closes without resetting like real work', async () => {
-  const { GoalProgressGuard, MovementProgressFallback } = await import('../src/harness-budget.mjs');
-  const guard = new GoalProgressGuard({ progress: new MovementProgressFallback({ window: 4 }), closeAfter: 6 });
-  const goal = { id: 'g', phase: 'active' };
-  const out = [];
-  for (let i = 0; i < 6; i++) out.push(guard.action(goal, [{ skill: 'control', keys: ['sneak'], durationMs: 1500, mode: 'ground' }]));
-  assert.match(out[3].notice, /sneak\/jump|宿主提示/);
-  assert.match(out[5].close, /control-only/);
-  // A real place resets the streak.
-  assert.deepEqual(guard.action(goal, [{ skill: 'place', block: 'dirt', at: [1, 64, 1] }]), {});
-  assert.deepEqual(guard.action(goal, [{ skill: 'control', keys: ['sneak'], durationMs: 500 }]), {});
-});
-
-test('craft sync refuses the next craft only while bag digest is still stale', async () => {
-  const { CraftSyncGuard } = await import('../src/harness-budget.mjs');
-  const g = new CraftSyncGuard();
-  const bag = items => ({ inventory: items, observation: { inventory: items } });
-  const craft = item => [{ skill: 'craft', item }];
-  assert.equal(g.before(craft('oak_planks'), bag([{ name: 'oak_log', count: 1 }])), null);
-  g.after(craft('oak_planks'), bag([{ name: 'oak_log', count: 1 }]), false); // lag: same bag
-  assert.match(g.before(craft('stick'), bag([{ name: 'oak_log', count: 1 }])), /尚未变化/);
-  g.noteFacts(bag([{ name: 'oak_planks', count: 4 }])); // synced
-  assert.equal(g.before(craft('stick'), bag([{ name: 'oak_planks', count: 4 }])), null);
-  g.after(craft('stick'), bag([{ name: 'oak_planks', count: 2 }, { name: 'stick', count: 4 }]), false); // already synced
-  assert.equal(g.before(craft('wooden_pickaxe'), bag([{ name: 'oak_planks', count: 2 }, { name: 'stick', count: 4 }])), null);
-});
-
-test('survival hint fires below food threshold and respects config', async () => {
-  const { survivalHint, DEFAULT_FOOD_THRESHOLD, withNotice } = await import('../src/harness-budget.mjs');
-  assert.equal(DEFAULT_FOOD_THRESHOLD, 15);
-  assert.equal(survivalHint({ food: 16 }), undefined);
-  assert.match(survivalHint({ food: 13 }), /饥饿 13\/20/);
-  assert.match(survivalHint({ observation: { food: 10 } }), /优先寻找可食用食物/);
-  assert.equal(survivalHint({ food: 10 }, { foodThreshold: 8 }), undefined);
-  assert.equal(survivalHint({ food: 10 }, { foodThreshold: 0 }), undefined);
-  const merged = withNotice({ structuredContent: { text: 'ok', hostNotice: 'a' } }, 'b');
-  assert.equal(merged.structuredContent.hostNotice, 'a\nb');
 });

@@ -12,8 +12,143 @@ import { createMinecraftMcpServer } from 'agent-mc-world/mcp';
 import { HarnessBridge, MinecraftEventInbox, modelToolSchema } from '../src/harness-bridge.mjs';
 import { selectTools } from '../src/harness-budget.mjs';
 import { minecraftPlanningGuidance } from '../src/harness-composition.mjs';
+import { RetryEvidenceContext, renderReceipt } from '../src/harness-bridge.mjs';
+import { EvidenceReflection } from '../src/harness-reflection.mjs';
+import { capBlocks } from '../src/harness-budget.mjs';
 
 const require = createRequire(import.meta.url);
+test('packed MCP pre-dispatch validation reaches host reflection without executing or rewriting invalid arguments',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-core-'));let dispatched=0;
+  const schema={type:'object',required:['bounds'],additionalProperties:false,properties:{
+    bounds:{type:'array',minItems:6,maxItems:6,items:{type:'integer',minimum:-16,maximum:16}}}};
+  const world={id:'schema-recovery-fixture',tools:()=>withToolHelp([{name:'mc_observe',tags:['read'],
+    description:'Inert constrained read',parameters:schema,handler:async()=>{dispatched++;return{text:'fixture accepted'};}}],'mc_tool_help'),
+    envPromptVars:()=>({}),async start(){},async stop(){}};
+  const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'fixture.invalid',username:'SchemaQA'},dataDir:dir,log:nullLogger()},world);
+  const server=createMinecraftMcpServer(runtime,'schema-consumer'),client=new Client({name:'schema-consumer',version:'1'});
+  const [left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
+  const invalid={bounds:[0,-3,20,40,3,50]},original=structuredClone(invalid);
+  try{
+    await runtime.connect();await server.connect(left);await client.connect(right);await bridge.enter('same-session',1,0);
+    const spec=(await client.listTools()).tools.find(x=>x.name==='mc_observe');
+    for(const requestId of ['invalid-1','invalid-2']){
+      const result=await bridge.call(spec.name,invalid,{id:requestId});
+      assert.equal(result.isError,true);assert.equal(result.structuredContent.data.executed,false);
+      assert.equal(result.structuredContent.data.reason,'schema_validation');
+      view.observeValidation({run:runtime.journal.run,requestId,spec,args:invalid,result});
+      const visible=JSON.parse(capBlocks(renderReceipt(result),1500)[0].text);
+      assert.equal(visible.isError,true);assert.equal(visible.data.executed,false);
+      assert.equal(visible.data.errors[0].expected.limit,16);
+    }
+    assert.equal(dispatched,0);assert.deepEqual(invalid,original);
+    assert.equal(view.snapshot().evidence[0].attempts,2);
+    const reflection=new EvidenceReflection({enabled:true,attempts:2}),base={provider:'same',model:'same',reasoningEffort:'off',maxTokens:6000};
+    assert.deepEqual(reflection.select(base,view.snapshot(),{turn:1,step:3}),{...base,reasoningEffort:'low'});
+    const corrected={bounds:[0,-3,0,4,3,5]},result=await bridge.call(spec.name,corrected,{id:'corrected'});
+    view.observeValidation({run:runtime.journal.run,requestId:'corrected',spec,args:corrected,result});
+    assert.equal(result.isError,undefined);assert.equal(dispatched,1);assert.equal(view.snapshot(),null);
+  }finally{await bridge.ended('same-session',1);await bridge.stop();await client.close();await server.close();await removeFixture(dir);}
+});
+
+test('packed SDK/MCP event pages survive the real host cap and distinguish cursor updates from registered work',async t=>{
+  const {runtimeExecutionState}=await import('agent-mc-world/client');
+  if(typeof runtimeExecutionState!=='function')return t.skip('Installed core predates runtime execution state');
+  const nativeRequire=createRequire(resolve(process.env.DSH_RUNTIME??'.','package.json'));
+  const {snapshotJsonValue}=await import(pathToFileURL(nativeRequire.resolve('@deepseek-ai/dsh-util-values')));
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-events-'));let host,bodyCalls=0;
+  const world={id:'event-consumer-fixture',tools:()=>[{name:'mc_fixture',description:'Inert accepted action fixture',tags:['act'],parameters:{type:'object'},
+    handler:async()=>{bodyCalls++;return{text:'accepted fixture',data:{optional:undefined,zero:0},
+      execution:{kind:'task',id:'original-generation:3',phase:'accepted',terminal:false,goalCompleted:false}};}}],
+    envPromptVars:()=>({}),async start(h){host=h;},async stop(){}};
+  const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'fixture.invalid',username:'EventConsumer'},dataDir:dir,log:nullLogger()},world);
+  const server=createMinecraftMcpServer(runtime,'event-consumer'),client=new Client({name:'event-consumer',version:'1'});
+  const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext();
+  try{
+    await runtime.connect();await server.connect(left);await client.connect(right);await bridge.enter('original-session',3,0);
+    await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.task',text:'original task receipt '.repeat(1000),
+      execution:{kind:'task',id:'original-generation:1',phase:'completed',terminal:true,goalCompleted:false}});
+    const spec=(await client.listTools()).tools.find(x=>x.name==='mc_events');
+    for(const id of ['event-page-1','event-page-2']){
+      const value=await bridge.call('mc_events',{run:runtime.journal.run,after:0},{id});
+      assert.notEqual(snapshotJsonValue(value),undefined,'Real DSH must accept the MCP value before any renderer is called');
+      view.observeEventRead({run:runtime.journal.run,spec,requestId:id,result:value});
+      const visible=capBlocks(renderReceipt(value),1500)[0].text,p=JSON.parse(visible);
+      assert.equal(p.meta.eventRead.execution.activeCount,0);
+      assert.equal(p.meta.eventRead.execution.latestTerminal.id,'original-generation:1');
+      assert.equal(p.meta.eventRead.execution.latestTerminal.goalCompleted,false);
+      assert.equal(p.meta.eventRead.execution.previousRuns,'not-covered');
+      assert.equal(p.meta.eventRead.cursor.nextCursor,value.structuredContent.data.nextCursor);
+      assert.equal(value.structuredContent.data.events[0].text,'original task receipt '.repeat(1000));
+      assert.ok(visible.length<=1500);
+      await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.chat',text:'new untrusted chat '.repeat(1000),
+        senderKey:undefined,meta:{optionalReading:undefined,observedCount:0}});
+    }
+    assert.equal(view.snapshot().evidence.at(-1).attempts,2);
+    const reflection=new EvidenceReflection({enabled:true,effort:'low',attempts:2});
+    assert.equal(reflection.select({provider:'same-provider',model:'same-model',reasoningEffort:'none',maxTokens:6000},view.snapshot(),{turn:3,step:1}).reasoningEffort,'low');
+    await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.task',text:'actual task accepted',
+      execution:{kind:'task',id:'original-generation:2',phase:'running',terminal:false,goalCompleted:false}});
+    const active=await bridge.call('mc_events',{run:runtime.journal.run,after:0},{id:'event-page-3'});
+    view.observeEventRead({run:runtime.journal.run,spec,requestId:'event-page-3',result:active});
+    assert.equal(view.snapshot(),null);
+    for(let i=0;i<2;i++){
+      const admitted=await bridge.call('mc_fixture',{}, {id:'same-original-action-request'});
+      assert.notEqual(snapshotJsonValue(admitted),undefined,'Native DSH must retain a JSON-safe admission receipt');
+      assert.deepEqual(admitted.structuredContent.data,{zero:0});
+      assert.equal(admitted.structuredContent.execution.id,'original-generation:3');
+      assert.equal(admitted.structuredContent.execution.terminal,false);
+      assert.equal(admitted.structuredContent.execution.goalCompleted,false);
+    }
+    assert.equal(bodyCalls,1,'Querying/replaying the original receipt must not dispatch the action twice');
+  }finally{await bridge.ended('original-session',3);await bridge.stop();await client.close();await server.close();
+    assert.equal(dirname(dir),resolve(tmpdir()));await rm(dir,{recursive:true,force:true});}
+});
+test('packed SDK and MCP carry current spatial read evidence into one existing thinking request',async t=>{
+  const {spatialReadout}=await import('agent-mc-world/client');
+  if(typeof spatialReadout!=='function')return t.skip('Installed core predates typed current spatial reads');
+  const dir=await mkdtemp(join(tmpdir(),'dsh-packed-core-'));
+  const raw={summary:{observedCells:12,unknownCells:39,materials:[{name:'air',cells:11},{name:'chest',cells:1}]},
+    source:'client-visible-world',kind:'voxels',format:'dense',dimension:'overworld',complete:false,retryable:false,
+    coverage:{origin:[0,64,0],remainingCount:0,coverageComplete:true,unknownCount:39},cells:[...Array(11).fill(0),1,...Array(39).fill(-1)],next:null};
+  const data={readout:spatialReadout(raw),...raw};
+  let host,now=Date.now();
+  const world={id:'offline-spatial-fixture',tools:()=>withToolHelp([{name:'mc_observe',tags:['read'],description:'Offline read',
+    parameters:{type:'object'},handler:async()=>({text:JSON.stringify(data),data,meta:{observation:data.readout}})}],'mc_tool_help'),
+    envPromptVars:()=>({}),async start(value){host=value;},async stop(){}};
+  const runtime=new MinecraftAgentClient({cfg:{...structuredClone(MINECRAFT_CLIENT_DEFAULTS),host:'offline.invalid',username:'SpatialQA'},dataDir:dir,log:nullLogger()},world);
+  const server=createMinecraftMcpServer(runtime,'spatial-consumer'),client=new Client({name:'spatial-consumer',version:'1'});
+  const[left,right]=InMemoryTransport.createLinkedPair(),bridge=new HarnessBridge(runtime,client),view=new RetryEvidenceContext({now:()=>now});
+  try{
+    await server.connect(left);await client.connect(right);await runtime.connect();await bridge.enter('original-session',2,0);
+    const spec=(await client.listTools()).tools.find(x=>x.name==='mc_observe');
+    const readOnce=async id=>{
+      const result=await bridge.call('mc_observe',{}, {id});
+      assert.deepEqual(result.structuredContent.meta.observation,data.readout);
+      assert.equal(result.structuredContent.execution,null);assert.equal(result.isError,undefined);
+      const execution={...runtime.executionState(),observedAt:now};
+      assert.equal(execution.pendingCalls,0,'The completed MCP read must not remain its own pending work');
+      view.observeSpatialRead({run:runtime.journal.run,requestId:id,spec,result,goalId:'original-goal',execution});
+      const visible=capBlocks(renderReceipt(result),1500)[0].text;
+      assert.ok(visible.includes('"scanComplete":true'));assert.ok(visible.includes('"unknownCount":39'));
+      assert.ok(visible.includes('"name":"chest"'));
+      return execution;
+    };
+    const firstState=await readOnce('original-read-1'),secondState=await readOnce('original-read-2');
+    assert.equal(firstState.revision,secondState.revision,'Read request identities cannot create a new execution scope');
+    const base={provider:'unchanged',model:'unchanged',reasoningEffort:'none',maxTokens:6000};
+    const reflection=new EvidenceReflection({enabled:true,attempts:2,minIntervalMs:1000,minRequests:1},{now:()=>now});
+    assert.deepEqual(reflection.select(base,view.snapshot(),{turn:2,step:1}),{...base,reasoningEffort:'low'});
+    assert.equal(reflection.snapshot().lastReason,'repeated-unchanged-current-observation');
+    await host.pushEvent({source:'fixture',ts:new Date().toISOString(),type:'minecraft.task',text:'Fixture task finished',
+      execution:{kind:'task',id:'fixture-body:1',phase:'completed',terminal:true,goalCompleted:false}});
+    now+=2000;const afterWork=await readOnce('original-read-3');
+    assert.notEqual(afterWork.revision,firstState.revision);assert.equal(view.snapshot().evidence[0].attempts,1);
+    await readOnce('original-read-4');
+    assert.equal(reflection.select(base,view.snapshot(),{turn:3,step:0}).reasoningEffort,'low','New real execution permits recovery of the same terrain read');
+    await bridge.ended('original-session',2);
+  }finally{await bridge.stop();await server.close();await removeFixture(dir);}
+});
+
 test('installed core matches the adapter pin and exposes the authored-method lifecycle', async () => {
   const adapter = require('@jcs130/dsh-minecraft-agent/package.json'), core = require('agent-mc-world/package.json');
   const pin=adapter.dependencies['agent-mc-world'];

@@ -1,0 +1,265 @@
+{
+  "schema": "dsh-core-sync-verification/v1",
+  "verifiedAt": "2026-10-26T05:22:39.332Z",
+  "source": {
+    "core": {
+      "repository": "https://github.com/jcs130/minecraft-ai-friend",
+      "commit": "61b7e9216ccbcda0e7547a05dfbd429097ccb5df",
+      "version": "0.5.7-rc.90"
+    },
+    "serverPack": {
+      "repository": "https://github.com/jcs130/cortico-world-qiandengji",
+      "commit": "e167be5aaaa7f50e500b96092d559d172a89795a",
+      "version": "0.5.0-rc.24"
+    },
+    "adapterBase": "5cce79a25cc4ebf69c138aa3f8c78f3dbf7bc5da"
+  },
+  "mainCandidate": {
+    "adapter": "0.3.0-rc.23",
+    "corePin": "0.5.7-rc.89",
+    "serverPackPin": "0.5.0-rc.24",
+    "registryOnlyDependencies": true,
+    "overrides": false,
+    "corePinReason": "rc90 is an unpublished source candidate; pinning it now makes the default DSH pnpm install fail with ERR_PNPM_NO_MATCHING_VERSION."
+  },
+  "coreCandidate": {
+    "version": "0.5.7-rc.90",
+    "sha256": "02d4c045ba7f69eb32a446f92c32ae7fe560ea9e0da5d50dfe752a8d41d90ee7",
+    "integrity": "sha512-zH8ICysgmByKt32FRaXwyS0ljNcDqlUxx/tlLUya0FEnHGo3sJqgOmSWiRMMfSrFDnnTMF62yUOtSB8+eb6aMQ==",
+    "sourceTests": {
+      "passed": 2098,
+      "failed": 0,
+      "skipped": 1
+    },
+    "typecheck": true,
+    "publicDeclarations": 351,
+    "fullViewerBuild": true,
+    "packedRuntimeAndDeclarationVerification": true,
+    "publicNpmStatus": 404,
+    "publicNpmRelease": false,
+    "readyForDependencyPinAfterPublicRelease": true
+  },
+  "dshRegression": [
+    {
+      "dsh": "0.2.1-rc.2",
+      "tests": 151,
+      "passed": 150,
+      "failed": 0,
+      "skipped": 1,
+      "skippedReason": "Optional external Harness2 worker was not enabled for this core update."
+    },
+    {
+      "dsh": "0.2.1-rc.3",
+      "tests": 151,
+      "passed": 150,
+      "failed": 0,
+      "skipped": 1,
+      "skippedReason": "Optional external Harness2 worker was not enabled for this core update."
+    }
+  ],
+  "packedConsumers": [
+    {
+      "label": "published",
+      "adapter": "0.3.0-rc.23",
+      "core": "0.5.7-rc.89",
+      "serverPack": "0.5.0-rc.24",
+      "sharedPhysicalCore": true,
+      "runtimeFilesCompared": 18,
+      "packedRuntimeVerified": true,
+      "candidateOnlyOverride": false,
+      "defaultPnpmResolution": true,
+      "coreRegistryAvailable": true,
+      "adapterDistribution": "reviewed local archive; not an npm publication",
+      "officialHosts": [
+        {
+          "dsh": "0.2.1-rc.2",
+          "entryOrder": "normal",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.2",
+          "entryOrder": "harness2-first",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "entryOrder": "normal",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "entryOrder": "harness2-first",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        }
+      ]
+    },
+    {
+      "label": "candidate",
+      "adapter": "0.3.0-rc.23",
+      "core": "0.5.7-rc.90",
+      "serverPack": "0.5.0-rc.24",
+      "sharedPhysicalCore": true,
+      "runtimeFilesCompared": 18,
+      "packedRuntimeVerified": true,
+      "candidateOnlyOverride": true,
+      "defaultPnpmResolution": false,
+      "coreRegistryAvailable": false,
+      "adapterDistribution": "reviewed local archive; not an npm publication",
+      "officialHosts": [
+        {
+          "dsh": "0.2.1-rc.2",
+          "entryOrder": "normal",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.2",
+          "entryOrder": "harness2-first",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "entryOrder": "normal",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        },
+        {
+          "dsh": "0.2.1-rc.3",
+          "entryOrder": "harness2-first",
+          "mcpTools": 37,
+          "mainAndWorkerLoaded": true,
+          "mainExternalReferences": true,
+          "workerExternalReferences": true,
+          "offlineEngineIpc": true,
+          "offlineGameMemory": true,
+          "physicsFixtures": 2,
+          "frameworkUnchanged": true,
+          "resolverUnchanged": true,
+          "environmentRestored": true
+        }
+      ]
+    }
+  ],
+  "composterPublicBoundary": [
+    {
+      "core": "0.5.7-rc.89",
+      "sdk": true,
+      "mcp": true,
+      "dshBridge": true,
+      "sameBody": true,
+      "protocol": "Java 1.21.1 synthetic loopback",
+      "summary": {
+        "joins": 1,
+        "usePackets": 0,
+        "seedsBefore": 20,
+        "seedsAfter": 20,
+        "levelBefore": 3,
+        "levelAfter": 3,
+        "boneMealBefore": 0,
+        "boneMealAfter": 0
+      },
+      "terminalConfirmed": false,
+      "sameRequestRetryDoesNotRepeatUse": null
+    },
+    {
+      "core": "0.5.7-rc.90",
+      "sdk": true,
+      "mcp": true,
+      "dshBridge": true,
+      "sameBody": true,
+      "protocol": "Java 1.21.1 synthetic loopback",
+      "summary": {
+        "joins": 1,
+        "usePackets": 1,
+        "seedsBefore": 20,
+        "seedsAfter": 19,
+        "levelBefore": 3,
+        "levelAfter": 3,
+        "boneMealBefore": 0,
+        "boneMealAfter": 0
+      },
+      "terminalConfirmed": true,
+      "sameRequestRetryDoesNotRepeatUse": true
+    }
+  ],
+  "distribution": {
+    "npmLatestAdapter": "0.3.0-rc.22",
+    "npmNextCore": "0.5.7-rc.89",
+    "npmNextServerPack": "0.5.0-rc.24",
+    "adapterRc23Published": false,
+    "marketChanged": false
+  },
+  "boundaries": {
+    "syntheticLocalProtocolConnections": true,
+    "realGameServerConnections": 0,
+    "paidModelCalls": 0,
+    "productionReloads": 0,
+    "newAccountRegistrations": 0,
+    "newRoleOrLiveSpellAcceptance": false,
+    "originalNarutoSessionAndDataTouched": false,
+    "privateCandidateOverrideShipped": false,
+    "originalFrameworkFilesModified": false
+  },
+  "rollback": "Revert the dependency-update merge; the public rc22 release is unchanged. Do not remove account, session, memory or receipt files."
+}

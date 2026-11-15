@@ -1,0 +1,73 @@
+{
+  "schema": "minecraft-compatible-viewer/v1",
+  "verifiedAt": "2026-10-25T14:27:29.462Z",
+  "adapter": "0.3.0-rc.22",
+  "status": "passed-source-hosts-and-packed-core; final-adapter-archive-verified-separately",
+  "core": {
+    "version": "0.5.7-rc.89",
+    "sourceCommit": "340d2afad4cebf62194cd8efcc7755ebe2894900",
+    "sha256": "9fa8f2eb7fff6dcc50b0b7498757a7ab1372071f351bed755341575f3d41a99b",
+    "integrity": "sha512-bsA3+jpbm+tXcEJaQXn/coXqj2q1kxfdLnI0mxHlSWLzMty+hpduGiYPMZHySWNHlIrWyAJC/ZEIkciX1bCmJA==",
+    "bytes": 86369370
+  },
+  "shared": {
+    "commit": "d60328fe7c6e54652779b81e447587b908399ba6",
+    "passed": 1467,
+    "conditionalSkipped": 39,
+    "consolePassed": 7,
+    "typecheck": true
+  },
+  "coreSource": {
+    "passed": 2091,
+    "optionalSkipped": 1,
+    "publicDeclarations": 351,
+    "fullReleaseBuildVerified": true
+  },
+  "hosts": [
+    {
+      "dsh": "0.2.1-rc.2",
+      "passed": 150,
+      "optionalSkipped": 1,
+      "failed": 0
+    },
+    {
+      "dsh": "0.2.1-rc.3",
+      "passed": 150,
+      "optionalSkipped": 1,
+      "failed": 0
+    }
+  ],
+  "packedCoreViewer": {
+    "verifiedAt": "2026-10-25T14:21:44.491Z",
+    "core": "0.5.7-rc.89",
+    "distribution": "packed emitted runtime",
+    "resources": {
+      "mode": "compatible",
+      "requestedVersion": "1.21.4",
+      "assetVersion": "1.21.5"
+    },
+    "bundledFallbackFromEmptyConfiguredCache": true,
+    "actualRegistryInBrowserAndWorker": true,
+    "healthReady": true,
+    "gameConnections": 0,
+    "modelCalls": 0,
+    "productionChanged": false
+  },
+  "browserFixtures": {
+    "exact": "1.21.1",
+    "compatible": {
+      "actual": "1.21.4",
+      "materials": "1.20.6"
+    },
+    "firstAndThirdPerson": true,
+    "webgl": true,
+    "browserErrors": 0,
+    "syntheticWorld": true,
+    "actualGameplayVerified": false
+  },
+  "originalBinaryAssetsUnchanged": 22787,
+  "registryPublicationVerified": false,
+  "productionChanged": false,
+  "externalModelCalls": 0,
+  "productionGameConnections": 0
+}
